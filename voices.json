@@ -1,0 +1,15 @@
+{
+    "English": {
+        "UK": {
+            "female":{
+                "Sonia": "voice-35",
+                "Maisie": "voice-30",
+                "Olivia": "voice-33",
+                "Libby": "voice-29",
+                "Hollie": "voice-28",
+                "Bella": "voice-25",
+                "Abbi": "voice-23"
+            }
+        }
+    }
+}
