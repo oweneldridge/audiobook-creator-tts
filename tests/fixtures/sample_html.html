@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sample HTML Document</title>
+</head>
+<body>
+    <h1>Sample HTML Document</h1>
+
+    <h2>Introduction</h2>
+    <p>This is a sample HTML document used for testing HTML extraction in the Speechma-API system.</p>
+
+    <h2>Content</h2>
+    <p>The HTML parser should extract text content while removing all HTML tags, scripts, and styles.</p>
+
+    <div class="section">
+        <h3>Subsection</h3>
+        <p>Nested elements should be handled properly. Text within <strong>bold</strong> and <em>italic</em> tags should be preserved as plain text.</p>
+    </div>
+
+    <ul>
+        <li>List item one</li>
+        <li>List item two</li>
+        <li>List item three</li>
+    </ul>
+
+    <h2>Conclusion</h2>
+    <p>This sample document provides test data for validating HTML text extraction functionality.</p>
+
+    <script>
+        // This script should be removed during extraction
+        console.log("This should not appear in extracted text");
+    </script>
+
+    <style>
+        /* This CSS should be removed during extraction */
+        body { color: black; }
+    </style>
+</body>
+</html>

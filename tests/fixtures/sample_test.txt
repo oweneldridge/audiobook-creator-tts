@@ -1,0 +1,17 @@
+Sample Text Document for Testing
+
+This is a sample text document used for testing the Speechma-API text-to-speech conversion system.
+
+Chapter 1: Introduction
+
+This document contains multiple paragraphs and sections to test various aspects of the text processing pipeline. The system should be able to handle different text formats and structures.
+
+Chapter 2: Content
+
+The text processing system must chunk long documents into smaller pieces while preserving sentence boundaries. This ensures natural speech flow and prevents awkward pauses in the generated audio.
+
+Special characters like apostrophes', quotation marks", and ampersands & should be properly sanitized before sending to the API.
+
+Chapter 3: Conclusion
+
+This sample document provides a basic test case for validating the core functionality of the text-to-speech system. It contains enough content to generate multiple audio chunks while remaining manageable for testing purposes.
