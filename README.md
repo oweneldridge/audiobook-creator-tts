@@ -14,21 +14,22 @@ playwright install chromium
 
 ## 🎯 Choose Your Mode
 
-### 📚 Document Mode (RECOMMENDED for Books/PDFs)
-**Convert entire EPUB and PDF files to audio**
+### 📚 Document Mode (RECOMMENDED for Books/Documents)
+**Convert documents and ebooks to audio**
 
 ```bash
 python3.11 main_document_mode.py
 ```
 
-✅ Automatic text extraction from PDF/EPUB
+✅ Automatic text extraction from multiple formats
+✅ Supports: PDF, EPUB, DOCX, TXT, HTML, Markdown
 ✅ Smart chunking that preserves sentences
 ✅ Named output: `othello-1.mp3`, `othello-2.mp3`, etc.
 ✅ M4B audiobook creation with chapter markers (requires ffmpeg)
 ✅ Progress tracking with live updates
 ✅ One CAPTCHA solve for unlimited conversions
 
-**Best for:** Books, research papers, long documents
+**Best for:** Books, research papers, Word documents, web articles, Markdown docs
 
 [📖 Document Mode Guide](README_DOCUMENT_MODE.md)
 
@@ -92,7 +93,7 @@ playwright install chromium
 
 3. **Choose your mode and run:**
 
-**For documents (EPUB/PDF):**
+**For documents (PDF, EPUB, DOCX, TXT, HTML, Markdown):**
 ```bash
 python3.11 main_document_mode.py
 ```
@@ -130,7 +131,7 @@ audio/
 
 ### Document Mode Workflow
 
-1. **Extract Text** - Automatically parse PDF or EPUB
+1. **Extract Text** - Automatically parse PDF, EPUB, DOCX, TXT, HTML, or Markdown
 2. **Smart Chunking** - Split text at sentence boundaries (1000 chars default)
 3. **Browser Session** - Solve CAPTCHA once at startup
 4. **Convert** - Process each chunk through Speechma API
@@ -222,6 +223,9 @@ END
 | Convert ebook to audiobook | Document | `Othello.epub` → `othello-1.mp3` ... |
 | Study textbooks | Document | `Biology_Ch5.pdf` → `biology-ch5-1.mp3` ... |
 | Listen to research papers | Document | `paper.pdf` → `paper-1.mp3` ... |
+| Convert Word documents | Document | `report.docx` → `report-1.mp3` ... |
+| Convert web articles | Document | `article.html` → `article-1.mp3` ... |
+| Convert Markdown docs | Document | `README.md` → `readme-1.mp3` ... |
 | Convert short article | Text | Paste text → `audio_chunk_1.mp3` |
 | Custom announcements | Text | Type text → `audio_chunk_1.mp3` |
 
@@ -235,8 +239,12 @@ END
 ### File Format Support
 
 **Document Mode:**
-- ✅ PDF files with searchable text
-- ✅ EPUB ebooks (not DRM-protected)
+- ✅ **PDF** - Searchable text PDFs
+- ✅ **EPUB** - Ebooks (not DRM-protected)
+- ✅ **DOCX** - Microsoft Word documents
+- ✅ **TXT** - Plain text files (auto-detects encoding)
+- ✅ **HTML/HTM** - Web pages and articles
+- ✅ **Markdown (.md)** - Markdown documents
 - ❌ Scanned PDFs (need OCR first)
 - ❌ Images or graphic-only PDFs
 
@@ -301,6 +309,10 @@ END
 │  Text Processing                            │
 │  • PDF extraction (pypdf)                   │
 │  • EPUB extraction (ebooklib)               │
+│  • DOCX extraction (python-docx)            │
+│  • TXT extraction (chardet)                 │
+│  • HTML extraction (BeautifulSoup)          │
+│  • Markdown extraction (mistune)            │
 │  • Smart chunking algorithm                 │
 └──────────────────┬──────────────────────────┘
                    │
@@ -314,11 +326,17 @@ END
 
 ### Dependencies
 
+**Core:**
 - **requests** - HTTP requests
 - **playwright** - Browser automation
+
+**Document Processing:**
 - **pypdf** - PDF text extraction
 - **ebooklib** - EPUB text extraction
+- **python-docx** - DOCX text extraction
+- **chardet** - TXT encoding detection
 - **beautifulsoup4** - HTML parsing
+- **mistune** - Markdown parsing
 
 ### Python Version
 
@@ -335,19 +353,20 @@ Found a bug or have a feature request? Please open an issue!
 ## ⭐ Features
 
 - ✅ Complete 583 voice library (76 languages)
-- ✅ PDF and EPUB conversion
+- ✅ Multiple document formats (PDF, EPUB, DOCX, TXT, HTML, Markdown)
 - ✅ M4B audiobook creation with chapter markers
 - ✅ Persistent browser sessions
 - ✅ Smart text chunking
 - ✅ Progress tracking
 - ✅ Named output files
+- ✅ Automatic encoding detection for text files
 
 ### Future Enhancements
 
 - [ ] Batch processing multiple files
 - [ ] Resume interrupted conversions
 - [ ] Audio file merging options
-- [ ] DOCX and TXT file support
+- [ ] ODT and RTF file support
 
 ## 💡 Tips
 
@@ -380,6 +399,9 @@ This project is based on [Speechma-API](https://github.com/fairy-root/Speechma-A
 **Enhancements in this fork:**
 - Complete 583 voice library extracted from speechma.com
 - Playwright-based persistent browser mode
-- Document conversion features (PDF/EPUB to audiobook)
+- Document conversion features with multi-format support
+  - PDF, EPUB, DOCX, TXT, HTML, Markdown
+- M4B audiobook creation with chapter markers
+- Automatic encoding detection for text files
 - requirements.txt for easy installation
-- Cleaned and updated documentation
+- Comprehensive documentation

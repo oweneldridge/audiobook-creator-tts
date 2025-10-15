@@ -6,6 +6,12 @@ ebooklib>=0.18
 PyPDF2>=3.0.0
 beautifulsoup4>=4.12.0
 
+# Additional document format support
+python-docx>=1.1.0      # DOCX (Microsoft Word) support
+chardet>=5.2.0          # Encoding detection for TXT files
+mistune>=3.0.2          # Markdown parsing
+mobi>=0.3.3             # MOBI/AZW (Kindle) support
+
 # Browser automation (for Playwright-based features)
 playwright>=1.40.0
 
