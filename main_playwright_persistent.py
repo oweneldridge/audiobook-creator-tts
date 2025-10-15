@@ -248,6 +248,18 @@ class PersistentBrowser:
             print_colored(f"❌ Error: {e}", "red")
             return None
 
+    async def restart(self):
+        """
+        Restart browser session (useful when rate-limited)
+        Closes current session and starts fresh with new cookies
+        """
+        print_colored("\n🔄 Restarting browser session...", "yellow")
+        print_colored("   Closing current session...", "cyan")
+        await self.cleanup()
+        print_colored("   Starting new session...", "cyan")
+        await self.initialize()
+        print_colored("✅ Session restart complete!", "green")
+
     async def cleanup(self):
         """Close browser and cleanup"""
         if self.browser:
