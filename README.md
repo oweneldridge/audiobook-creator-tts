@@ -318,6 +318,51 @@ END
 
 ## 🔍 Troubleshooting
 
+### "File browser not available (tkinter not installed)"
+
+**Problem:** File browser (option 1) doesn't work - shows "tkinter not installed" error.
+
+**Quick Solutions:**
+- **Use option 2**: Type or paste text directly (works without tkinter)
+- **Use option 3**: Enter file path manually (works without tkinter)
+- **Use CLI mode**: `python3.11 main_document_mode.py /path/to/file.pdf`
+
+**Why this happens:**
+- tkinter is not included in all Python installations (especially pyenv, conda, or custom builds)
+- File browser is a convenience feature - other input methods work perfectly
+
+**To enable file browser (optional):**
+
+**macOS (with pyenv):**
+```bash
+# Install tcl-tk
+brew install tcl-tk
+
+# Reinstall Python 3.11 with tkinter support
+env \
+  PATH="$(brew --prefix tcl-tk)/bin:$PATH" \
+  LDFLAGS="-L$(brew --prefix tcl-tk)/lib" \
+  CPPFLAGS="-I$(brew --prefix tcl-tk)/include" \
+  PKG_CONFIG_PATH="$(brew --prefix tcl-tk)/lib/pkgconfig" \
+  CFLAGS="-I$(brew --prefix tcl-tk)/include" \
+  PYTHON_CONFIGURE_OPTS="--with-tcltk-includes='-I$(brew --prefix tcl-tk)/include' --with-tcltk-libs='-L$(brew --prefix tcl-tk)/lib -ltcl8.6 -ltk8.6'" \
+  pyenv install --force 3.11.11
+
+# Verify installation
+python3.11 -c "import tkinter; print('✅ tkinter works!')"
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install python3-tk
+```
+
+**Windows:**
+- tkinter is usually included by default
+- If missing, reinstall Python from python.org with "tcl/tk and IDLE" option checked
+
+---
+
 ### "No text extracted from PDF"
 - PDF might be scanned images (needs OCR)
 - Verify PDF has selectable text
