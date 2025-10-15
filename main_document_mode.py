@@ -15,6 +15,14 @@ from pathlib import Path
 from typing import Optional, List, Dict, Tuple
 from dataclasses import dataclass
 
+# File dialog support
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+    TKINTER_AVAILABLE = True
+except ImportError:
+    TKINTER_AVAILABLE = False
+
 # PDF parsing
 from pypdf import PdfReader
 
@@ -54,6 +62,115 @@ from main import (
 
 # Import Playwright browser
 from main_playwright_persistent import PersistentBrowser
+
+
+def select_file_with_dialog() -> Optional[str]:
+    """
+    Open native file dialog for selecting a document
+
+    Returns:
+        Selected file path, or None if cancelled or unavailable
+    """
+    if not TKINTER_AVAILABLE:
+        print_colored("❌ File browser not available (tkinter not installed)", "red")
+        print_colored("Please install tkinter or enter file path manually", "yellow")
+        return None
+
+    try:
+        # Create hidden root window
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+
+        # Define file type filters
+        filetypes = [
+            ("All Supported Documents", "*.pdf *.epub *.docx *.txt *.html *.htm *.md *.markdown"),
+            ("PDF Documents", "*.pdf"),
+            ("EPUB E-books", "*.epub"),
+            ("Word Documents", "*.docx"),
+            ("Text Files", "*.txt"),
+            ("HTML Files", "*.html *.htm"),
+            ("Markdown Files", "*.md *.markdown"),
+            ("All Files", "*.*")
+        ]
+
+        # Open file dialog
+        file_path = filedialog.askopenfilename(
+            title="Select Document to Convert",
+            filetypes=filetypes,
+            initialdir=os.path.expanduser("~")
+        )
+
+        # Cleanup
+        root.destroy()
+
+        # Return path or None if cancelled
+        return file_path if file_path else None
+
+    except Exception as e:
+        print_colored(f"❌ File browser error: {e}", "red")
+        return None
+
+
+def get_plaintext_input() -> Tuple[Optional[str], Optional[str]]:
+    """
+    Get plaintext input from user with custom naming
+
+    Returns:
+        Tuple of (text, output_name) or (None, None) if cancelled
+    """
+    # Ask for custom name first
+    print_colored("\n📝 Custom Output Name", "cyan")
+    print_colored("(This will be used for output files: name-1.mp3, name-2.mp3, etc.)", "yellow")
+
+    while True:
+        output_name = input_colored("\nWhat would you like to name this conversion? ", "blue").strip()
+
+        if not output_name:
+            print_colored("Name cannot be empty", "red")
+            continue
+
+        # Sanitize name for safe filename
+        # Convert to lowercase, alphanumeric with hyphens only
+        sanitized_name = re.sub(r'[^a-z0-9]+', '-', output_name.lower()).strip('-')
+
+        if not sanitized_name:
+            print_colored("Invalid name - please use letters and numbers", "red")
+            continue
+
+        # Show user the sanitized version
+        if sanitized_name != output_name.lower():
+            print_colored(f"   Sanitized to: {sanitized_name}", "yellow")
+
+        print_colored(f"✅ Output files will be: {sanitized_name}-1.mp3, {sanitized_name}-2.mp3, etc.", "green")
+        break
+
+    # Get multiline text input
+    print_colored("\n📝 Enter your text:", "cyan")
+    print_colored("(Type END on a new line when finished)", "yellow")
+    print_colored("(Minimum 10 characters required)", "yellow")
+
+    lines = []
+    while True:
+        try:
+            line = input()
+            if line == "END":
+                break
+            lines.append(line)
+        except EOFError:
+            break
+
+    # Join lines with space and clean up
+    text = " ".join(lines).replace("  ", " ").strip()
+
+    # Validate minimum length
+    if len(text) < 10:
+        print_colored("❌ Text too short (minimum 10 characters)", "red")
+        return None, None
+
+    print_colored(f"\n✅ Received {len(text)} characters", "green")
+
+    return text, sanitized_name
 
 
 def check_ffmpeg_installed() -> bool:
@@ -1537,7 +1654,7 @@ async def main():
     print_colored("📚 Speechma TTS - Document Mode", "magenta")
     print_colored("="*60, "cyan")
     print_colored("Convert documents and ebooks to audio", "yellow")
-    print_colored("Supported: PDF, EPUB, DOCX, TXT, HTML, Markdown", "yellow")
+    print_colored("Supported: PDF, EPUB, DOCX, TXT, HTML, Markdown, Plaintext", "yellow")
     print_colored("="*60, "cyan")
 
     # Load voices
@@ -1549,6 +1666,16 @@ async def main():
     stats = count_voice_stats(voices)
     print_colored(f"\n📊 Voice Library: {stats['total']} voices", "yellow")
 
+    # Check for CLI argument (file path)
+    cli_file_path = None
+    if len(sys.argv) > 1:
+        cli_file_path = sys.argv[1].strip().strip('"').strip("'")
+        if os.path.exists(cli_file_path):
+            print_colored(f"\n📄 File provided via CLI: {cli_file_path}", "green")
+        else:
+            print_colored(f"\n❌ File not found: {cli_file_path}", "red")
+            cli_file_path = None
+
     # Initialize browser (one-time)
     browser = PersistentBrowser()
 
@@ -1558,24 +1685,63 @@ async def main():
         # Main loop
         while True:
             print_colored("\n" + "="*60, "blue")
-            print_colored("NEW DOCUMENT CONVERSION", "blue")
+            print_colored("NEW CONVERSION", "blue")
             print_colored("="*60, "blue")
 
-            # Get document file
-            while True:
-                file_path = input_colored("\n📄 Enter document path: ", "green").strip()
+            # Determine input method
+            file_path = None
+            text = None
+            output_name = None
 
-                # Remove quotes if present
-                file_path = file_path.strip('"').strip("'")
+            # Use CLI file path if provided (only on first iteration)
+            if cli_file_path:
+                file_path = cli_file_path
+                cli_file_path = None  # Clear so it doesn't repeat
+            else:
+                # Present choice menu
+                print_colored("\n📝 Input Method:", "cyan")
+                print_colored("   1. Select file (opens file browser)", "green")
+                print_colored("   2. Type or paste text", "green")
+                print_colored("   3. Enter file path manually", "green")
 
-                if not file_path:
-                    print_colored("Please enter a file path", "red")
-                    continue
+                while True:
+                    choice = input_colored("\nChoice (1, 2, or 3): ", "blue").strip()
 
-                if not os.path.exists(file_path):
-                    print_colored(f"❌ File not found: {file_path}", "red")
-                    continue
+                    if choice == '1':
+                        # Open file browser
+                        file_path = select_file_with_dialog()
+                        if not file_path:
+                            print_colored("File selection cancelled", "yellow")
+                            continue
+                        break
+                    elif choice == '2':
+                        # Get plaintext input
+                        text, output_name = get_plaintext_input()
+                        if not text:
+                            print_colored("Text input cancelled", "yellow")
+                            continue
+                        break
+                    elif choice == '3':
+                        # Manual file path entry
+                        manual_path = input_colored("\n📄 Enter document path: ", "green").strip()
+                        manual_path = manual_path.strip('"').strip("'")
 
+                        if not manual_path:
+                            print_colored("Please enter a file path", "red")
+                            continue
+
+                        if not os.path.exists(manual_path):
+                            print_colored(f"❌ File not found: {manual_path}", "red")
+                            continue
+
+                        file_path = manual_path
+                        break
+                    else:
+                        print_colored("Please enter 1, 2, or 3", "red")
+
+            # Process file or plaintext
+            if file_path:
+                # Validate file format
                 suffix = Path(file_path).suffix.lower()
                 supported_formats = ['.pdf', '.epub', '.docx', '.txt', '.html', '.htm', '.md', '.markdown']
                 if suffix not in supported_formats:
@@ -1583,18 +1749,29 @@ async def main():
                     print_colored("Supported: .pdf, .epub, .docx, .txt, .html, .htm, .md, .markdown", "yellow")
                     continue
 
-                break
+                # Extract text from file
+                print_colored(f"\n{'='*60}", "cyan")
+                text = DocumentParser.parse_document(file_path)
+                print_colored(f"{'='*60}", "cyan")
 
-            # Extract text
-            print_colored(f"\n{'='*60}", "cyan")
-            text = DocumentParser.parse_document(file_path)
-            print_colored(f"{'='*60}", "cyan")
+                if not text or len(text) < 10:
+                    print_colored("❌ No text extracted or text too short", "red")
+                    continue
 
-            if not text or len(text) < 10:
-                print_colored("❌ No text extracted or text too short", "red")
+                # Get output name from filename
+                base_name = Path(file_path).stem
+                # Clean filename for output (lowercase, alphanumeric only)
+                output_name = re.sub(r'[^a-z0-9]+', '-', base_name.lower()).strip('-')
+
+            elif text and output_name:
+                # Plaintext input already has text and output_name set
+                pass
+            else:
+                # Should not reach here
+                print_colored("❌ No valid input provided", "red")
                 continue
 
-            # Show text preview
+            # Show text preview and statistics
             preview = text[:200].replace('\n', ' ')
             print_colored(f"\n📝 Text preview:", "yellow")
             print(f"   {preview}...")
@@ -1614,11 +1791,6 @@ async def main():
             if not voice_id:
                 print_colored("Voice selection cancelled.", "yellow")
                 continue
-
-            # Get output name from filename
-            base_name = Path(file_path).stem
-            # Clean filename for output (lowercase, alphanumeric only)
-            output_name = re.sub(r'[^a-z0-9]+', '-', base_name.lower()).strip('-')
 
             print_colored(f"\n🎵 Output files will be named: {output_name}-1.mp3, {output_name}-2.mp3, etc.", "cyan")
 

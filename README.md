@@ -18,18 +18,27 @@ playwright install chromium
 **Convert documents and ebooks to audio**
 
 ```bash
+# Interactive mode
 python3.11 main_document_mode.py
+
+# CLI mode (provide file path as argument)
+python3.11 main_document_mode.py /path/to/document.pdf
 ```
 
+✅ **Three input methods:**
+  - 📂 File browser (native OS file picker)
+  - ✍️  Plaintext input (type or paste directly)
+  - ⌨️  Manual file path entry
+
 ✅ Automatic text extraction from multiple formats
-✅ Supports: PDF, EPUB, DOCX, TXT, HTML, Markdown
+✅ Supports: PDF, EPUB, DOCX, TXT, HTML, Markdown, Plaintext
 ✅ Smart chunking that preserves sentences
 ✅ Named output: `othello-1.mp3`, `othello-2.mp3`, etc.
 ✅ M4B audiobook creation with chapter markers (requires ffmpeg)
 ✅ Progress tracking with live updates
 ✅ One CAPTCHA solve for unlimited conversions
 
-**Best for:** Books, research papers, Word documents, web articles, Markdown docs
+**Best for:** Books, research papers, Word documents, web articles, Markdown docs, custom text
 
 [📖 Document Mode Guide](README_DOCUMENT_MODE.md)
 
@@ -165,35 +174,80 @@ Adjust how text is split (default: 1000 characters):
 
 ## 📝 Examples
 
-### Convert an EPUB Book
+### Example 1: Convert a Document with File Browser
 
 ```bash
 $ python3.11 main_document_mode.py
 
-📄 Enter document path: ~/Downloads/Othello.epub
+📝 Input Method:
+   1. Select file (opens file browser)
+   2. Type or paste text
+   3. Enter file path manually
+
+Choice (1, 2, or 3): 1
+
+[Native file picker opens - select your document]
 
 📚 Reading EPUB...
 ✅ Extracted 145,230 characters from EPUB
 
-Voice number (1-583): 12
+📝 Text preview:
+   To be or not to be, that is the question...
 
-✂️  Splitting text into chunks...
-✅ Created 147 chunks
+📏 Total characters: 145,230
+🔢 Estimated chunks: ~146
 
-[1/147] Processing chunk 1 (1%)...
-   ✅ Saved othello-1.mp3 (42.3 KB)
-...
+Proceed with conversion? (y/n): y
 
-============================================================
+[Voice selection...]
+✅ Using voice: Emma (US Female)
+
+🎵 Output files will be named: othello-1.mp3, othello-2.mp3, etc.
+
+[Processing...]
 ✅ Successful: 147/147 chunks
-📁 Output: audio/othello_2025-01-14-10-30-45
+📖 Creating M4B audiobook: othello.m4b
+```
 
-📖 Creating M4B audiobook: othello
-🎬 Converting to M4B with chapter markers...
-✅ Created M4B audiobook: othello.m4b (125.3 MB)
+### Example 2: Convert Plaintext
 
-🎧 Audiobook ready: audio/othello_2025-01-14-10-30-45/othello.m4b
-============================================================
+```bash
+$ python3.11 main_document_mode.py
+
+📝 Input Method:
+   1. Select file (opens file browser)
+   2. Type or paste text
+   3. Enter file path manually
+
+Choice (1, 2, or 3): 2
+
+📝 Custom Output Name
+What would you like to name this conversion? Meeting Notes
+
+✅ Output files will be: meeting-notes-1.mp3, meeting-notes-2.mp3, etc.
+
+📝 Enter your text:
+(Type END on a new line when finished)
+(Minimum 10 characters required)
+
+Today's meeting covered the quarterly results.
+We discussed revenue growth and market expansion.
+Action items were assigned to each team member.
+END
+
+✅ Received 152 characters
+
+[Processing continues...]
+```
+
+### Example 3: CLI Mode (Automation)
+
+```bash
+$ python3.11 main_document_mode.py ~/Documents/report.pdf
+
+📄 File provided via CLI: ~/Documents/report.pdf
+
+[Conversion proceeds directly with interactive prompts for voice and chunk size]
 ```
 
 ### Convert Short Text
@@ -218,16 +272,18 @@ END
 
 ## 🎯 Use Cases
 
-| Use Case | Mode | Example |
-|----------|------|---------|
-| Convert ebook to audiobook | Document | `Othello.epub` → `othello-1.mp3` ... |
-| Study textbooks | Document | `Biology_Ch5.pdf` → `biology-ch5-1.mp3` ... |
-| Listen to research papers | Document | `paper.pdf` → `paper-1.mp3` ... |
-| Convert Word documents | Document | `report.docx` → `report-1.mp3` ... |
-| Convert web articles | Document | `article.html` → `article-1.mp3` ... |
-| Convert Markdown docs | Document | `README.md` → `readme-1.mp3` ... |
-| Convert short article | Text | Paste text → `audio_chunk_1.mp3` |
-| Custom announcements | Text | Type text → `audio_chunk_1.mp3` |
+| Use Case | Mode | Input Method | Example |
+|----------|------|--------------|---------|
+| Convert ebook to audiobook | Document | File Browser/CLI | `Othello.epub` → `othello-1.mp3` ... |
+| Study textbooks | Document | File Browser/CLI | `Biology_Ch5.pdf` → `biology-ch5-1.mp3` ... |
+| Listen to research papers | Document | File Browser/Path | `paper.pdf` → `paper-1.mp3` ... |
+| Convert Word documents | Document | File Browser/CLI | `report.docx` → `report-1.mp3` ... |
+| Convert web articles | Document | File Browser/Path | `article.html` → `article-1.mp3` ... |
+| Convert Markdown docs | Document | File Browser/Path | `README.md` → `readme-1.mp3` ... |
+| Convert meeting notes | Document | Plaintext Input | Type text → `meeting-notes-1.mp3` ... |
+| Quick announcements | Document | Plaintext Input | Paste text → `announcement-1.mp3` ... |
+| Script automation | Document | CLI Argument | `script.sh` passes file path |
+| Batch processing | Document | CLI Argument | Loop through files programmatically |
 
 ## ⚠️ Important Notes
 
