@@ -26,6 +26,25 @@ from bs4 import BeautifulSoup
 # XML parsing for EPUB TOC
 from xml.etree import ElementTree as ET
 
+# Additional document format support
+try:
+    from docx import Document as DocxDocument  # DOCX support
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+
+try:
+    import chardet  # Encoding detection for TXT
+    CHARDET_AVAILABLE = True
+except ImportError:
+    CHARDET_AVAILABLE = False
+
+try:
+    import mistune  # Markdown parsing
+    MISTUNE_AVAILABLE = True
+except ImportError:
+    MISTUNE_AVAILABLE = False
+
 # Import from main.py
 sys.path.insert(0, os.path.dirname(__file__))
 from main import (
@@ -808,6 +827,133 @@ class DocumentParser:
             return ""
 
     @staticmethod
+    def extract_text_from_docx(file_path: str) -> str:
+        """Extract text from DOCX (Microsoft Word) file"""
+        if not DOCX_AVAILABLE:
+            print_colored("❌ python-docx library not installed", "red")
+            print_colored("Install with: pip install python-docx", "yellow")
+            return ""
+
+        print_colored(f"📄 Reading DOCX: {file_path}", "cyan")
+
+        try:
+            doc = DocxDocument(file_path)
+            text_parts = []
+
+            # Extract text from all paragraphs
+            for paragraph in doc.paragraphs:
+                text = paragraph.text.strip()
+                if text:
+                    text_parts.append(text)
+
+            full_text = "\n\n".join(text_parts)
+            print_colored(f"✅ Extracted {len(full_text)} characters from DOCX", "green")
+            return full_text
+
+        except Exception as e:
+            print_colored(f"❌ Error reading DOCX: {e}", "red")
+            return ""
+
+    @staticmethod
+    def extract_text_from_txt(file_path: str) -> str:
+        """Extract text from TXT file with encoding detection"""
+        print_colored(f"📄 Reading TXT: {file_path}", "cyan")
+
+        try:
+            # Try to detect encoding
+            encoding = 'utf-8'  # Default encoding
+
+            if CHARDET_AVAILABLE:
+                with open(file_path, 'rb') as f:
+                    raw_data = f.read()
+                    result = chardet.detect(raw_data)
+                    if result and result['encoding']:
+                        encoding = result['encoding']
+                        print_colored(f"📝 Detected encoding: {encoding}", "yellow")
+
+            # Read file with detected encoding
+            with open(file_path, 'r', encoding=encoding, errors='ignore') as f:
+                text = f.read()
+
+            print_colored(f"✅ Extracted {len(text)} characters from TXT", "green")
+            return text
+
+        except Exception as e:
+            print_colored(f"❌ Error reading TXT: {e}", "red")
+            return ""
+
+    @staticmethod
+    def extract_text_from_html(file_path: str) -> str:
+        """Extract text from HTML file"""
+        print_colored(f"📄 Reading HTML: {file_path}", "cyan")
+
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                html_content = f.read()
+
+            soup = BeautifulSoup(html_content, 'html.parser')
+
+            # Remove script, style, and navigation elements
+            for element in soup(['script', 'style', 'nav', 'header', 'footer']):
+                element.decompose()
+
+            # Try to find main content area
+            main_content = soup.find(['article', 'main', 'div'])
+            if main_content:
+                text = main_content.get_text()
+            else:
+                text = soup.get_text()
+
+            # Clean up whitespace
+            lines = (line.strip() for line in text.splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = '\n'.join(chunk for chunk in chunks if chunk)
+
+            print_colored(f"✅ Extracted {len(text)} characters from HTML", "green")
+            return text
+
+        except Exception as e:
+            print_colored(f"❌ Error reading HTML: {e}", "red")
+            return ""
+
+    @staticmethod
+    def extract_text_from_markdown(file_path: str) -> str:
+        """Extract text from Markdown file"""
+        print_colored(f"📄 Reading Markdown: {file_path}", "cyan")
+
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                markdown_content = f.read()
+
+            if MISTUNE_AVAILABLE:
+                # Parse markdown to HTML then extract text
+                markdown = mistune.create_markdown()
+                html = markdown(markdown_content)
+                soup = BeautifulSoup(html, 'html.parser')
+                text = soup.get_text()
+            else:
+                # Fallback: simple cleanup of markdown syntax
+                print_colored("⚠️  mistune not available, using basic markdown parsing", "yellow")
+                text = markdown_content
+                # Remove markdown headers
+                text = re.sub(r'^#+\s+', '', text, flags=re.MULTILINE)
+                # Remove bold/italic markers
+                text = re.sub(r'[*_]{1,2}([^*_]+)[*_]{1,2}', r'\1', text)
+                # Remove links
+                text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+
+            # Clean up whitespace
+            lines = (line.strip() for line in text.splitlines())
+            text = '\n'.join(line for line in lines if line)
+
+            print_colored(f"✅ Extracted {len(text)} characters from Markdown", "green")
+            return text
+
+        except Exception as e:
+            print_colored(f"❌ Error reading Markdown: {e}", "red")
+            return ""
+
+    @staticmethod
     def parse_document(file_path: str) -> str:
         """Automatically detect file type and extract text"""
         file_path = Path(file_path)
@@ -822,9 +968,17 @@ class DocumentParser:
             return DocumentParser.extract_text_from_pdf(str(file_path))
         elif suffix == '.epub':
             return DocumentParser.extract_text_from_epub(str(file_path))
+        elif suffix == '.docx':
+            return DocumentParser.extract_text_from_docx(str(file_path))
+        elif suffix == '.txt':
+            return DocumentParser.extract_text_from_txt(str(file_path))
+        elif suffix in ['.html', '.htm']:
+            return DocumentParser.extract_text_from_html(str(file_path))
+        elif suffix in ['.md', '.markdown']:
+            return DocumentParser.extract_text_from_markdown(str(file_path))
         else:
             print_colored(f"❌ Unsupported file type: {suffix}", "red")
-            print_colored("Supported formats: .pdf, .epub", "yellow")
+            print_colored("Supported formats: .pdf, .epub, .docx, .txt, .html, .htm, .md, .markdown", "yellow")
             return ""
 
 
@@ -1382,7 +1536,8 @@ async def main():
     print_colored("\n" + "="*60, "cyan")
     print_colored("📚 Speechma TTS - Document Mode", "magenta")
     print_colored("="*60, "cyan")
-    print_colored("Convert EPUB and PDF files to audio", "yellow")
+    print_colored("Convert documents and ebooks to audio", "yellow")
+    print_colored("Supported: PDF, EPUB, DOCX, TXT, HTML, Markdown", "yellow")
     print_colored("="*60, "cyan")
 
     # Load voices
@@ -1408,7 +1563,7 @@ async def main():
 
             # Get document file
             while True:
-                file_path = input_colored("\n📄 Enter document path (PDF or EPUB): ", "green").strip()
+                file_path = input_colored("\n📄 Enter document path: ", "green").strip()
 
                 # Remove quotes if present
                 file_path = file_path.strip('"').strip("'")
@@ -1422,9 +1577,10 @@ async def main():
                     continue
 
                 suffix = Path(file_path).suffix.lower()
-                if suffix not in ['.pdf', '.epub']:
+                supported_formats = ['.pdf', '.epub', '.docx', '.txt', '.html', '.htm', '.md', '.markdown']
+                if suffix not in supported_formats:
                     print_colored(f"❌ Unsupported format: {suffix}", "red")
-                    print_colored("Supported: .pdf, .epub", "yellow")
+                    print_colored("Supported: .pdf, .epub, .docx, .txt, .html, .htm, .md, .markdown", "yellow")
                     continue
 
                 break
