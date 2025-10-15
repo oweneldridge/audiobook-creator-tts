@@ -7,6 +7,7 @@ Convert entire EPUB and PDF documents to audio with automatic text extraction an
 ✅ **Automatic text extraction** from PDF and EPUB files
 ✅ **Smart chunking** that preserves sentence boundaries
 ✅ **Named output files** based on input filename (e.g., `othello-1.mp3`, `othello-2.mp3`)
+✅ **M4B audiobook creation** with chapter markers (requires ffmpeg)
 ✅ **Progress tracking** with live updates
 ✅ **One-time CAPTCHA** solve, then convert unlimited documents
 ✅ **Configurable chunk size** (100-2000 characters)
@@ -97,6 +98,12 @@ Chunk size in characters (default: 1000, max: 2000): 1000
 ✅ Successful: 147/147 chunks
 📁 Output: audio/othello_2025-01-14-10-30-45
 🎵 Files: othello-1.mp3 through othello-147.mp3
+
+📖 Creating M4B audiobook: othello
+🎬 Converting to M4B with chapter markers...
+✅ Created M4B audiobook: othello.m4b (125.3 MB)
+
+🎧 Audiobook ready: audio/othello_2025-01-14-10-30-45/othello.m4b
 ============================================================
 
 🔄 Convert another document? (y/n): n
@@ -131,7 +138,8 @@ audio/
       ├── othello-1.mp3
       ├── othello-2.mp3
       ├── othello-3.mp3
-      └── ...
+      ├── ...
+      └── othello.m4b        (M4B audiobook with chapter markers)
 ```
 
 Example:
@@ -141,7 +149,9 @@ audio/
       ├── othello-1.mp3      (42.3 KB)
       ├── othello-2.mp3      (43.1 KB)
       ├── othello-3.mp3      (41.8 KB)
-      └── ...
+      ├── ...
+      ├── othello-147.mp3    (41.2 KB)
+      └── othello.m4b        (125.3 MB - complete audiobook)
 ```
 
 ## Smart Chunking
@@ -169,6 +179,50 @@ Make sure you have all dependencies:
 pip install -r requirements.txt
 playwright install chromium
 ```
+
+**For M4B audiobook creation** (optional but recommended):
+```bash
+# macOS
+brew install ffmpeg
+
+# Ubuntu/Debian
+sudo apt-get install ffmpeg
+
+# Windows
+# Download from https://ffmpeg.org/download.html
+```
+
+## M4B Audiobook Creation
+
+After converting all MP3 chunks, the script automatically creates a single M4B audiobook file with chapter markers. Each chunk becomes a chapter, making it easy to navigate through the book.
+
+**Features:**
+- **Single File** - All audio combined into one M4B file
+- **Chapter Markers** - Each chunk becomes a navigable chapter
+- **Metadata** - Includes book title and chapter information
+- **Compatibility** - Works with Apple Books, Audiobook players, and most media players
+- **Automatic Creation** - Runs automatically after successful conversion
+
+**Requirements:**
+- ffmpeg must be installed (see Installation section above)
+- All MP3 chunks must be successfully generated
+
+**Example Output:**
+```
+📖 Creating M4B audiobook: othello
+🎬 Converting to M4B with chapter markers...
+   Adding 147 chapters...
+   Merging audio files...
+   Writing metadata...
+✅ Created M4B audiobook: othello.m4b (125.3 MB)
+
+🎧 Audiobook ready: audio/othello_2025-01-14-10-30-45/othello.m4b
+```
+
+**What if ffmpeg is not installed?**
+- Script will skip M4B creation and show a warning
+- You'll still have all individual MP3 files
+- You can install ffmpeg later and manually create M4B if needed
 
 ## Features in Detail
 
@@ -283,6 +337,7 @@ Real-time updates:
 |---------|--------------|-----------|
 | Input | PDF/EPUB files | Copy/paste text |
 | Output naming | `filename-N.mp3` | `audio_chunk_N.mp3` |
+| M4B audiobook | ✅ Yes (with ffmpeg) | ❌ No |
 | Text extraction | Automatic | Manual |
 | Best for | Books, long documents | Short texts, articles |
 | Chunk count | 50-500+ | 1-20 |
