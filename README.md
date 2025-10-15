@@ -24,6 +24,7 @@ python3.11 main_document_mode.py
 ✅ Automatic text extraction from PDF/EPUB
 ✅ Smart chunking that preserves sentences
 ✅ Named output: `othello-1.mp3`, `othello-2.mp3`, etc.
+✅ M4B audiobook creation with chapter markers (requires ffmpeg)
 ✅ Progress tracking with live updates
 ✅ One CAPTCHA solve for unlimited conversions
 
@@ -80,8 +81,13 @@ python3.11 main.py
 
 2. **Install dependencies:**
 ```bash
-pip install requests playwright pypdf ebooklib beautifulsoup4
+pip install -r requirements.txt
 playwright install chromium
+
+# For M4B audiobook creation (optional but recommended)
+# macOS: brew install ffmpeg
+# Ubuntu/Debian: sudo apt-get install ffmpeg
+# Windows: Download from https://ffmpeg.org/download.html
 ```
 
 3. **Choose your mode and run:**
@@ -107,7 +113,8 @@ audio/
       ├── othello-1.mp3
       ├── othello-2.mp3
       ├── othello-3.mp3
-      └── ...
+      ├── ...
+      └── othello.m4b        (Complete audiobook with chapter markers)
 ```
 
 ### Text Mode
@@ -128,6 +135,7 @@ audio/
 3. **Browser Session** - Solve CAPTCHA once at startup
 4. **Convert** - Process each chunk through Speechma API
 5. **Named Output** - Save as `filename-1.mp3`, `filename-2.mp3`, etc.
+6. **Create M4B** - Combine all MP3s into single audiobook with chapter markers (requires ffmpeg)
 
 ### Text Mode Workflow
 
@@ -178,6 +186,12 @@ Voice number (1-583): 12
 ============================================================
 ✅ Successful: 147/147 chunks
 📁 Output: audio/othello_2025-01-14-10-30-45
+
+📖 Creating M4B audiobook: othello
+🎬 Converting to M4B with chapter markers...
+✅ Created M4B audiobook: othello.m4b (125.3 MB)
+
+🎧 Audiobook ready: audio/othello_2025-01-14-10-30-45/othello.m4b
 ============================================================
 ```
 
@@ -322,6 +336,7 @@ Found a bug or have a feature request? Please open an issue!
 
 - ✅ Complete 583 voice library (76 languages)
 - ✅ PDF and EPUB conversion
+- ✅ M4B audiobook creation with chapter markers
 - ✅ Persistent browser sessions
 - ✅ Smart text chunking
 - ✅ Progress tracking
