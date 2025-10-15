@@ -1470,11 +1470,32 @@ async def process_chapters_to_speech(
                     print_colored(f"Progress: {success_count}/{total_chunks} chunks completed", "cyan")
                     print_colored(f"Current: Chapter {chapter.number}, Chunk {chunk_idx}/{len(chapter.chunks)}", "cyan")
                     print_colored("\nOptions:", "yellow")
-                    print_colored("  1. Wait a few minutes and press Enter to continue", "green")
-                    print_colored("  2. Press Ctrl+C to stop and resume later", "red")
+                    print_colored("  1. Restart browser session and solve CAPTCHA (recommended)", "green")
+                    print_colored("  2. Wait a few minutes and retry with same session", "yellow")
+                    print_colored("  3. Press Ctrl+C to stop and resume later", "red")
                     print_colored("="*60, "yellow")
-                    input("\nPress Enter when ready to continue...")
-                    print_colored("🔄 Resuming...", "green")
+
+                    while True:
+                        choice = input_colored("\nChoice (1, 2, or 3): ", "blue").strip()
+                        if choice == '1':
+                            # Restart browser session - gets fresh cookies, bypasses rate limit
+                            await browser.restart()
+                            print_colored("🔄 Session restarted! Retrying chunk...", "green")
+                            break
+                        elif choice == '2':
+                            # Wait and retry with same session (may not work if still rate-limited)
+                            print_colored("⏳ Waiting... press Enter when ready to retry", "yellow")
+                            input()
+                            print_colored("🔄 Retrying...", "green")
+                            break
+                        elif choice == '3':
+                            print_colored("⚠️  Press Ctrl+C to exit, or Enter to go back to menu", "yellow")
+                            input()
+                            # Loop back to menu
+                            continue
+                        else:
+                            print_colored("Please enter 1, 2, or 3", "red")
+
                     # Continue to next retry attempt
                     continue
 
@@ -1611,6 +1632,44 @@ async def process_document_to_speech(
 
         for attempt in range(max_retries):
             audio_data = await browser.request_audio(chunk, voice_id)
+
+            # Check for rate limit
+            if audio_data == 'RATE_LIMIT':
+                print_colored("\n" + "="*60, "yellow")
+                print_colored("⏸️  RATE LIMIT REACHED", "yellow")
+                print_colored("="*60, "yellow")
+                print_colored("The API has rate-limited your requests.", "yellow")
+                print_colored(f"Progress: {success_count}/{len(chunks)} chunks completed", "cyan")
+                print_colored(f"Current: Chunk {i}/{len(chunks)}", "cyan")
+                print_colored("\nOptions:", "yellow")
+                print_colored("  1. Restart browser session and solve CAPTCHA (recommended)", "green")
+                print_colored("  2. Wait a few minutes and retry with same session", "yellow")
+                print_colored("  3. Press Ctrl+C to stop and resume later", "red")
+                print_colored("="*60, "yellow")
+
+                while True:
+                    choice = input_colored("\nChoice (1, 2, or 3): ", "blue").strip()
+                    if choice == '1':
+                        # Restart browser session - gets fresh cookies, bypasses rate limit
+                        await browser.restart()
+                        print_colored("🔄 Session restarted! Retrying chunk...", "green")
+                        break
+                    elif choice == '2':
+                        # Wait and retry with same session (may not work if still rate-limited)
+                        print_colored("⏳ Waiting... press Enter when ready to retry", "yellow")
+                        input()
+                        print_colored("🔄 Retrying...", "green")
+                        break
+                    elif choice == '3':
+                        print_colored("⚠️  Press Ctrl+C to exit, or Enter to go back to menu", "yellow")
+                        input()
+                        # Loop back to menu
+                        continue
+                    else:
+                        print_colored("Please enter 1, 2, or 3", "red")
+
+                # Continue to next retry attempt
+                continue
 
             if audio_data:
                 # Save with document name prefix
