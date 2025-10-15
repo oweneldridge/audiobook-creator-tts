@@ -30,7 +30,7 @@ from xml.etree import ElementTree as ET
 sys.path.insert(0, os.path.dirname(__file__))
 from main import (
     print_colored, input_colored, load_voices, display_voices,
-    get_voice_id, validate_text, count_voice_stats
+    get_voice_id, validate_text, count_voice_stats, select_voice_interactive
 )
 
 # Import Playwright browser
@@ -1453,23 +1453,10 @@ async def main():
             if confirm != 'y':
                 continue
 
-            # Select voice
-            show_ids = input_colored("\nShow voice IDs? (y/n, default: n): ", "blue").lower() == 'y'
-            print_colored("\n📋 Available voices:", "blue")
-            total_voices = display_voices(voices, show_ids=show_ids)
-
-            try:
-                choice = int(input_colored(f"\nVoice number (1-{total_voices}): ", "green"))
-                if choice < 1 or choice > total_voices:
-                    print_colored("Invalid choice", "red")
-                    continue
-            except ValueError:
-                print_colored("Invalid input", "red")
-                continue
-
-            voice_id, _ = get_voice_id(voices, choice)
+            # Use interactive voice selection
+            voice_id, voice_name = select_voice_interactive(voices)
             if not voice_id:
-                print_colored("Invalid voice", "red")
+                print_colored("Voice selection cancelled.", "yellow")
                 continue
 
             # Get output name from filename
