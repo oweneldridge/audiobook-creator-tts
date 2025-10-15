@@ -1,19 +1,32 @@
-# Core dependencies
-requests>=2.31.0
+# Speechma-API Production Dependencies
+# Install with: pip install -r requirements.txt
 
-# Document processing (for EPUB/PDF conversion)
-ebooklib>=0.18
-PyPDF2>=3.0.0
-beautifulsoup4>=4.12.0
+# HTTP Requests
+requests==2.32.5
 
-# Additional document format support
-python-docx>=1.1.0      # DOCX (Microsoft Word) support
-chardet>=5.2.0          # Encoding detection for TXT files
-mistune>=3.0.2          # Markdown parsing
-mobi>=0.3.3             # MOBI/AZW (Kindle) support
+# Browser Automation
+playwright==1.51.0
 
-# Browser automation (for Playwright-based features)
-playwright>=1.40.0
+# Document Processing - PDF
+pypdf==5.2.0
 
-# Optional: PDF processing alternative
-# pypdf>=3.17.0
+# Document Processing - EPUB
+ebooklib==0.18
+beautifulsoup4==4.13.1
+
+# Document Processing - DOCX (optional but recommended)
+python-docx==1.2.0
+
+# Document Processing - TXT encoding detection (optional but recommended)
+chardet==5.2.0
+
+# Document Processing - Markdown (optional but recommended)
+mistune==3.1.1
+
+# Dependencies (automatically installed with above packages)
+certifi==2025.10.5
+charset-normalizer==3.4.4
+idna==3.11
+urllib3==2.5.0
+soupsieve==2.6
+lxml==5.3.1

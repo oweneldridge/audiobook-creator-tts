@@ -1783,7 +1783,18 @@ async def main():
                     elif choice == '3':
                         # Manual file path entry
                         manual_path = input_colored("\n📄 Enter document path: ", "green").strip()
+                        # Strip quotes (both single and double)
                         manual_path = manual_path.strip('"').strip("'")
+                        # Unescape common shell escape sequences
+                        manual_path = manual_path.replace('\\ ', ' ')    # spaces
+                        manual_path = manual_path.replace('\\(', '(')    # parentheses
+                        manual_path = manual_path.replace('\\)', ')')
+                        manual_path = manual_path.replace("\\'", "'")    # single quotes
+                        manual_path = manual_path.replace('\\"', '"')    # double quotes
+                        manual_path = manual_path.replace('\\&', '&')    # ampersands
+                        manual_path = manual_path.replace('\\;', ';')    # semicolons
+                        manual_path = manual_path.replace('\\[', '[')    # brackets
+                        manual_path = manual_path.replace('\\]', ']')
 
                         if not manual_path:
                             print_colored("Please enter a file path", "red")
@@ -1799,6 +1810,9 @@ async def main():
                         print_colored("Please enter 1, 2, or 3", "red")
 
             # Process file or plaintext
+            chapters = None  # For chapter-based processing
+            text = None      # For text-based processing
+
             if file_path:
                 # Validate file format
                 suffix = Path(file_path).suffix.lower()
@@ -1808,19 +1822,34 @@ async def main():
                     print_colored("Supported: .pdf, .epub, .docx, .txt, .html, .htm, .md, .markdown", "yellow")
                     continue
 
-                # Extract text from file
-                print_colored(f"\n{'='*60}", "cyan")
-                text = DocumentParser.parse_document(file_path)
-                print_colored(f"{'='*60}", "cyan")
-
-                if not text or len(text) < 10:
-                    print_colored("❌ No text extracted or text too short", "red")
-                    continue
-
                 # Get output name from filename
                 base_name = Path(file_path).stem
                 # Clean filename for output (lowercase, alphanumeric only)
                 output_name = re.sub(r'[^a-z0-9]+', '-', base_name.lower()).strip('-')
+
+                # Extract text or chapters based on format
+                print_colored(f"\n{'='*60}", "cyan")
+
+                if suffix == '.epub':
+                    # Extract chapters from EPUB
+                    chapters = DocumentParser.extract_chapters_from_epub(file_path)
+                    if not chapters:
+                        print_colored("❌ No chapters extracted from EPUB", "red")
+                        continue
+                elif suffix == '.pdf':
+                    # Extract chapters from PDF
+                    chapters = DocumentParser.extract_chapters_from_pdf(file_path)
+                    if not chapters:
+                        print_colored("❌ No chapters extracted from PDF", "red")
+                        continue
+                else:
+                    # Use legacy text extraction for other formats
+                    text = DocumentParser.parse_document(file_path)
+                    if not text or len(text) < 10:
+                        print_colored("❌ No text extracted or text too short", "red")
+                        continue
+
+                print_colored(f"{'='*60}", "cyan")
 
             elif text and output_name:
                 # Plaintext input already has text and output_name set
@@ -1830,15 +1859,38 @@ async def main():
                 print_colored("❌ No valid input provided", "red")
                 continue
 
-            # Show text preview and statistics
-            preview = text[:200].replace('\n', ' ')
-            print_colored(f"\n📝 Text preview:", "yellow")
-            print(f"   {preview}...")
-            print_colored(f"\n📏 Total characters: {len(text):,}", "yellow")
+            # Show preview and statistics
+            if chapters:
+                # Chapter-based preview
+                total_chars = sum(len(ch.text) for ch in chapters)
+                print_colored(f"\n📚 Extracted {len(chapters)} chapters", "yellow")
+                print_colored(f"📏 Total characters: {total_chars:,}", "yellow")
 
-            # Estimate chunks
-            estimated_chunks = (len(text) // 1000) + 1
-            print_colored(f"🔢 Estimated chunks: ~{estimated_chunks}", "yellow")
+                # Show first few chapters
+                print_colored(f"\n📖 Chapter List:", "cyan")
+                for ch in chapters[:5]:
+                    if ch.dir_name.startswith('00-'):
+                        print_colored(f"   • {ch.title} ({len(ch.text):,} chars)", "yellow")
+                    else:
+                        dir_prefix = ch.dir_name.split('-')[0]
+                        print_colored(f"   {dir_prefix}. {ch.title} ({len(ch.text):,} chars)", "yellow")
+
+                if len(chapters) > 5:
+                    print_colored(f"   ... and {len(chapters) - 5} more chapters", "yellow")
+
+                # Estimate chunks
+                estimated_chunks = (total_chars // 1000) + len(chapters)
+                print_colored(f"🔢 Estimated chunks: ~{estimated_chunks}", "yellow")
+            else:
+                # Text-based preview
+                preview = text[:200].replace('\n', ' ')
+                print_colored(f"\n📝 Text preview:", "yellow")
+                print(f"   {preview}...")
+                print_colored(f"\n📏 Total characters: {len(text):,}", "yellow")
+
+                # Estimate chunks
+                estimated_chunks = (len(text) // 1000) + 1
+                print_colored(f"🔢 Estimated chunks: ~{estimated_chunks}", "yellow")
 
             # Confirm
             confirm = input_colored(f"\nProceed with conversion? (y/n): ", "blue").lower()
@@ -1851,7 +1903,11 @@ async def main():
                 print_colored("Voice selection cancelled.", "yellow")
                 continue
 
-            print_colored(f"\n🎵 Output files will be named: {output_name}-1.mp3, {output_name}-2.mp3, etc.", "cyan")
+            if chapters:
+                print_colored(f"\n🎵 Chapter-based output with nested directories", "cyan")
+                print_colored(f"   Each chapter will have its own subdirectory", "yellow")
+            else:
+                print_colored(f"\n🎵 Output files will be named: {output_name}-1.mp3, {output_name}-2.mp3, etc.", "cyan")
 
             # Chunk size option
             chunk_input = input_colored("\nChunk size in characters (default: 1000, max: 2000): ", "blue").strip()
@@ -1863,8 +1919,11 @@ async def main():
 
             print_colored(f"✅ Using chunk size: {chunk_size} characters", "green")
 
-            # Process document
-            await process_document_to_speech(browser, voice_id, text, output_name, chunk_size)
+            # Process document (chapter-based or text-based)
+            if chapters:
+                await process_chapters_to_speech(browser, voice_id, chapters, output_name, chunk_size)
+            else:
+                await process_document_to_speech(browser, voice_id, text, output_name, chunk_size)
 
             # Continue?
             while True:
