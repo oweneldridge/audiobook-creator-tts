@@ -30,7 +30,7 @@ $ python3.11 main_document_mode.py
 Convert EPUB and PDF files to audio
 ============================================================
 
-📊 Voice Library: 582 voices
+📊 Voice Library: 583 voices
 
 🚀 Initializing browser session...
 🌐 Navigating to speechma.com...
@@ -67,7 +67,7 @@ Show voice IDs? (y/n, default: n): n
 1- Multilingual United States male Andrew Multilingual
 ...
 
-Voice number (1-582): 12
+Voice number (1-583): 12
 
 🎵 Output files will be named: othello-1.mp3, othello-2.mp3, etc.
 
@@ -166,7 +166,7 @@ The system intelligently splits text to preserve natural reading flow:
 Make sure you have all dependencies:
 
 ```bash
-pip install playwright pypdf ebooklib beautifulsoup4
+pip install -r requirements.txt
 playwright install chromium
 ```
 
