@@ -1,0 +1,20 @@
+{
+  "English": {
+    "United States": {
+      "female": {
+        "Ava Test": "voice-test-1",
+        "Emma Test": "voice-test-2"
+      },
+      "male": {
+        "Andrew Test": "voice-test-3"
+      }
+    }
+  },
+  "Spanish": {
+    "Spain": {
+      "female": {
+        "Lucia Test": "voice-test-4"
+      }
+    }
+  }
+}
