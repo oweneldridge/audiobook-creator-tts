@@ -4,12 +4,36 @@ A powerful command-line tool to convert text to speech using the Speechma API wi
 
 ## 🚀 Installation
 
+### Quick Setup (5 minutes)
+
 ```bash
-# Install dependencies
+# 1. Create virtual environment (recommended)
+python3.11 -m venv venv
+
+# 2. Activate virtual environment
+source venv/bin/activate  # macOS/Linux
+# OR
+venv\Scripts\activate     # Windows
+
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# Install Playwright browsers (required for Playwright-based features)
+# 4. Install test dependencies (optional, for development)
+pip install -r requirements-test.txt
+
+# 5. Install Playwright browsers (required for Playwright-based features)
 playwright install chromium
+```
+
+**Why use a virtual environment?**
+- ✅ Isolates project dependencies
+- ✅ Prevents conflicts with other Python projects
+- ✅ Ensures reproducible environment
+- ✅ Industry standard practice
+
+**Note:** Always activate the virtual environment before running the scripts:
+```bash
+source venv/bin/activate  # macOS/Linux
 ```
 
 ## 🎯 Choose Your Mode
@@ -89,9 +113,23 @@ python3.11 main.py
 
 1. **Clone or download this repository**
 
-2. **Install dependencies:**
+2. **Set up virtual environment:**
 ```bash
+# Create and activate virtual environment
+python3.11 -m venv venv
+source venv/bin/activate  # macOS/Linux
+# OR: venv\Scripts\activate  # Windows
+```
+
+3. **Install dependencies:**
+```bash
+# Install production dependencies
 pip install -r requirements.txt
+
+# Install test dependencies (optional, for development)
+pip install -r requirements-test.txt
+
+# Install Playwright browser
 playwright install chromium
 
 # For M4B audiobook creation (optional but recommended)
@@ -100,7 +138,7 @@ playwright install chromium
 # Windows: Download from https://ffmpeg.org/download.html
 ```
 
-3. **Choose your mode and run:**
+4. **Choose your mode and run:**
 
 **For documents (PDF, EPUB, DOCX, TXT, HTML, Markdown):**
 ```bash
@@ -110,6 +148,11 @@ python3.11 main_document_mode.py
 **For text input:**
 ```bash
 python3.11 main_playwright_persistent.py
+```
+
+**Remember:** Always activate the virtual environment before running:
+```bash
+source venv/bin/activate  # macOS/Linux
 ```
 
 ## 📁 Output Structure
