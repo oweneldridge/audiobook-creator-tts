@@ -29,7 +29,7 @@ python3.11 main_document_mode.py
 
 **Best for:** Books, research papers, long documents
 
-[📖 Document Mode Guide](README_DOCUMENT_MODE.md) | [⚡ Quick Start](QUICKSTART_DOCUMENT.md)
+[📖 Document Mode Guide](README_DOCUMENT_MODE.md)
 
 ---
 
@@ -47,8 +47,6 @@ python3.11 main_playwright_persistent.py
 
 **Best for:** Short texts, articles, custom content
 
-[📖 Text Mode Guide](README_PLAYWRIGHT.md) | [⚡ Quick Start](QUICKSTART_PLAYWRIGHT.md)
-
 ---
 
 ### 🍪 Manual Cookie Mode (Advanced)
@@ -65,13 +63,11 @@ python3.11 main.py
 
 **Best for:** Automation, servers, advanced users
 
-[📖 Manual Setup Guide](get_cookies_browser.py)
-
 ---
 
 ## 📊 Voice Library
 
-- **582 voices** across **76 languages** and **110 countries**
+- **583 voices** across **76 languages**
 - Male, female, and multilingual options
 - Professional quality audio output
 - Support for major languages: English, Spanish, French, German, Chinese, Arabic, and many more
@@ -151,7 +147,7 @@ Adjust how text is split (default: 1000 characters):
 - **1500-2000**: Long passages, technical documents
 
 ### Voice Selection
-582 voices to choose from:
+583 voices to choose from:
 
 - **Multilingual**: Multiple languages per voice
 - **Regional**: UK, US, Australian English, etc.
@@ -170,7 +166,7 @@ $ python3.11 main_document_mode.py
 📚 Reading EPUB...
 ✅ Extracted 145,230 characters from EPUB
 
-Voice number (1-582): 12
+Voice number (1-583): 12
 
 ✂️  Splitting text into chunks...
 ✅ Created 147 chunks
@@ -193,7 +189,7 @@ $ python3.11 main_playwright_persistent.py
 📋 Available voices:
 ...
 
-Voice number (1-582): 25
+Voice number (1-583): 25
 
 📝 Enter your text:
 (Type END on a new line when finished)
@@ -267,10 +263,6 @@ END
 ## 📚 Documentation
 
 - [Document Mode Guide](README_DOCUMENT_MODE.md) - Full guide for PDF/EPUB conversion
-- [Text Mode Guide](README_PLAYWRIGHT.md) - Guide for text input mode
-- [Document Quick Start](QUICKSTART_DOCUMENT.md) - Get started with documents in 5 minutes
-- [Text Quick Start](QUICKSTART_PLAYWRIGHT.md) - Get started with text in 5 minutes
-- [Voice Discovery](VOICE_DISCOVERY_GUIDE.md) - How the voice library was created
 
 ## 🛠️ Technical Details
 
@@ -301,7 +293,7 @@ END
                    ▼
 ┌─────────────────────────────────────────────┐
 │  Speechma API                               │
-│  • 582 voices across 76 languages           │
+│  • 583 voices across 76 languages           │
 │  • Returns MP3 audio files                  │
 └─────────────────────────────────────────────┘
 ```
@@ -326,14 +318,21 @@ This project is for personal and educational use. Respect Speechma's terms of se
 
 Found a bug or have a feature request? Please open an issue!
 
-## ⭐ Features Roadmap
+## ⭐ Features
+
+- ✅ Complete 583 voice library (76 languages)
+- ✅ PDF and EPUB conversion
+- ✅ Persistent browser sessions
+- ✅ Smart text chunking
+- ✅ Progress tracking
+- ✅ Named output files
+
+### Future Enhancements
 
 - [ ] Batch processing multiple files
 - [ ] Resume interrupted conversions
-- [ ] Custom voice selection presets
 - [ ] Audio file merging options
 - [ ] DOCX and TXT file support
-- [ ] Chapter detection for audiobooks
 
 ## 💡 Tips
 
@@ -359,16 +358,13 @@ Happy converting! 🎧📚✨
 
 ---
 
-## Donation
+## 🙏 Credits
 
-Your support is appreciated:
+This project is based on [Speechma-API](https://github.com/fairy-root/Speechma-API) by [FairyRoot](https://github.com/fairy-root).
 
-- USDt (TRC20): `TGCVbSSJbwL5nyXqMuKY839LJ5q5ygn2uS`
-- BTC: `13GS1ixn2uQAmFQkte6qA5p1MQtMXre6MT`
-- ETH (ERC20): `0xdbc7a7dafbb333773a5866ccf7a74da15ee654cc`
-- LTC: `Ldb6SDxUMEdYQQfRhSA3zi4dCUtfUdsPou`
-
-## Author
-
-- GitHub: [FairyRoot](https://github.com/fairy-root)
-- Telegram: [@FairyRoot](https://t.me/FairyRoot)
+**Enhancements in this fork:**
+- Complete 583 voice library extracted from speechma.com
+- Playwright-based persistent browser mode
+- Document conversion features (PDF/EPUB to audiobook)
+- requirements.txt for easy installation
+- Cleaned and updated documentation
