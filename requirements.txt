@@ -1,0 +1,13 @@
+# Core dependencies
+requests>=2.31.0
+
+# Document processing (for EPUB/PDF conversion)
+ebooklib>=0.18
+PyPDF2>=3.0.0
+beautifulsoup4>=4.12.0
+
+# Browser automation (for Playwright-based features)
+playwright>=1.40.0
+
+# Optional: PDF processing alternative
+# pypdf>=3.17.0

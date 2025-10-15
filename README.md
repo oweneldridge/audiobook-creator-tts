@@ -1,85 +1,363 @@
-# Speechma-API
+# Speechma Text-to-Speech CLI
 
-This repository provides a Python program that uses the Speechma API to convert text into speech. It allows users to select from multiple voices, dialects, and languages, and bypasses the 2000-character limit by splitting the input text into manageable chunks. The program sanitizes the text, handles punctuation for better speech flow, and saves the resulting audio in MP3 format.
+A powerful command-line tool to convert text to speech using the Speechma API with 583 voices across 76 languages.
 
-## Features
-
-- **Multiple Voice Options:** The program supports multiple voices, genders, and dialects, offering flexibility in audio output.
-- **Text Chunking:** The input text is split into chunks to bypass the 2000-character limit imposed by the Speechma API.
-- **Input Sanitization:** Non-ASCII characters are removed from the input to ensure compatibility with the API.
-- **Punctuation Handling:** Punctuation marks like full stops and commas are handled properly for clearer, more natural speech.
-- **Audio Download:** The generated audio is saved as an MP3 file for offline use.
-- **Customizable Voice Selection:** Users can choose from a list of available voices, including gender and regional dialect options.
-- **Retry Logic:** If an error occurs when processing a chunk, the program automatically retries up to three times.
-
-## Installation
-
-### Prerequisites
-
-- Python 3.x
-- `requests` library
-
-### Steps to Install
-
-1. Clone this repository to your local machine:
-
-   ```bash
-   git clone https://github.com/fairy-root/Speechma-API.git
-   cd Speechma-API
-   ```
-
-2. Install the required dependencies:
-
-   ```bash
-   pip install requests
-   ```
-
-3. Ensure that the `voices.json` file is present in the root directory. If it's missing or corrupted, you will see an error.
-
-4. Run the script:
-
-   ```bash
-   python main.py
-   ```
-
-## Usage
-
-- The program will prompt you to enter the text you wish to convert to speech. You can input multiline text by pressing Enter after each line. To finish, type `END` and press Enter.
-- You will then be asked to choose the voice you want to use from the available options.
-- The program will process the input text, split it into chunks if needed, and send the chunks to the Speechma API for conversion into speech.
-- The resulting audio will be saved in MP3 format in the current directory with filenames like `audio_1.mp3`, `audio_2.mp3`, etc.
-
-### Example
+## 🚀 Installation
 
 ```bash
-Enter your text (press Enter on an empty line to finish):
-This is an example text.
-END
-Available voices:
-1- English UK female Sonia
-2- English UK female Maisie
-Enter the number of the voice you want to use (1-2):
+# Install dependencies
+pip install -r requirements.txt
+
+# Install Playwright browsers (required for Playwright-based features)
+playwright install chromium
 ```
 
-The audio will be saved as `audio_1.mp3`, `audio_2.mp3`, etc.
+## 🎯 Choose Your Mode
 
-## Files
+### 📚 Document Mode (RECOMMENDED for Books/PDFs)
+**Convert entire EPUB and PDF files to audio**
 
-- `main.py`: The main script that handles text input, API interaction, and audio saving.
-- `voices.json`: A JSON file that contains the available voices and their IDs. Example:
+```bash
+python3.11 main_document_mode.py
+```
 
-  ```json
-  {
-    "English": {
-      "UK": {
-        "female": {
-          "Sonia": "voice-35",
-          "Maisie": "voice-30"
-        }
-      }
-    }
-  }
-  ```
+✅ Automatic text extraction from PDF/EPUB
+✅ Smart chunking that preserves sentences
+✅ Named output: `othello-1.mp3`, `othello-2.mp3`, etc.
+✅ Progress tracking with live updates
+✅ One CAPTCHA solve for unlimited conversions
+
+**Best for:** Books, research papers, long documents
+
+[📖 Document Mode Guide](README_DOCUMENT_MODE.md) | [⚡ Quick Start](QUICKSTART_DOCUMENT.md)
+
+---
+
+### 💬 Text Mode (for Short Texts)
+**Type or paste text directly**
+
+```bash
+python3.11 main_playwright_persistent.py
+```
+
+✅ Interactive text input
+✅ Multiline support (type END to finish)
+✅ Multiple conversions in one session
+✅ Persistent browser session
+
+**Best for:** Short texts, articles, custom content
+
+[📖 Text Mode Guide](README_PLAYWRIGHT.md) | [⚡ Quick Start](QUICKSTART_PLAYWRIGHT.md)
+
+---
+
+### 🍪 Manual Cookie Mode (Advanced)
+**Manual cookie management (for headless environments)**
+
+```bash
+python3.11 main.py
+```
+
+✅ No browser automation required
+✅ Lightweight execution
+✅ Works in headless environments
+❌ Requires manual cookie extraction
+
+**Best for:** Automation, servers, advanced users
+
+[📖 Manual Setup Guide](get_cookies_browser.py)
+
+---
+
+## 📊 Voice Library
+
+- **582 voices** across **76 languages** and **110 countries**
+- Male, female, and multilingual options
+- Professional quality audio output
+- Support for major languages: English, Spanish, French, German, Chinese, Arabic, and many more
+
+## 🚀 Quick Start
+
+### Installation
+
+1. **Clone or download this repository**
+
+2. **Install dependencies:**
+```bash
+pip install requests playwright pypdf ebooklib beautifulsoup4
+playwright install chromium
+```
+
+3. **Choose your mode and run:**
+
+**For documents (EPUB/PDF):**
+```bash
+python3.11 main_document_mode.py
+```
+
+**For text input:**
+```bash
+python3.11 main_playwright_persistent.py
+```
+
+## 📁 Output Structure
+
+All audio files are saved to timestamped directories:
+
+### Document Mode
+```
+audio/
+  └── othello_2025-01-14-10-30-45/
+      ├── othello-1.mp3
+      ├── othello-2.mp3
+      ├── othello-3.mp3
+      └── ...
+```
+
+### Text Mode
+```
+audio/
+  └── 2025-01-14 10-30-45/
+      ├── audio_chunk_1.mp3
+      ├── audio_chunk_2.mp3
+      └── ...
+```
+
+## 🎬 How It Works
+
+### Document Mode Workflow
+
+1. **Extract Text** - Automatically parse PDF or EPUB
+2. **Smart Chunking** - Split text at sentence boundaries (1000 chars default)
+3. **Browser Session** - Solve CAPTCHA once at startup
+4. **Convert** - Process each chunk through Speechma API
+5. **Named Output** - Save as `filename-1.mp3`, `filename-2.mp3`, etc.
+
+### Text Mode Workflow
+
+1. **Browser Session** - Solve CAPTCHA once at startup
+2. **Enter Text** - Type or paste text (type END to finish)
+3. **Auto-Chunk** - Split into 1000 character chunks
+4. **Convert** - Process through Speechma API
+5. **Save** - Output to timestamped directory
+
+## 🔧 Configuration Options
+
+### Chunk Size
+Adjust how text is split (default: 1000 characters):
+
+- **500-800**: Short sentences, poetry
+- **1000**: General books and articles (default)
+- **1500-2000**: Long passages, technical documents
+
+### Voice Selection
+582 voices to choose from:
+
+- **Multilingual**: Multiple languages per voice
+- **Regional**: UK, US, Australian English, etc.
+- **Gender**: Male and female options
+- **Specialty**: Expressive and standard variants
+
+## 📝 Examples
+
+### Convert an EPUB Book
+
+```bash
+$ python3.11 main_document_mode.py
+
+📄 Enter document path: ~/Downloads/Othello.epub
+
+📚 Reading EPUB...
+✅ Extracted 145,230 characters from EPUB
+
+Voice number (1-582): 12
+
+✂️  Splitting text into chunks...
+✅ Created 147 chunks
+
+[1/147] Processing chunk 1 (1%)...
+   ✅ Saved othello-1.mp3 (42.3 KB)
+...
+
+============================================================
+✅ Successful: 147/147 chunks
+📁 Output: audio/othello_2025-01-14-10-30-45
+============================================================
+```
+
+### Convert Short Text
+
+```bash
+$ python3.11 main_playwright_persistent.py
+
+📋 Available voices:
+...
+
+Voice number (1-582): 25
+
+📝 Enter your text:
+(Type END on a new line when finished)
+The quick brown fox jumps over the lazy dog.
+This is a test of the text-to-speech system.
+END
+
+📊 Processing 1 chunk(s)...
+✅ Saved to audio/2025-01-14-11-00-00/audio_chunk_1.mp3
+```
+
+## 🎯 Use Cases
+
+| Use Case | Mode | Example |
+|----------|------|---------|
+| Convert ebook to audiobook | Document | `Othello.epub` → `othello-1.mp3` ... |
+| Study textbooks | Document | `Biology_Ch5.pdf` → `biology-ch5-1.mp3` ... |
+| Listen to research papers | Document | `paper.pdf` → `paper-1.mp3` ... |
+| Convert short article | Text | Paste text → `audio_chunk_1.mp3` |
+| Custom announcements | Text | Type text → `audio_chunk_1.mp3` |
+
+## ⚠️ Important Notes
+
+### CAPTCHA Handling
+- Solve CAPTCHA **once** at startup
+- Browser stays open for unlimited conversions
+- If CAPTCHA reappears, script will pause and prompt you
+
+### File Format Support
+
+**Document Mode:**
+- ✅ PDF files with searchable text
+- ✅ EPUB ebooks (not DRM-protected)
+- ❌ Scanned PDFs (need OCR first)
+- ❌ Images or graphic-only PDFs
+
+### Performance
+
+**Processing Speed:**
+- ~1-2 seconds per chunk
+- ~50-100 chunks per hour
+- Large books (500 pages): 30-60 minutes
+
+**Audio Quality:**
+- Format: MP3
+- Bitrate: Standard streaming quality
+- Size: ~30-50 KB per chunk
+
+## 🔍 Troubleshooting
+
+### "No text extracted from PDF"
+- PDF might be scanned images (needs OCR)
+- Verify PDF has selectable text
+- Try a different PDF reader
+
+### "403 Forbidden" errors
+- CAPTCHA needs solving
+- Script will prompt you automatically
+- Make sure browser window is visible
+
+### "File not found"
+- Check file path is correct
+- Use quotes for paths with spaces
+- Try absolute path: `/full/path/to/file.pdf`
+
+### Browser won't open
+- Make sure Chromium is installed: `playwright install chromium`
+- Check you have a display/desktop session
+- Not supported in pure headless environments (use manual cookie mode)
+
+## 📚 Documentation
+
+- [Document Mode Guide](README_DOCUMENT_MODE.md) - Full guide for PDF/EPUB conversion
+- [Text Mode Guide](README_PLAYWRIGHT.md) - Guide for text input mode
+- [Document Quick Start](QUICKSTART_DOCUMENT.md) - Get started with documents in 5 minutes
+- [Text Quick Start](QUICKSTART_PLAYWRIGHT.md) - Get started with text in 5 minutes
+- [Voice Discovery](VOICE_DISCOVERY_GUIDE.md) - How the voice library was created
+
+## 🛠️ Technical Details
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│  Python Script                              │
+│  (Document/Text Mode)                       │
+└──────────────────┬──────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────┐
+│  Playwright Browser (Chromium)              │
+│  • Automatic cookie management              │
+│  • CAPTCHA solving interface                │
+│  • Persistent session                       │
+└──────────────────┬──────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────┐
+│  Text Processing                            │
+│  • PDF extraction (pypdf)                   │
+│  • EPUB extraction (ebooklib)               │
+│  • Smart chunking algorithm                 │
+└──────────────────┬──────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────┐
+│  Speechma API                               │
+│  • 582 voices across 76 languages           │
+│  • Returns MP3 audio files                  │
+└─────────────────────────────────────────────┘
+```
+
+### Dependencies
+
+- **requests** - HTTP requests
+- **playwright** - Browser automation
+- **pypdf** - PDF text extraction
+- **ebooklib** - EPUB text extraction
+- **beautifulsoup4** - HTML parsing
+
+### Python Version
+
+Requires Python 3.11+
+
+## 📄 License
+
+This project is for personal and educational use. Respect Speechma's terms of service.
+
+## 🤝 Contributing
+
+Found a bug or have a feature request? Please open an issue!
+
+## ⭐ Features Roadmap
+
+- [ ] Batch processing multiple files
+- [ ] Resume interrupted conversions
+- [ ] Custom voice selection presets
+- [ ] Audio file merging options
+- [ ] DOCX and TXT file support
+- [ ] Chapter detection for audiobooks
+
+## 💡 Tips
+
+1. **Test with small documents first** - Get familiar with the process
+2. **Choose appropriate voices** - British English for Shakespeare, etc.
+3. **Adjust chunk size** - Smaller for poetry, larger for prose
+4. **Keep browser visible** - Don't minimize during conversion
+5. **Stable internet** - Ensure reliable connection for long conversions
+
+## 🎉 Ready to Start?
+
+**For documents:**
+```bash
+python3.11 main_document_mode.py
+```
+
+**For text:**
+```bash
+python3.11 main_playwright_persistent.py
+```
+
+Happy converting! 🎧📚✨
+
+---
 
 ## Donation
 
@@ -94,17 +372,3 @@ Your support is appreciated:
 
 - GitHub: [FairyRoot](https://github.com/fairy-root)
 - Telegram: [@FairyRoot](https://t.me/FairyRoot)
-
-## Contributing
-
-If you would like to contribute to this project, feel free to fork the repository and submit pull requests. Ensure that your code follows the existing structure, and test it thoroughly.
-
-### TODO
-
-- [ ] Add more voices to the `voices.json` file for additional languages, dialects, and genders.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----

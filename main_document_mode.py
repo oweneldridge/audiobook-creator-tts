@@ -1,0 +1,1515 @@
+#!/usr/bin/env python3.11
+"""
+Speechma TTS - Document Mode (EPUB/PDF)
+Converts entire EPUB or PDF files to audio with automatic text extraction
+Supports chapter-based organization with nested directory structure
+"""
+import asyncio
+import json
+import os
+import re
+import sys
+import subprocess
+from datetime import datetime
+from pathlib import Path
+from typing import Optional, List, Dict, Tuple
+from dataclasses import dataclass
+
+# PDF parsing
+from pypdf import PdfReader
+
+# EPUB parsing
+import ebooklib
+from ebooklib import epub
+from bs4 import BeautifulSoup
+
+# XML parsing for EPUB TOC
+from xml.etree import ElementTree as ET
+
+# Import from main.py
+sys.path.insert(0, os.path.dirname(__file__))
+from main import (
+    print_colored, input_colored, load_voices, display_voices,
+    get_voice_id, validate_text, count_voice_stats
+)
+
+# Import Playwright browser
+from main_playwright_persistent import PersistentBrowser
+
+
+def check_ffmpeg_installed() -> bool:
+    """Check if ffmpeg is installed and available in PATH"""
+    try:
+        result = subprocess.run(
+            ['ffmpeg', '-version'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def show_ffmpeg_install_instructions():
+    """Display instructions for installing ffmpeg"""
+    print_colored("\n" + "="*60, "yellow")
+    print_colored("⚠️  ffmpeg NOT FOUND", "yellow")
+    print_colored("="*60, "yellow")
+    print_colored("ffmpeg is required for concatenating MP3 chunks into single files.", "yellow")
+    print_colored("\nWithout ffmpeg:", "yellow")
+    print_colored("  • Individual chunks will be kept separately", "cyan")
+    print_colored("  • Each chapter will have multiple MP3 files", "cyan")
+    print_colored("\nTo enable auto-concatenation, install ffmpeg:", "yellow")
+    print_colored("  macOS:   brew install ffmpeg", "green")
+    print_colored("  Linux:   sudo apt install ffmpeg", "green")
+    print_colored("  Windows: https://ffmpeg.org/download.html", "green")
+    print_colored("="*60, "yellow")
+
+
+async def concatenate_chapter_mp3s(
+    chapter_dir: str,
+    chapter_name: str,
+    chunk_files: List[str]
+) -> Optional[str]:
+    """
+    Concatenate multiple MP3 files into one using ffmpeg
+    Deletes original chunks on success
+
+    Args:
+        chapter_dir: Directory containing chunk files
+        chapter_name: Name for output file (e.g., "01-prologue")
+        chunk_files: List of chunk file paths to concatenate
+
+    Returns:
+        Path to concatenated file, or None on failure
+    """
+    if not chunk_files:
+        return None
+
+    # Create concat list file for ffmpeg
+    concat_list_path = os.path.join(chapter_dir, 'concat_list.txt')
+    output_path = os.path.join(chapter_dir, f"{chapter_name}.mp3")
+
+    try:
+        # Write file list for ffmpeg concat
+        with open(concat_list_path, 'w') as f:
+            for chunk_file in chunk_files:
+                # Use relative path from concat_list.txt location
+                rel_path = os.path.basename(chunk_file)
+                f.write(f"file '{rel_path}'\n")
+
+        # Run ffmpeg concatenation
+        cmd = [
+            'ffmpeg',
+            '-f', 'concat',
+            '-safe', '0',
+            '-i', concat_list_path,
+            '-c', 'copy',  # Stream copy - no re-encoding
+            output_path,
+            '-y',  # Overwrite if exists
+            '-loglevel', 'error'  # Only show errors
+        ]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+
+        # Clean up concat list
+        if os.path.exists(concat_list_path):
+            os.remove(concat_list_path)
+
+        # Check if concatenation succeeded
+        if result.returncode == 0 and os.path.exists(output_path):
+            # Verify output file has reasonable size
+            output_size = os.path.getsize(output_path)
+            total_input_size = sum(os.path.getsize(f) for f in chunk_files if os.path.exists(f))
+
+            # Output should be roughly same size as inputs (allow 5% variance)
+            if output_size > total_input_size * 0.95:
+                # Success! Delete original chunks
+                for chunk_file in chunk_files:
+                    if os.path.exists(chunk_file):
+                        os.remove(chunk_file)
+
+                return output_path
+            else:
+                print_colored(f"⚠️  Concatenated file size mismatch, keeping chunks", "yellow")
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+                return None
+        else:
+            if result.stderr:
+                print_colored(f"⚠️  ffmpeg error: {result.stderr[:200]}", "yellow")
+            return None
+
+    except subprocess.TimeoutExpired:
+        print_colored(f"⚠️  Concatenation timeout, keeping chunks", "yellow")
+        if os.path.exists(concat_list_path):
+            os.remove(concat_list_path)
+        return None
+
+    except Exception as e:
+        print_colored(f"⚠️  Concatenation error: {e}", "yellow")
+        if os.path.exists(concat_list_path):
+            os.remove(concat_list_path)
+        return None
+
+
+async def create_m4b_audiobook(
+    base_directory: str,
+    chapters: List['Chapter'],
+    book_title: str,
+    author: str = "Unknown Author"
+) -> Optional[str]:
+    """
+    Create a single M4B audiobook file with chapter navigation
+
+    Args:
+        base_directory: Directory containing chapter MP3 files
+        chapters: List of Chapter objects with metadata
+        book_title: Title of the book
+        author: Author name for metadata
+
+    Returns:
+        Path to M4B file, or None on failure
+    """
+    print_colored(f"\n📖 Creating M4B audiobook: {book_title}", "cyan")
+
+    # Collect all chapter MP3 files
+    chapter_files = []
+    chapter_metadata = []
+
+    for chapter in chapters:
+        chapter_dir = os.path.join(base_directory, chapter.dir_name)
+
+        # Look for concatenated MP3 or first chunk
+        mp3_file = os.path.join(chapter_dir, f"{chapter.dir_name}.mp3")
+
+        if not os.path.exists(mp3_file):
+            # No concatenated file, look for chunk files
+            chunk_pattern = os.path.join(chapter_dir, "*-chunk-*.mp3")
+            import glob
+            chunk_files = sorted(glob.glob(chunk_pattern))
+            if not chunk_files:
+                print_colored(f"⚠️  No audio files found for {chapter.title}, skipping", "yellow")
+                continue
+            # Use first chunk as placeholder (should have been concatenated)
+            mp3_file = chunk_files[0]
+
+        chapter_files.append(mp3_file)
+        chapter_metadata.append({
+            'title': chapter.title,
+            'file': mp3_file
+        })
+
+    if not chapter_files:
+        print_colored("❌ No chapter audio files found", "red")
+        return None
+
+    print_colored(f"✅ Found {len(chapter_files)} chapter audio files", "green")
+
+    # Create temporary concat list for ffmpeg
+    concat_list_path = os.path.join(base_directory, 'chapters_concat.txt')
+    output_m4b = os.path.join(base_directory, f"{book_title}.m4b")
+
+    try:
+        # Write concat list
+        with open(concat_list_path, 'w') as f:
+            for chapter_file in chapter_files:
+                rel_path = os.path.relpath(chapter_file, base_directory)
+                f.write(f"file '{rel_path}'\n")
+
+        # Build chapter metadata for ffmpeg
+        # Calculate cumulative durations for chapter markers
+        print_colored("⏱️  Calculating chapter durations...", "cyan")
+
+        chapter_markers = []
+        cumulative_ms = 0
+
+        for idx, meta in enumerate(chapter_metadata):
+            # Get duration of this chapter's audio file
+            duration_cmd = [
+                'ffprobe',
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1',
+                meta['file']
+            ]
+
+            try:
+                result = subprocess.run(
+                    duration_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+
+                if result.returncode == 0:
+                    duration_sec = float(result.stdout.strip())
+                    duration_ms = int(duration_sec * 1000)
+
+                    chapter_markers.append({
+                        'title': meta['title'],
+                        'start_ms': cumulative_ms,
+                        'end_ms': cumulative_ms + duration_ms
+                    })
+
+                    cumulative_ms += duration_ms
+                else:
+                    print_colored(f"⚠️  Could not get duration for {meta['title']}", "yellow")
+
+            except Exception as e:
+                print_colored(f"⚠️  Error getting duration for {meta['title']}: {e}", "yellow")
+
+        # Create chapter metadata file (FFMETADATA format)
+        metadata_file = os.path.join(base_directory, 'chapters_metadata.txt')
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            f.write(";FFMETADATA1\n")
+            f.write(f"title={book_title}\n")
+            f.write(f"artist={author}\n")
+            f.write(f"album={book_title}\n")
+            f.write("genre=Audiobook\n\n")
+
+            for chapter in chapter_markers:
+                f.write("[CHAPTER]\n")
+                f.write("TIMEBASE=1/1000\n")
+                f.write(f"START={chapter['start_ms']}\n")
+                f.write(f"END={chapter['end_ms']}\n")
+                f.write(f"title={chapter['title']}\n\n")
+
+        print_colored("🎬 Converting to M4B with chapter markers...", "cyan")
+
+        # Run ffmpeg to create M4B with chapters
+        # First concat MP3s, then convert to M4B with metadata
+        temp_concat_mp3 = os.path.join(base_directory, 'temp_concat.mp3')
+
+        # Step 1: Concatenate all MP3s
+        concat_cmd = [
+            'ffmpeg',
+            '-f', 'concat',
+            '-safe', '0',
+            '-i', concat_list_path,
+            '-c', 'copy',
+            temp_concat_mp3,
+            '-y',
+            '-loglevel', 'error'
+        ]
+
+        result = subprocess.run(
+            concat_cmd,
+            capture_output=True,
+            text=True,
+            timeout=300
+        )
+
+        if result.returncode != 0:
+            print_colored(f"❌ MP3 concatenation failed: {result.stderr}", "red")
+            return None
+
+        # Step 2: Convert to M4B with AAC codec and add chapter metadata
+        convert_cmd = [
+            'ffmpeg',
+            '-i', temp_concat_mp3,
+            '-i', metadata_file,
+            '-map_metadata', '1',
+            '-map_chapters', '1',
+            '-c:a', 'aac',
+            '-b:a', '64k',  # 64kbps for voice is sufficient
+            '-ar', '44100',
+            '-ac', '1',  # Mono
+            output_m4b,
+            '-y',
+            '-loglevel', 'error'
+        ]
+
+        result = subprocess.run(
+            convert_cmd,
+            capture_output=True,
+            text=True,
+            timeout=600
+        )
+
+        # Clean up temporary files
+        for temp_file in [concat_list_path, metadata_file, temp_concat_mp3]:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
+        if result.returncode == 0 and os.path.exists(output_m4b):
+            size_mb = os.path.getsize(output_m4b) / 1024 / 1024
+            print_colored(f"✅ Created M4B audiobook: {os.path.basename(output_m4b)} ({size_mb:.1f} MB)", "green")
+            print_colored(f"   📚 {len(chapter_markers)} chapters with navigation", "yellow")
+            return output_m4b
+        else:
+            print_colored(f"❌ M4B conversion failed: {result.stderr[:200]}", "red")
+            return None
+
+    except subprocess.TimeoutExpired:
+        print_colored("❌ M4B conversion timeout", "red")
+        return None
+    except Exception as e:
+        print_colored(f"❌ M4B conversion error: {e}", "red")
+        return None
+
+
+@dataclass
+class Chapter:
+    """Represents a book chapter with metadata"""
+    number: int           # 1, 2, 3...
+    title: str            # "The Great White Whale"
+    dir_name: str         # "01-the-great-white-whale"
+    text: str             # Full chapter text
+    chunks: List[str]     # Chunked text (populated later)
+
+
+class DocumentParser:
+    """Parses EPUB and PDF files to extract text"""
+
+    @staticmethod
+    def sanitize_dir_name(text: str) -> str:
+        """Convert text to safe directory name (lowercase alphanumeric with hyphens)"""
+        # Remove special characters, convert to lowercase
+        clean = re.sub(r'[^a-z0-9\s-]', '', text.lower())
+        # Replace spaces with hyphens
+        clean = re.sub(r'\s+', '-', clean)
+        # Remove multiple hyphens
+        clean = re.sub(r'-+', '-', clean)
+        # Trim hyphens from ends
+        return clean.strip('-')
+
+    @staticmethod
+    def extract_chapters_from_epub(file_path: str) -> List[Chapter]:
+        """
+        Extract chapters from EPUB with metadata
+        Strategy: TOC → Headings → File Structure
+        """
+        print_colored(f"📚 Reading EPUB: {file_path}", "cyan")
+
+        try:
+            book = epub.read_epub(file_path)
+
+            # Strategy 1: Try to parse TOC (ncx or nav)
+            chapters = DocumentParser._extract_from_epub_toc(book)
+
+            if chapters:
+                print_colored(f"✅ Extracted {len(chapters)} chapters from TOC", "green")
+                return chapters
+
+            # Strategy 2: Fallback to heading detection
+            print_colored("⚠️  No TOC found, detecting chapters from headings...", "yellow")
+            chapters = DocumentParser._extract_from_epub_headings(book)
+
+            if chapters:
+                print_colored(f"✅ Extracted {len(chapters)} chapters from headings", "green")
+                return chapters
+
+            # Strategy 3: Fallback to file structure
+            print_colored("⚠️  No headings found, using file structure...", "yellow")
+            chapters = DocumentParser._extract_from_epub_files(book)
+
+            print_colored(f"✅ Extracted {len(chapters)} sections from file structure", "green")
+            return chapters
+
+        except Exception as e:
+            print_colored(f"❌ Error reading EPUB: {e}", "red")
+            return []
+
+    @staticmethod
+    def _is_story_chapter(title: str) -> bool:
+        """Detect if a TOC entry is an actual story chapter vs front matter"""
+        title_lower = title.lower().strip()
+
+        # Story chapter patterns (numbered chapters only)
+        # Note: Prologue and Epilogue are treated as front matter (00- prefix)
+        story_patterns = [
+            r'^chapter\s+\d+',
+            r'^chapter\s+[ivxlcdm]+',  # Roman numerals
+            r'^part\s+\d+',
+            r'^part\s+[ivxlcdm]+',
+            r'^book\s+\d+',
+            r'^\d+\.',  # "1.", "2.", etc.
+        ]
+
+        for pattern in story_patterns:
+            if re.match(pattern, title_lower):
+                return True
+
+        return False
+
+    @staticmethod
+    def _extract_from_epub_toc(book: epub.EpubBook) -> List[Chapter]:
+        """Extract chapters from EPUB Table of Contents with smart numbering"""
+        chapters = []
+        toc = book.toc
+
+        if not toc:
+            return []
+
+        # Flatten TOC (handle nested sections)
+        def flatten_toc(items, level=0):
+            flat = []
+            for item in items:
+                if isinstance(item, tuple):
+                    # Nested section
+                    flat.extend(flatten_toc(item[1], level + 1))
+                elif isinstance(item, epub.Link):
+                    flat.append(item)
+                elif isinstance(item, epub.Section):
+                    flat.append(item)
+            return flat
+
+        toc_items = flatten_toc(toc)
+
+        # First pass: identify where story chapters begin
+        story_start_idx = None
+        for idx, item in enumerate(toc_items):
+            if hasattr(item, 'title') and DocumentParser._is_story_chapter(item.title):
+                story_start_idx = idx
+                break
+
+        # If no story chapters detected, treat everything as chapters
+        if story_start_idx is None:
+            story_start_idx = 0
+
+        # Map TOC items to actual content
+        front_matter_num = 0
+        story_chapter_num = 0
+
+        for idx, item in enumerate(toc_items):
+            try:
+                # Get title
+                if hasattr(item, 'title'):
+                    title = item.title
+                else:
+                    title = f"Section {idx + 1}"
+
+                # Get href/file
+                if hasattr(item, 'href'):
+                    href = item.href.split('#')[0]  # Remove anchor
+
+                    # Find corresponding item in book
+                    content_item = None
+                    for book_item in book.get_items():
+                        if hasattr(book_item, 'get_name') and href in book_item.get_name():
+                            content_item = book_item
+                            break
+
+                    if content_item:
+                        # Extract text
+                        soup = BeautifulSoup(content_item.get_content(), 'html.parser')
+                        for script in soup(["script", "style"]):
+                            script.decompose()
+
+                        text = soup.get_text()
+                        lines = (line.strip() for line in text.splitlines())
+                        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                        text = '\n'.join(chunk for chunk in chunks if chunk)
+
+                        if text.strip():
+                            # Determine numbering based on position
+                            if idx < story_start_idx:
+                                # Front matter: use 00-xx- prefix for unique sorting
+                                front_matter_num += 1
+                                chapter_number = front_matter_num  # Use front matter counter
+                                # Format: 00-01-title, 00-02-title, etc.
+                                sanitized = DocumentParser.sanitize_dir_name(title)
+                                dir_name = f"00-{front_matter_num:02d}-{sanitized}"
+                            else:
+                                # Story content: normal numbering starting at 01
+                                story_chapter_num += 1
+                                chapter_number = story_chapter_num
+                                dir_name = f"{story_chapter_num:02d}-{DocumentParser.sanitize_dir_name(title)}"
+
+                            chapters.append(Chapter(
+                                number=chapter_number,
+                                title=title,
+                                dir_name=dir_name,
+                                text=text,
+                                chunks=[]
+                            ))
+
+            except Exception as e:
+                print_colored(f"⚠️  Error processing TOC item: {e}", "yellow")
+                continue
+
+        return chapters
+
+    @staticmethod
+    def _extract_from_epub_headings(book: epub.EpubBook) -> List[Chapter]:
+        """Extract chapters by detecting h1/h2 headings"""
+        chapters = []
+        chapter_num = 1
+
+        items = list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT))
+
+        for item in items:
+            soup = BeautifulSoup(item.get_content(), 'html.parser')
+
+            # Look for h1 or h2 tags
+            headings = soup.find_all(['h1', 'h2'])
+
+            if headings:
+                for heading in headings:
+                    title = heading.get_text().strip()
+
+                    # Get text after this heading (until next heading or end)
+                    text_parts = []
+                    for sibling in heading.find_all_next():
+                        if sibling.name in ['h1', 'h2']:
+                            break
+                        if sibling.get_text().strip():
+                            text_parts.append(sibling.get_text())
+
+                    text = '\n'.join(text_parts)
+
+                    if text.strip():
+                        dir_name = f"{chapter_num:02d}-{DocumentParser.sanitize_dir_name(title)}"
+                        chapters.append(Chapter(
+                            number=chapter_num,
+                            title=title,
+                            dir_name=dir_name,
+                            text=text,
+                            chunks=[]
+                        ))
+                        chapter_num += 1
+
+        return chapters
+
+    @staticmethod
+    def _extract_from_epub_files(book: epub.EpubBook) -> List[Chapter]:
+        """Extract chapters using file structure (each file = chapter)"""
+        chapters = []
+        items = list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT))
+
+        for i, item in enumerate(items, 1):
+            soup = BeautifulSoup(item.get_content(), 'html.parser')
+
+            # Remove scripts and styles
+            for script in soup(["script", "style"]):
+                script.decompose()
+
+            # Get text
+            text = soup.get_text()
+            lines = (line.strip() for line in text.splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = '\n'.join(chunk for chunk in chunks if chunk)
+
+            if text.strip():
+                # Try to get title from first heading or filename
+                title = None
+                first_heading = soup.find(['h1', 'h2', 'h3'])
+                if first_heading:
+                    title = first_heading.get_text().strip()
+
+                if not title:
+                    title = f"Section {i}"
+
+                dir_name = f"{i:02d}-{DocumentParser.sanitize_dir_name(title)}"
+                chapters.append(Chapter(
+                    number=i,
+                    title=title,
+                    dir_name=dir_name,
+                    text=text,
+                    chunks=[]
+                ))
+
+        return chapters
+
+    @staticmethod
+    def extract_chapters_from_pdf(file_path: str) -> List[Chapter]:
+        """
+        Extract chapters from PDF with heading detection
+        Fallback to single chapter if no headings detected
+        """
+        print_colored(f"📄 Reading PDF: {file_path}", "cyan")
+
+        try:
+            reader = PdfReader(file_path)
+            total_pages = len(reader.pages)
+            print_colored(f"📖 Found {total_pages} pages", "yellow")
+
+            # Extract all text with page boundaries
+            full_text = []
+            for i, page in enumerate(reader.pages, 1):
+                text = page.extract_text()
+                if text.strip():
+                    full_text.append(text)
+
+                if i % 10 == 0:
+                    print_colored(f"   Processed {i}/{total_pages} pages...", "yellow")
+
+            combined_text = "\n\n".join(full_text)
+
+            # Try to detect chapters using heading patterns
+            chapters = DocumentParser._detect_pdf_chapters(combined_text)
+
+            if chapters:
+                print_colored(f"✅ Detected {len(chapters)} chapters from headings", "green")
+                return chapters
+
+            # Fallback: Single chapter
+            print_colored("⚠️  No chapter headings detected, using single chapter mode", "yellow")
+            return [Chapter(
+                number=1,
+                title="Full Document",
+                dir_name="01-full-document",
+                text=combined_text,
+                chunks=[]
+            )]
+
+        except Exception as e:
+            print_colored(f"❌ Error reading PDF: {e}", "red")
+            return []
+
+    @staticmethod
+    def _detect_pdf_chapters(text: str) -> List[Chapter]:
+        """
+        Detect chapters in PDF text using heading patterns
+        Looks for: "Chapter N", "CHAPTER N", "Part N", etc.
+        """
+        chapters = []
+
+        # Common chapter heading patterns
+        patterns = [
+            r'^(CHAPTER\s+\w+)[:\.\s]*(.*)$',  # CHAPTER ONE: Title
+            r'^(Chapter\s+\w+)[:\.\s]*(.*)$',   # Chapter 1: Title
+            r'^(PART\s+\w+)[:\.\s]*(.*)$',      # PART I: Title
+            r'^(Part\s+\w+)[:\.\s]*(.*)$',      # Part 1: Title
+            r'^(\d+)[:\.\s]+(.+)$',             # 1. Title or 1: Title
+        ]
+
+        # Split into lines
+        lines = text.split('\n')
+        current_chapter = None
+        current_text = []
+        chapter_num = 0
+
+        for i, line in enumerate(lines):
+            line_stripped = line.strip()
+
+            # Check if line matches any chapter pattern
+            is_chapter = False
+            for pattern in patterns:
+                match = re.match(pattern, line_stripped, re.IGNORECASE)
+                if match:
+                    # Save previous chapter
+                    if current_chapter:
+                        chapter_text = '\n'.join(current_text).strip()
+                        if chapter_text:
+                            current_chapter.text = chapter_text
+                            chapters.append(current_chapter)
+
+                    # Start new chapter
+                    chapter_num += 1
+                    chapter_label = match.group(1).strip()
+                    chapter_title = match.group(2).strip() if len(match.groups()) > 1 else ""
+
+                    if not chapter_title:
+                        chapter_title = chapter_label
+
+                    dir_name = f"{chapter_num:02d}-{DocumentParser.sanitize_dir_name(chapter_title)}"
+
+                    current_chapter = Chapter(
+                        number=chapter_num,
+                        title=chapter_title,
+                        dir_name=dir_name,
+                        text="",
+                        chunks=[]
+                    )
+                    current_text = []
+                    is_chapter = True
+                    break
+
+            # Add line to current chapter text
+            if not is_chapter and current_chapter:
+                current_text.append(line)
+
+        # Save last chapter
+        if current_chapter:
+            chapter_text = '\n'.join(current_text).strip()
+            if chapter_text:
+                current_chapter.text = chapter_text
+                chapters.append(current_chapter)
+
+        return chapters
+
+    @staticmethod
+    def extract_text_from_pdf(file_path: str) -> str:
+        """Extract all text from PDF file (legacy method for backward compatibility)"""
+        print_colored(f"📄 Reading PDF: {file_path}", "cyan")
+
+        try:
+            reader = PdfReader(file_path)
+            text_parts = []
+
+            total_pages = len(reader.pages)
+            print_colored(f"📖 Found {total_pages} pages", "yellow")
+
+            for i, page in enumerate(reader.pages, 1):
+                text = page.extract_text()
+                if text.strip():
+                    text_parts.append(text)
+
+                if i % 10 == 0:
+                    print_colored(f"   Processed {i}/{total_pages} pages...", "yellow")
+
+            full_text = "\n\n".join(text_parts)
+            print_colored(f"✅ Extracted {len(full_text)} characters from PDF", "green")
+            return full_text
+
+        except Exception as e:
+            print_colored(f"❌ Error reading PDF: {e}", "red")
+            return ""
+
+    @staticmethod
+    def extract_text_from_epub(file_path: str) -> str:
+        """Extract all text from EPUB file"""
+        print_colored(f"📚 Reading EPUB: {file_path}", "cyan")
+
+        try:
+            book = epub.read_epub(file_path)
+            text_parts = []
+
+            # Get all document items
+            items = list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT))
+            print_colored(f"📖 Found {len(items)} chapters/sections", "yellow")
+
+            for i, item in enumerate(items, 1):
+                # Parse HTML content
+                soup = BeautifulSoup(item.get_content(), 'html.parser')
+
+                # Remove script and style elements
+                for script in soup(["script", "style"]):
+                    script.decompose()
+
+                # Get text
+                text = soup.get_text()
+
+                # Clean up whitespace
+                lines = (line.strip() for line in text.splitlines())
+                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                text = '\n'.join(chunk for chunk in chunks if chunk)
+
+                if text.strip():
+                    text_parts.append(text)
+
+                if i % 5 == 0:
+                    print_colored(f"   Processed {i}/{len(items)} sections...", "yellow")
+
+            full_text = "\n\n".join(text_parts)
+            print_colored(f"✅ Extracted {len(full_text)} characters from EPUB", "green")
+            return full_text
+
+        except Exception as e:
+            print_colored(f"❌ Error reading EPUB: {e}", "red")
+            return ""
+
+    @staticmethod
+    def parse_document(file_path: str) -> str:
+        """Automatically detect file type and extract text"""
+        file_path = Path(file_path)
+
+        if not file_path.exists():
+            print_colored(f"❌ File not found: {file_path}", "red")
+            return ""
+
+        suffix = file_path.suffix.lower()
+
+        if suffix == '.pdf':
+            return DocumentParser.extract_text_from_pdf(str(file_path))
+        elif suffix == '.epub':
+            return DocumentParser.extract_text_from_epub(str(file_path))
+        else:
+            print_colored(f"❌ Unsupported file type: {suffix}", "red")
+            print_colored("Supported formats: .pdf, .epub", "yellow")
+            return ""
+
+
+def chunk_chapter_text(chapter: Chapter, chunk_size: int = 1000):
+    """
+    Chunk chapter text while preserving sentence boundaries
+    Modifies chapter.chunks in place
+    """
+    if not chapter.text:
+        chapter.chunks = []
+        return
+
+    # Clean up text
+    text = validate_text(chapter.text)
+
+    # Remove excessive whitespace
+    text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Max 2 newlines
+    text = re.sub(r' +', ' ', text)  # Single spaces
+
+    chunks = []
+
+    while len(text) > 0:
+        if len(text) <= chunk_size:
+            chunks.append(text.strip())
+            break
+
+        # Try to split at sentence boundary
+        chunk = text[:chunk_size]
+
+        # Look for sentence endings (. ! ?)
+        sentence_end = max(
+            chunk.rfind('. '),
+            chunk.rfind('! '),
+            chunk.rfind('? ')
+        )
+
+        # If no sentence ending, look for comma
+        if sentence_end == -1:
+            sentence_end = chunk.rfind(', ')
+
+        # If no comma, look for space
+        if sentence_end == -1:
+            sentence_end = chunk.rfind(' ')
+
+        # If still nothing, just cut at chunk_size
+        if sentence_end == -1:
+            sentence_end = chunk_size
+        else:
+            sentence_end += 1  # Include the punctuation
+
+        chunks.append(text[:sentence_end].strip())
+        text = text[sentence_end:].lstrip()
+
+    chapter.chunks = [chunk for chunk in chunks if chunk]
+
+
+def split_text_smart(text: str, chunk_size: int = 1000) -> List[str]:
+    """
+    Smart text splitting that preserves sentence and paragraph boundaries
+    (Legacy function for backward compatibility)
+    """
+    if not text:
+        return []
+
+    # Clean up text
+    text = validate_text(text)
+
+    # Remove excessive whitespace
+    text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Max 2 newlines
+    text = re.sub(r' +', ' ', text)  # Single spaces
+
+    chunks = []
+
+    while len(text) > 0:
+        if len(text) <= chunk_size:
+            chunks.append(text.strip())
+            break
+
+        # Try to split at sentence boundary
+        chunk = text[:chunk_size]
+
+        # Look for sentence endings (. ! ?)
+        sentence_end = max(
+            chunk.rfind('. '),
+            chunk.rfind('! '),
+            chunk.rfind('? ')
+        )
+
+        # If no sentence ending, look for comma
+        if sentence_end == -1:
+            sentence_end = chunk.rfind(', ')
+
+        # If no comma, look for space
+        if sentence_end == -1:
+            sentence_end = chunk.rfind(' ')
+
+        # If still nothing, just cut at chunk_size
+        if sentence_end == -1:
+            sentence_end = chunk_size
+        else:
+            sentence_end += 1  # Include the punctuation
+
+        chunks.append(text[:sentence_end].strip())
+        text = text[sentence_end:].lstrip()
+
+    return [chunk for chunk in chunks if chunk]
+
+
+def find_existing_audio_directory(output_name: str) -> Optional[str]:
+    """
+    Find existing audio directory for this output_name
+    Returns the most recent directory path, or None if not found
+    """
+    audio_dir = "audio"
+    if not os.path.exists(audio_dir):
+        return None
+
+    # Look for directories matching pattern: output_name_*
+    pattern = f"{output_name}_"
+    matching_dirs = []
+
+    for dir_name in os.listdir(audio_dir):
+        dir_path = os.path.join(audio_dir, dir_name)
+        if os.path.isdir(dir_path) and dir_name.startswith(pattern):
+            matching_dirs.append((dir_path, os.path.getmtime(dir_path)))
+
+    if not matching_dirs:
+        return None
+
+    # Return most recent directory
+    matching_dirs.sort(key=lambda x: x[1], reverse=True)
+    return matching_dirs[0][0]
+
+
+def analyze_progress(base_directory: str, chapters: List[Chapter]) -> Tuple[int, int, List[Tuple[int, int]]]:
+    """
+    Analyze existing progress in a directory
+
+    Returns:
+        (completed_chunks, total_chunks, missing_chunks)
+        missing_chunks: List of (chapter_number, chunk_idx) that are missing
+    """
+    total_chunks = sum(len(ch.chunks) for ch in chapters)
+    completed_chunks = 0
+    missing_chunks = []
+
+    for chapter in chapters:
+        chapter_dir = os.path.join(base_directory, chapter.dir_name)
+
+        if not os.path.exists(chapter_dir):
+            # Entire chapter missing
+            for chunk_idx in range(1, len(chapter.chunks) + 1):
+                missing_chunks.append((chapter.number, chunk_idx))
+            continue
+
+        # Check if chapter has been concatenated into single file
+        concatenated_file = os.path.join(chapter_dir, f"{chapter.dir_name}.mp3")
+        if os.path.exists(concatenated_file) and os.path.getsize(concatenated_file) > 0:
+            # Entire chapter is concatenated - all chunks are complete
+            completed_chunks += len(chapter.chunks)
+            continue
+
+        # Check individual chunks
+        for chunk_idx in range(1, len(chapter.chunks) + 1):
+            # Determine expected filename
+            dir_prefix = chapter.dir_name.split('-')[0]
+            if chapter.dir_name.startswith('00-'):
+                parts = chapter.dir_name.split('-')
+                dir_prefix = f"{parts[0]}-{parts[1]}"
+
+            chunk_file = os.path.join(chapter_dir, f"{dir_prefix}-chunk-{chunk_idx}.mp3")
+
+            if os.path.exists(chunk_file) and os.path.getsize(chunk_file) > 0:
+                completed_chunks += 1
+            else:
+                missing_chunks.append((chapter.number, chunk_idx))
+
+    return completed_chunks, total_chunks, missing_chunks
+
+
+async def process_chapters_to_speech(
+    browser: PersistentBrowser,
+    voice_id: str,
+    chapters: List[Chapter],
+    output_name: str,
+    chunk_size: int = 1000
+):
+    """Process chapters to speech with nested directory structure"""
+
+    if not chapters:
+        print_colored("❌ No chapters to process", "red")
+        return
+
+    # Chunk all chapters
+    print_colored(f"\n✂️  Chunking {len(chapters)} chapters (max {chunk_size} chars per chunk)...", "cyan")
+    total_chunks = 0
+
+    for chapter in chapters:
+        chunk_chapter_text(chapter, chunk_size=chunk_size)
+        total_chunks += len(chapter.chunks)
+        print_colored(f"   📖 Chapter {chapter.number} '{chapter.title}': {len(chapter.chunks)} chunks", "yellow")
+
+    print_colored(f"\n✅ Total chunks across all chapters: {total_chunks}", "green")
+
+    # Check for existing progress
+    existing_dir = find_existing_audio_directory(output_name)
+    missing_chunks = []
+    base_directory = None
+    resume_mode = False
+
+    if existing_dir:
+        print_colored(f"\n🔍 Found existing audio directory:", "yellow")
+        print_colored(f"   {existing_dir}", "cyan")
+
+        # Analyze progress
+        completed, total, missing = analyze_progress(existing_dir, chapters)
+
+        print_colored(f"\n📊 Progress Analysis:", "cyan")
+        print_colored(f"   ✅ Completed: {completed}/{total} chunks ({int(completed/total*100)}%)", "green")
+        print_colored(f"   ⏳ Missing: {len(missing)} chunks", "yellow")
+
+        if len(missing) == 0:
+            print_colored(f"\n✅ All chunks already completed!", "green")
+            print_colored(f"📁 Directory: {existing_dir}", "cyan")
+
+            # Check if M4B already exists
+            m4b_file = os.path.join(existing_dir, f"{output_name}.m4b")
+            if os.path.exists(m4b_file):
+                print_colored(f"📖 M4B audiobook already exists: {os.path.basename(m4b_file)}", "green")
+                return
+            else:
+                print_colored(f"\n📖 Creating M4B audiobook from completed chunks...", "cyan")
+                m4b_file = await create_m4b_audiobook(
+                    existing_dir,
+                    chapters,
+                    output_name,
+                    author="Unknown Author"
+                )
+                if m4b_file:
+                    print_colored(f"\n✅ M4B AUDIOBOOK READY", "green")
+                    print_colored(f"📖 File: {os.path.basename(m4b_file)}", "cyan")
+                return
+
+        # Prompt user to resume or restart
+        print_colored(f"\n🔄 Resume Options:", "blue")
+        print_colored(f"   1. Resume from checkpoint (process {len(missing)} missing chunks)", "green")
+        print_colored(f"   2. Start fresh (create new directory)", "yellow")
+
+        while True:
+            choice = input_colored(f"\nChoice (1 or 2): ", "blue").strip()
+            if choice == '1':
+                base_directory = existing_dir
+                missing_chunks = missing
+                resume_mode = True
+                print_colored(f"\n✅ Resuming from checkpoint", "green")
+                print_colored(f"📁 Using directory: {base_directory}", "cyan")
+                break
+            elif choice == '2':
+                print_colored(f"\n🆕 Starting fresh conversion", "yellow")
+                break
+            else:
+                print_colored("Please enter 1 or 2", "red")
+
+    # Create new directory if not resuming
+    if not base_directory:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+        base_directory = os.path.join("audio", f"{output_name}_{timestamp}")
+        os.makedirs(base_directory, exist_ok=True)
+        print_colored(f"\n📁 Base output directory: {base_directory}", "cyan")
+
+    print_colored(f"🎬 Starting conversion...\n", "cyan")
+
+    # Process each chapter
+    success_count = 0
+    failed_chunks = []
+    overall_chunk_num = 0
+
+    for chapter in chapters:
+        if not chapter.chunks:
+            continue
+
+        # Create chapter directory
+        chapter_dir = os.path.join(base_directory, chapter.dir_name)
+        os.makedirs(chapter_dir, exist_ok=True)
+
+        # Check if entire chapter is already concatenated
+        concatenated_file = os.path.join(chapter_dir, f"{chapter.dir_name}.mp3")
+        if resume_mode and os.path.exists(concatenated_file) and os.path.getsize(concatenated_file) > 0:
+            # Entire chapter already done and concatenated, skip it
+            print_colored(f"\n{'='*60}", "blue")
+            if chapter.dir_name.startswith('00-'):
+                print_colored(f"📖 {chapter.title}", "magenta")
+            else:
+                dir_prefix = chapter.dir_name.split('-')[0]
+                print_colored(f"📖 Chapter {dir_prefix}: {chapter.title}", "magenta")
+            print_colored(f"✅ Already complete (concatenated)", "green")
+            print_colored(f"{'='*60}", "blue")
+
+            # Update counters
+            success_count += len(chapter.chunks)
+            overall_chunk_num += len(chapter.chunks)
+            continue
+
+        print_colored(f"\n{'='*60}", "blue")
+        # Display header based on front matter vs story chapter
+        if chapter.dir_name.startswith('00-'):
+            # Front matter: just show title without "Chapter N"
+            print_colored(f"📖 {chapter.title}", "magenta")
+        else:
+            # Story chapter: extract prefix from dir_name (e.g., "01" from "01-prologue")
+            dir_prefix = chapter.dir_name.split('-')[0]
+            print_colored(f"📖 Chapter {dir_prefix}: {chapter.title}", "magenta")
+        print_colored(f"📁 Directory: {chapter.dir_name}", "cyan")
+        print_colored(f"🔢 Chunks: {len(chapter.chunks)}", "yellow")
+        print_colored(f"{'='*60}", "blue")
+
+        # Track successful chunks for this chapter
+        chapter_chunk_files = []
+        chapter_success_count = 0
+
+        # Process each chunk in this chapter
+        for chunk_idx, chunk_text in enumerate(chapter.chunks, 1):
+            overall_chunk_num += 1
+
+            # Skip if already completed in resume mode
+            if resume_mode and (chapter.number, chunk_idx) not in missing_chunks:
+                # This chunk already exists, skip it
+                # Build expected file path to add to chapter_chunk_files
+                dir_prefix = chapter.dir_name.split('-')[0]
+                if chapter.dir_name.startswith('00-'):
+                    parts = chapter.dir_name.split('-')
+                    dir_prefix = f"{parts[0]}-{parts[1]}"
+
+                file_name = f"{dir_prefix}-chunk-{chunk_idx}.mp3"
+                file_path = os.path.join(chapter_dir, file_name)
+
+                if os.path.exists(file_path):
+                    chapter_chunk_files.append(file_path)
+                    chapter_success_count += 1
+                    success_count += 1
+                    print_colored(f"⏭️  Skipping existing chunk {chunk_idx}/{len(chapter.chunks)}", "cyan")
+                continue
+
+            # Progress indicator with context-aware chapter label
+            progress = f"[{overall_chunk_num}/{total_chunks}]"
+            percent = int((overall_chunk_num / total_chunks) * 100)
+
+            # Display chapter context in progress
+            if chapter.dir_name.startswith('00-'):
+                # Front matter: just show title
+                chapter_label = chapter.title
+            else:
+                # Story chapter: use prefix from dir_name
+                dir_prefix = chapter.dir_name.split('-')[0]
+                chapter_label = f"Chapter {dir_prefix}"
+
+            print_colored(f"\n{progress} {chapter_label}, Chunk {chunk_idx}/{len(chapter.chunks)} ({percent}%)...", "yellow")
+            print_colored(f"   Preview: {chunk_text[:80]}...", "cyan")
+
+            max_retries = 3
+            audio_data = None
+
+            for attempt in range(max_retries):
+                audio_data = await browser.request_audio(chunk_text, voice_id)
+
+                # Check for rate limit
+                if audio_data == 'RATE_LIMIT':
+                    print_colored("\n" + "="*60, "yellow")
+                    print_colored("⏸️  RATE LIMIT REACHED", "yellow")
+                    print_colored("="*60, "yellow")
+                    print_colored("The API has rate-limited your requests.", "yellow")
+                    print_colored(f"Progress: {success_count}/{total_chunks} chunks completed", "cyan")
+                    print_colored(f"Current: Chapter {chapter.number}, Chunk {chunk_idx}/{len(chapter.chunks)}", "cyan")
+                    print_colored("\nOptions:", "yellow")
+                    print_colored("  1. Wait a few minutes and press Enter to continue", "green")
+                    print_colored("  2. Press Ctrl+C to stop and resume later", "red")
+                    print_colored("="*60, "yellow")
+                    input("\nPress Enter when ready to continue...")
+                    print_colored("🔄 Resuming...", "green")
+                    # Continue to next retry attempt
+                    continue
+
+                if audio_data:
+                    # Extract numeric prefix from directory name for consistent naming
+                    # e.g., "01-prologue" -> "01", "00-02-copyright" -> "00-02"
+                    dir_prefix = chapter.dir_name.split('-')[0]
+                    if chapter.dir_name.startswith('00-'):
+                        # Front matter: "00-02-copyright" -> "00-02"
+                        parts = chapter.dir_name.split('-')
+                        dir_prefix = f"{parts[0]}-{parts[1]}"
+
+                    # Save with directory-prefix-aware naming
+                    file_name = f"{dir_prefix}-chunk-{chunk_idx}.mp3"
+                    file_path = os.path.join(chapter_dir, file_name)
+
+                    with open(file_path, 'wb') as f:
+                        f.write(audio_data)
+
+                    size_kb = len(audio_data) / 1024
+                    print_colored(f"   ✅ Saved {file_name} ({size_kb:.1f} KB)", "green")
+                    success_count += 1
+                    chapter_success_count += 1
+                    chapter_chunk_files.append(file_path)
+                    break
+                else:
+                    if attempt < max_retries - 1:
+                        print_colored(f"   ⚠️  Retry {attempt + 1}/{max_retries}...", "yellow")
+                        await asyncio.sleep(2)
+
+            if not audio_data:
+                print_colored(f"   ❌ Failed chapter {chapter.number}, chunk {chunk_idx}", "red")
+                failed_chunks.append((chapter.number, chunk_idx))
+
+        # Concatenate chapter chunks if all succeeded and more than 1 chunk
+        if chapter_success_count == len(chapter.chunks) and len(chapter.chunks) > 1:
+            print_colored(f"\n🎵 Concatenating {len(chapter.chunks)} chunks for {chapter.title}...", "cyan")
+
+            concatenated_file = await concatenate_chapter_mp3s(
+                chapter_dir,
+                chapter.dir_name,
+                chapter_chunk_files
+            )
+
+            if concatenated_file:
+                size_mb = os.path.getsize(concatenated_file) / 1024 / 1024
+                print_colored(f"✅ Created {chapter.dir_name}.mp3 ({size_mb:.1f} MB)", "green")
+                print_colored(f"   Original chunks deleted", "yellow")
+            else:
+                print_colored(f"⚠️  Concatenation failed, kept individual chunks", "yellow")
+
+    # Final summary
+    print_colored("\n" + "="*60, "cyan")
+    print_colored("📊 CONVERSION SUMMARY", "magenta")
+    print_colored("="*60, "cyan")
+    print_colored(f"📚 Chapters processed: {len(chapters)}", "green")
+    print_colored(f"✅ Successful chunks: {success_count}/{total_chunks}", "green")
+
+    if failed_chunks:
+        print_colored(f"❌ Failed chunks: {failed_chunks}", "red")
+
+    print_colored(f"\n📁 Output directory: {base_directory}", "cyan")
+    print_colored(f"📂 Chapter subdirectories created", "yellow")
+    print_colored("="*60, "cyan")
+
+    # Create M4B audiobook if all chapters succeeded
+    if success_count == total_chunks and not failed_chunks:
+        print_colored("\n🎧 All chapters completed successfully!", "green")
+        print_colored("📖 Creating M4B audiobook with chapter navigation...", "cyan")
+
+        # Use output_name as book title (already sanitized)
+        m4b_file = await create_m4b_audiobook(
+            base_directory,
+            chapters,
+            output_name,
+            author="Unknown Author"  # TODO: Could be extracted from EPUB metadata
+        )
+
+        if m4b_file:
+            print_colored(f"\n✅ M4B AUDIOBOOK READY", "green")
+            print_colored(f"📖 File: {os.path.basename(m4b_file)}", "cyan")
+            print_colored(f"📂 Location: {base_directory}", "yellow")
+        else:
+            print_colored(f"\n⚠️  M4B creation failed, but MP3s are available", "yellow")
+    else:
+        print_colored(f"\n⚠️  Skipping M4B creation due to failed chunks", "yellow")
+        print_colored(f"   Fix failed chunks and re-run to generate M4B", "cyan")
+
+
+async def process_document_to_speech(
+    browser: PersistentBrowser,
+    voice_id: str,
+    text: str,
+    output_name: str,
+    chunk_size: int = 1000
+):
+    """Process document text to speech with named output files (legacy function)"""
+
+    # Split into chunks
+    print_colored(f"\n✂️  Splitting text into chunks (max {chunk_size} chars)...", "cyan")
+    chunks = split_text_smart(text, chunk_size=chunk_size)
+
+    if not chunks:
+        print_colored("❌ No text chunks created", "red")
+        return
+
+    print_colored(f"✅ Created {len(chunks)} chunks", "green")
+
+    # Show chunk statistics
+    avg_length = sum(len(c) for c in chunks) / len(chunks)
+    print_colored(f"📊 Average chunk size: {int(avg_length)} characters", "yellow")
+
+    # Create output directory
+    timestamp = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+    directory = os.path.join("audio", f"{output_name}_{timestamp}")
+    os.makedirs(directory, exist_ok=True)
+
+    print_colored(f"\n📁 Output directory: {directory}", "cyan")
+    print_colored(f"🎬 Starting conversion...\n", "cyan")
+
+    # Process each chunk
+    success_count = 0
+    failed_chunks = []
+
+    for i, chunk in enumerate(chunks, 1):
+        # Progress indicator
+        progress = f"[{i}/{len(chunks)}]"
+        percent = int((i / len(chunks)) * 100)
+        print_colored(f"\n{progress} Processing chunk {i} ({percent}%)...", "yellow")
+        print_colored(f"   Preview: {chunk[:80]}...", "cyan")
+
+        max_retries = 3
+        audio_data = None
+
+        for attempt in range(max_retries):
+            audio_data = await browser.request_audio(chunk, voice_id)
+
+            if audio_data:
+                # Save with document name prefix
+                file_name = f"{output_name}-{i}.mp3"
+                file_path = os.path.join(directory, file_name)
+
+                with open(file_path, 'wb') as f:
+                    f.write(audio_data)
+
+                size_kb = len(audio_data) / 1024
+                print_colored(f"   ✅ Saved {file_name} ({size_kb:.1f} KB)", "green")
+                success_count += 1
+                break
+            else:
+                if attempt < max_retries - 1:
+                    print_colored(f"   ⚠️  Retry {attempt + 1}/{max_retries}...", "yellow")
+                    await asyncio.sleep(2)
+
+        if not audio_data:
+            print_colored(f"   ❌ Failed chunk {i}", "red")
+            failed_chunks.append(i)
+
+    # Final summary
+    print_colored("\n" + "="*60, "cyan")
+    print_colored("📊 CONVERSION SUMMARY", "magenta")
+    print_colored("="*60, "cyan")
+    print_colored(f"✅ Successful: {success_count}/{len(chunks)} chunks", "green")
+
+    if failed_chunks:
+        print_colored(f"❌ Failed chunks: {failed_chunks}", "red")
+
+    print_colored(f"📁 Output: {directory}", "cyan")
+    print_colored(f"🎵 Files: {output_name}-1.mp3 through {output_name}-{len(chunks)}.mp3", "yellow")
+    print_colored("="*60, "cyan")
+
+
+async def main():
+    """Main application"""
+
+    print_colored("\n" + "="*60, "cyan")
+    print_colored("📚 Speechma TTS - Document Mode", "magenta")
+    print_colored("="*60, "cyan")
+    print_colored("Convert EPUB and PDF files to audio", "yellow")
+    print_colored("="*60, "cyan")
+
+    # Load voices
+    voices = load_voices()
+    if not voices:
+        print_colored("❌ No voices available", "red")
+        return
+
+    stats = count_voice_stats(voices)
+    print_colored(f"\n📊 Voice Library: {stats['total']} voices", "yellow")
+
+    # Initialize browser (one-time)
+    browser = PersistentBrowser()
+
+    try:
+        await browser.initialize()
+
+        # Main loop
+        while True:
+            print_colored("\n" + "="*60, "blue")
+            print_colored("NEW DOCUMENT CONVERSION", "blue")
+            print_colored("="*60, "blue")
+
+            # Get document file
+            while True:
+                file_path = input_colored("\n📄 Enter document path (PDF or EPUB): ", "green").strip()
+
+                # Remove quotes if present
+                file_path = file_path.strip('"').strip("'")
+
+                if not file_path:
+                    print_colored("Please enter a file path", "red")
+                    continue
+
+                if not os.path.exists(file_path):
+                    print_colored(f"❌ File not found: {file_path}", "red")
+                    continue
+
+                suffix = Path(file_path).suffix.lower()
+                if suffix not in ['.pdf', '.epub']:
+                    print_colored(f"❌ Unsupported format: {suffix}", "red")
+                    print_colored("Supported: .pdf, .epub", "yellow")
+                    continue
+
+                break
+
+            # Extract text
+            print_colored(f"\n{'='*60}", "cyan")
+            text = DocumentParser.parse_document(file_path)
+            print_colored(f"{'='*60}", "cyan")
+
+            if not text or len(text) < 10:
+                print_colored("❌ No text extracted or text too short", "red")
+                continue
+
+            # Show text preview
+            preview = text[:200].replace('\n', ' ')
+            print_colored(f"\n📝 Text preview:", "yellow")
+            print(f"   {preview}...")
+            print_colored(f"\n📏 Total characters: {len(text):,}", "yellow")
+
+            # Estimate chunks
+            estimated_chunks = (len(text) // 1000) + 1
+            print_colored(f"🔢 Estimated chunks: ~{estimated_chunks}", "yellow")
+
+            # Confirm
+            confirm = input_colored(f"\nProceed with conversion? (y/n): ", "blue").lower()
+            if confirm != 'y':
+                continue
+
+            # Select voice
+            show_ids = input_colored("\nShow voice IDs? (y/n, default: n): ", "blue").lower() == 'y'
+            print_colored("\n📋 Available voices:", "blue")
+            total_voices = display_voices(voices, show_ids=show_ids)
+
+            try:
+                choice = int(input_colored(f"\nVoice number (1-{total_voices}): ", "green"))
+                if choice < 1 or choice > total_voices:
+                    print_colored("Invalid choice", "red")
+                    continue
+            except ValueError:
+                print_colored("Invalid input", "red")
+                continue
+
+            voice_id, _ = get_voice_id(voices, choice)
+            if not voice_id:
+                print_colored("Invalid voice", "red")
+                continue
+
+            # Get output name from filename
+            base_name = Path(file_path).stem
+            # Clean filename for output (lowercase, alphanumeric only)
+            output_name = re.sub(r'[^a-z0-9]+', '-', base_name.lower()).strip('-')
+
+            print_colored(f"\n🎵 Output files will be named: {output_name}-1.mp3, {output_name}-2.mp3, etc.", "cyan")
+
+            # Chunk size option
+            chunk_input = input_colored("\nChunk size in characters (default: 1000, max: 2000): ", "blue").strip()
+            try:
+                chunk_size = int(chunk_input) if chunk_input else 1000
+                chunk_size = min(max(chunk_size, 100), 2000)  # Clamp between 100-2000
+            except ValueError:
+                chunk_size = 1000
+
+            print_colored(f"✅ Using chunk size: {chunk_size} characters", "green")
+
+            # Process document
+            await process_document_to_speech(browser, voice_id, text, output_name, chunk_size)
+
+            # Continue?
+            while True:
+                choice = input_colored("\n🔄 Convert another document? (y/n): ", "blue").lower()
+                if choice == 'y':
+                    break
+                elif choice == 'n':
+                    print_colored("\n👋 Goodbye!", "magenta")
+                    return
+                else:
+                    print_colored("Please enter 'y' or 'n'", "red")
+
+    finally:
+        print_colored("\n🔒 Closing browser...", "cyan")
+        await browser.cleanup()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print_colored("\n\n👋 Exiting...", "yellow")
