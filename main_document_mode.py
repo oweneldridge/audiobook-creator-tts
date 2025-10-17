@@ -542,7 +542,11 @@ def prompt_for_author(default_author: Optional[str] = None) -> str:
 
 
 async def create_m4b_audiobook(
-    base_directory: str, chapters: List["Chapter"], book_title: str, author: str = "Unknown Author"
+    base_directory: str,
+    chapters: List["Chapter"],
+    book_title: str,
+    author: str = "Unknown Author",
+    cover_image_path: Optional[str] = None,
 ) -> Optional[str]:
     """
     Create a single M4B audiobook file with chapter navigation
@@ -552,6 +556,7 @@ async def create_m4b_audiobook(
         chapters: List of Chapter objects with metadata
         book_title: Title of the book (will be converted from kebab-case to Title Case)
         author: Author name for metadata
+        cover_image_path: Optional path to cover image file
 
     Returns:
         Path to M4B file, or None on failure
@@ -724,8 +729,7 @@ async def create_m4b_audiobook(
             print_colored(f"✅ Created M4B audiobook: {os.path.basename(output_m4b)} ({size_mb:.1f} MB)", "green")
             print_colored(f"   📚 {len(chapter_markers)} chapters with navigation", "yellow")
 
-            # Prompt for cover art
-            cover_image_path = prompt_for_cover_art(base_directory)
+            # Embed cover art if provided
             if cover_image_path:
                 embed_cover_art(output_m4b, cover_image_path)
 
@@ -1534,6 +1538,7 @@ async def process_chapters_to_speech(
     output_name: str,
     chunk_size: int = 1000,
     author: str = "Unknown Author",
+    cover_image_path: Optional[str] = None,
 ):
     """Process chapters to speech with nested directory structure
 
@@ -1544,6 +1549,7 @@ async def process_chapters_to_speech(
         output_name: Name for output files
         chunk_size: Maximum characters per chunk
         author: Author name for M4B metadata
+        cover_image_path: Optional path to cover image file for M4B
     """
 
     if not chapters:
@@ -1589,7 +1595,7 @@ async def process_chapters_to_speech(
                 return
             else:
                 print_colored(f"\n📖 Creating M4B audiobook from completed chunks...", "cyan")
-                m4b_file = await create_m4b_audiobook(existing_dir, chapters, output_name, author)
+                m4b_file = await create_m4b_audiobook(existing_dir, chapters, output_name, author, cover_image_path)
                 if m4b_file:
                     print_colored(f"\n✅ M4B AUDIOBOOK READY", "green")
                     print_colored(f"📖 File: {os.path.basename(m4b_file)}", "cyan")
@@ -1826,6 +1832,7 @@ async def process_chapters_to_speech(
             chapters,
             output_name,
             author,
+            cover_image_path,
         )
 
         if m4b_file:
@@ -2178,12 +2185,19 @@ async def main():
             print_colored(f"✅ Using chunk size: {chunk_size} characters (optimal for performance)", "green")
 
             # Prompt for author if processing chapters (for M4B metadata)
+            cover_image_path = None
             if chapters:
                 author = prompt_for_author(author)
 
+                # Prompt for cover art before processing (so user doesn't have to wait)
+                print_colored(f"\n📖 Preparing to create M4B audiobook with metadata:", "cyan")
+                print_colored(f"   Title: {kebab_to_title_case(output_name)}", "yellow")
+                print_colored(f"   Author: {author}", "yellow")
+                cover_image_path = prompt_for_cover_art(os.path.join("audio", output_name))
+
             # Process document (chapter-based or text-based)
             if chapters:
-                await process_chapters_to_speech(browser, voice_id, chapters, output_name, chunk_size, author)
+                await process_chapters_to_speech(browser, voice_id, chapters, output_name, chunk_size, author, cover_image_path)
             else:
                 await process_document_to_speech(browser, voice_id, text, output_name, chunk_size)
 
