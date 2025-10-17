@@ -7,7 +7,8 @@ Convert entire EPUB and PDF documents to audio with automatic text extraction an
 ✅ **Automatic text extraction** from PDF and EPUB files
 ✅ **Smart chunking** that preserves sentence boundaries
 ✅ **Named output files** based on input filename (e.g., `othello-1.mp3`, `othello-2.mp3`)
-✅ **M4B audiobook creation** with chapter markers (requires ffmpeg)
+✅ **M4B audiobook creation** with chapter markers and metadata (requires ffmpeg)
+✅ **Cover art embedding** for professional audiobooks (requires AtomicParsley)
 ✅ **Progress tracking** with live updates
 ✅ **One-time CAPTCHA** solve, then convert unlimited documents
 ✅ **Configurable chunk size** (100-2000 characters)
@@ -199,13 +200,15 @@ After converting all MP3 chunks, the script automatically creates a single M4B a
 **Features:**
 - **Single File** - All audio combined into one M4B file
 - **Chapter Markers** - Each chunk becomes a navigable chapter
-- **Metadata** - Includes book title and chapter information
+- **Metadata** - Includes book title and author information
+- **Cover Art** - Embed custom cover images for professional audiobooks
 - **Compatibility** - Works with Apple Books, Audiobook players, and most media players
 - **Automatic Creation** - Runs automatically after successful conversion
 
 **Requirements:**
 - ffmpeg must be installed (see Installation section above)
 - All MP3 chunks must be successfully generated
+- AtomicParsley (optional, for cover art): `brew install atomicparsley`
 
 **Example Output:**
 ```
@@ -223,6 +226,55 @@ After converting all MP3 chunks, the script automatically creates a single M4B a
 - Script will skip M4B creation and show a warning
 - You'll still have all individual MP3 files
 - You can install ffmpeg later and manually create M4B if needed
+
+## Cover Art for Audiobooks
+
+When creating M4B audiobooks, you can add custom cover art to make your audiobooks look professional in audiobook players and media libraries.
+
+**When Asked:**
+The script will prompt for cover art **after confirming title and author** but **before starting the TTS conversion**, so you don't have to wait.
+
+**Workflow:**
+1. Confirm conversion and select voice
+2. **Provide title and author metadata**
+3. **→ Add cover art (asked here)**
+4. TTS conversion begins (all chapters)
+5. M4B file created with cover art embedded
+
+**Options:**
+- **Use default**: If `cover.jpg` exists in the audiobook directory, script will offer to use it
+- **Custom path**: Provide full path to your cover image
+- **Skip**: Press 'n' to create audiobook without cover art
+
+**Supported Formats:**
+- JPG/JPEG
+- PNG
+- GIF
+- BMP
+
+**Recommended:**
+- Square images (500x500 or larger)
+- High quality (but not too large, <2MB)
+- Clear, readable thumbnail
+
+**Example:**
+```
+📖 Preparing to create M4B audiobook with metadata:
+   Title: Othello
+   Author: William Shakespeare
+
+🎨 Would you like to add cover art to the audiobook? (y/n): y
+
+✅ Found cover.jpg in audiobook directory. Use this file? (y/n): y
+
+✅ Using cover.jpg
+```
+
+**Manual Cover Art Embedding:**
+If you already have an M4B file and want to add cover art later:
+```bash
+AtomicParsley audiobook.m4b --artwork cover.jpg --overWrite
+```
 
 ## Features in Detail
 
