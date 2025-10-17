@@ -1,0 +1,169 @@
+name: Stale Issue Management
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Close Stale Issues and PRs
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Mark and close stale issues and PRs
+      uses: actions/stale@v9
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+        # Stale issue configuration
+        stale-issue-message: |
+          👋 This issue has been automatically marked as stale because it has not had recent activity.
+
+          **It will be closed in 7 days if no further activity occurs.**
+
+          If you believe this issue is still relevant, please:
+          - Comment on this issue to keep it open
+          - Provide additional information or updates
+          - Add the `keep-open` label
+
+          Thank you for your contributions! 🙏
+
+        close-issue-message: |
+          🔒 This issue has been automatically closed due to inactivity.
+
+          If you believe this issue should be reopened, please:
+          - Open a new issue with updated information
+          - Reference this issue in your new submission
+          - Provide any new details or context
+
+          Thank you for your understanding! 🙏
+
+        # Stale PR configuration
+        stale-pr-message: |
+          👋 This pull request has been automatically marked as stale because it has not had recent activity.
+
+          **It will be closed in 14 days if no further activity occurs.**
+
+          If you plan to continue working on this PR, please:
+          - Rebase against the latest main branch
+          - Address any review comments
+          - Comment on this PR to keep it open
+          - Add the `keep-open` label
+
+          Thank you for your contributions! 🙏
+
+        close-pr-message: |
+          🔒 This pull request has been automatically closed due to inactivity.
+
+          If you would like to reopen this PR, please:
+          - Rebase against the latest main branch
+          - Address any outstanding review comments
+          - Open a new PR with updated changes
+
+          We appreciate your contributions! 🙏
+
+        # Timing configuration
+        days-before-stale: 60          # Mark as stale after 60 days of inactivity
+        days-before-close: 7           # Close issues 7 days after being marked stale
+        days-before-pr-stale: 30       # Mark PRs as stale after 30 days of inactivity
+        days-before-pr-close: 14       # Close PRs 14 days after being marked stale
+
+        # Label configuration
+        stale-issue-label: 'stale'
+        stale-pr-label: 'stale'
+        exempt-issue-labels: 'keep-open,bug,enhancement,documentation,help-wanted,good-first-issue'
+        exempt-pr-labels: 'keep-open,work-in-progress,blocked'
+
+        # Additional settings
+        operations-per-run: 50         # Limit operations per run to avoid rate limiting
+        remove-stale-when-updated: true # Remove stale label when issue is updated
+        ascending: true                 # Process oldest issues first
+
+  label-inactive:
+    name: Label Inactive Issues
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Label issues awaiting response
+      uses: actions-cool/issues-helper@v3
+      with:
+        actions: 'check-inactive'
+        token: ${{ secrets.GITHUB_TOKEN }}
+        inactive-day: 30
+        inactive-label: 'awaiting-response'
+        body: |
+          👋 This issue has been inactive for 30 days.
+
+          We're waiting for more information or feedback. If you have any updates, please comment below.
+
+          Thank you! 🙏
+
+  organize-issues:
+    name: Organize and Triage Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Auto-label issues
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            per_page: 100
+          });
+
+          for (const issue of issues.data) {
+            if (issue.pull_request) continue;
+
+            const title = issue.title.toLowerCase();
+            const body = issue.body?.toLowerCase() || '';
+            const labels = [];
+
+            // Auto-label based on keywords
+            if (title.includes('bug') || title.includes('error') || title.includes('crash')) {
+              labels.push('bug');
+            }
+            if (title.includes('feature') || title.includes('enhancement') || title.includes('add')) {
+              labels.push('enhancement');
+            }
+            if (title.includes('doc') || title.includes('readme')) {
+              labels.push('documentation');
+            }
+            if (title.includes('question') || title.includes('how to')) {
+              labels.push('question');
+            }
+            if (title.includes('security') || title.includes('vulnerability')) {
+              labels.push('security');
+            }
+
+            // Add labels if not already present
+            if (labels.length > 0) {
+              const existingLabels = issue.labels.map(l => l.name);
+              const newLabels = labels.filter(l => !existingLabels.includes(l));
+
+              if (newLabels.length > 0) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: newLabels
+                });
+                console.log(`Added labels to #${issue.number}: ${newLabels.join(', ')}`);
+              }
+            }
+          }

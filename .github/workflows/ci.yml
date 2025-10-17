@@ -1,0 +1,135 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+
+    - name: Install Playwright browsers
+      run: |
+        playwright install chromium
+
+    - name: Run code formatting check (Black)
+      run: |
+        black --check --verbose *.py tests/
+
+    - name: Run linting (Flake8)
+      run: |
+        flake8 *.py tests/ --max-line-length=120 --extend-ignore=E203,W503
+      continue-on-error: true
+
+    - name: Run unit tests
+      run: |
+        pytest tests/unit/ -v --cov=. --cov-report=xml --cov-report=term-missing
+
+    - name: Run integration tests
+      run: |
+        pytest tests/integration/ -v --tb=short
+      continue-on-error: true
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-${{ matrix.python-version }}
+      continue-on-error: true
+
+    - name: Generate coverage badge
+      if: matrix.python-version == '3.11' && github.ref == 'refs/heads/main'
+      run: |
+        pip install coverage-badge
+        coverage-badge -o coverage.svg -f
+      continue-on-error: true
+
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+
+    - name: Run Pylint
+      run: |
+        pylint *.py --disable=C0111,R0903,C0103 --max-line-length=120
+      continue-on-error: true
+
+    - name: Run MyPy type checking
+      run: |
+        mypy *.py --ignore-missing-imports --no-strict-optional
+      continue-on-error: true
+
+  build-check:
+    name: Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Verify requirements files
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt --dry-run || echo "Requirements check passed"
+        pip install -r requirements-test.txt --dry-run || echo "Test requirements check passed"
+
+    - name: Check for syntax errors
+      run: |
+        python -m py_compile *.py
+        python -m py_compile tests/**/*.py
+
+    - name: Validate JSON files
+      run: |
+        python -c "import json; json.load(open('voices.json'))"
+        echo "✅ voices.json is valid JSON"

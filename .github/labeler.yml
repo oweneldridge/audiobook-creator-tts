@@ -1,0 +1,46 @@
+# Labeler configuration for automatically labeling PRs based on changed files
+
+# Documentation changes
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: ['*.md', 'docs/**/*']
+
+# Tests
+tests:
+  - changed-files:
+    - any-glob-to-any-file: ['tests/**/*', '**/test_*.py', '**/*_test.py']
+
+# Dependencies
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file: ['requirements*.txt', 'setup.py', 'pyproject.toml']
+
+# GitHub Actions / CI
+ci:
+  - changed-files:
+    - any-glob-to-any-file: ['.github/**/*']
+
+# Main application code
+core:
+  - changed-files:
+    - any-glob-to-any-file: ['main*.py', 'convert_*.py']
+
+# Document processing
+document-processing:
+  - changed-files:
+    - any-glob-to-any-file: ['*document*.py', '*epub*.py', '*pdf*.py']
+
+# Voice management
+voice-management:
+  - changed-files:
+    - any-glob-to-any-file: ['voices.json', '*voice*.py']
+
+# Configuration
+configuration:
+  - changed-files:
+    - any-glob-to-any-file: ['*.ini', '*.cfg', '*.json', '*.toml', '*.yaml', '*.yml']
+
+# Assets
+assets:
+  - changed-files:
+    - any-glob-to-any-file: ['*.png', '*.jpg', '*.jpeg', '*.icns', '*.ico', '*.svg']
