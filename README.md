@@ -54,7 +54,7 @@
 
 ```bash
 # 1. Clone repository
-git clone [repository-url]
+git clone https://github.com/oweneldridge/audiobook-creator-tts.git
 cd audiobook-creator-tts
 
 # 2. Create virtual environment
