@@ -1,176 +1,172 @@
-# Audiobook Creator TTS CLI
+<div align="center">
 
-A powerful command-line tool to convert text to speech with 583 voices across 76 languages.
+<img src="icon.png" alt="Audiobook Creator TTS" width="200"/>
 
-## 🚀 Installation
+# Audiobook Creator TTS
 
-### Quick Setup (5 minutes)
+### 🎙️ Transform text into high-quality audiobooks with 583 AI voices
 
-```bash
-# 1. Create virtual environment (recommended)
-python3.11 -m venv venv
+*Convert documents, ebooks, and text into professional audio across 76 languages*
 
-# 2. Activate virtual environment
-source venv/bin/activate  # macOS/Linux
-# OR
-venv\Scripts\activate     # Windows
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Voices](https://img.shields.io/badge/voices-583-green.svg)](voices.json)
+[![Languages](https://img.shields.io/badge/languages-76-orange.svg)](voices.json)
+[![Format](https://img.shields.io/badge/output-MP3%20%7C%20M4B-red.svg)](#)
 
-# 3. Install dependencies
-pip install -r requirements.txt
+[Quick Start](#-quick-start) • [Features](#-features) • [Documentation](#-documentation) • [Examples](#-examples)
 
-# 4. Install test dependencies (optional, for development)
-pip install -r requirements-test.txt
-
-# 5. Install Playwright browsers (required for Playwright-based features)
-playwright install chromium
-```
-
-**Why use a virtual environment?**
-- ✅ Isolates project dependencies
-- ✅ Prevents conflicts with other Python projects
-- ✅ Ensures reproducible environment
-- ✅ Industry standard practice
-
-**Note:** Always activate the virtual environment before running the scripts:
-```bash
-source venv/bin/activate  # macOS/Linux
-```
-
-## 🎯 Choose Your Mode
-
-### 📚 Document Mode (RECOMMENDED for Books/Documents)
-**Convert documents and ebooks to audio**
-
-```bash
-# Interactive mode
-python3.11 main_document_mode.py
-
-# CLI mode (provide file path as argument)
-python3.11 main_document_mode.py /path/to/document.pdf
-```
-
-✅ **Three input methods:**
-  - 📂 File browser (native OS file picker)
-  - ✍️  Plaintext input (type or paste directly)
-  - ⌨️  Manual file path entry
-
-✅ Automatic text extraction from multiple formats
-✅ Supports: PDF, EPUB, DOCX, TXT, HTML, Markdown, Plaintext
-✅ Smart chunking that preserves sentences
-✅ Named output: `othello-1.mp3`, `othello-2.mp3`, etc.
-✅ M4B audiobook creation with chapter markers (requires ffmpeg)
-✅ Progress tracking with live updates
-✅ One CAPTCHA solve for unlimited conversions
-
-**Best for:** Books, research papers, Word documents, web articles, Markdown docs, custom text
-
-[📖 Document Mode Guide](README_DOCUMENT_MODE.md)
+</div>
 
 ---
 
-### 💬 Text Mode (for Short Texts)
-**Type or paste text directly**
+## ✨ Features
 
-```bash
-python3.11 main_playwright_persistent.py
-```
+<table>
+<tr>
+<td width="50%" valign="top">
 
-✅ Interactive text input
-✅ Multiline support (type END to finish)
-✅ Multiple conversions in one session
-✅ Persistent browser session
+### 🎯 **Smart Document Processing**
+- 📄 **Multi-Format Support**: PDF, EPUB, DOCX, TXT, HTML, Markdown
+- 🧠 **Intelligent Chunking**: Preserves sentence boundaries
+- 📚 **M4B Audiobooks**: Chapter markers & metadata
+- 🎵 **Named Output**: `book-1.mp3`, `book-2.mp3`, etc.
+- 🔄 **Progress Tracking**: Real-time conversion updates
 
-**Best for:** Short texts, articles, custom content
+</td>
+<td width="50%" valign="top">
 
----
+### 🌍 **Extensive Voice Library**
+- 🗣️ **583 Premium Voices** across 76 languages
+- 👥 Male, female, and multilingual options
+- 🎭 Regional accents (UK, US, AU, etc.)
+- 🎨 Expressive and standard variants
+- 🔊 Professional streaming quality
 
-### 🍪 Manual Cookie Mode (Advanced)
-**Manual cookie management (for headless environments)**
-
-```bash
-python3.11 main.py
-```
-
-✅ No browser automation required
-✅ Lightweight execution
-✅ Works in headless environments
-❌ Requires manual cookie extraction
-
-**Best for:** Automation, servers, advanced users
+</td>
+</tr>
+</table>
 
 ---
-
-## 📊 Voice Library
-
-- **583 voices** across **76 languages**
-- Male, female, and multilingual options
-- Professional quality audio output
-- Support for major languages: English, Spanish, French, German, Chinese, Arabic, and many more
 
 ## 🚀 Quick Start
 
 ### Installation
 
-1. **Clone or download this repository**
-
-2. **Set up virtual environment:**
 ```bash
-# Create and activate virtual environment
+# 1. Clone repository
+git clone [repository-url]
+cd audiobook-creator-tts
+
+# 2. Create virtual environment
 python3.11 -m venv venv
 source venv/bin/activate  # macOS/Linux
 # OR: venv\Scripts\activate  # Windows
-```
 
-3. **Install dependencies:**
-```bash
-# Install production dependencies
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# Install test dependencies (optional, for development)
-pip install -r requirements-test.txt
-
-# Install Playwright browser
+# 4. Install Playwright browser
 playwright install chromium
 
-# For M4B audiobook creation (optional but recommended)
+# 5. (Optional) Install ffmpeg for M4B audiobook creation
 # macOS: brew install ffmpeg
-# Ubuntu/Debian: sudo apt-get install ffmpeg
-# Windows: Download from https://ffmpeg.org/download.html
+# Ubuntu: sudo apt-get install ffmpeg
 ```
 
-4. **Choose your mode and run:**
+### Usage
 
-**For documents (PDF, EPUB, DOCX, TXT, HTML, Markdown):**
+<table>
+<tr>
+<th>Mode</th>
+<th>Command</th>
+<th>Best For</th>
+</tr>
+<tr>
+<td>📚 <b>Document Mode</b><br/><i>(Recommended)</i></td>
+<td><code>python3.11 main_document_mode.py</code></td>
+<td>Books, PDFs, documents, ebooks</td>
+</tr>
+<tr>
+<td>💬 <b>Text Mode</b></td>
+<td><code>python3.11 main_playwright_persistent.py</code></td>
+<td>Short texts, articles, custom content</td>
+</tr>
+<tr>
+<td>🍪 <b>Manual Cookie</b></td>
+<td><code>python3.11 main.py</code></td>
+<td>Headless servers, automation</td>
+</tr>
+</table>
+
+> **💡 Tip:** Always activate your virtual environment before running: `source venv/bin/activate`
+
+---
+
+## 📖 Modes Explained
+
+### 📚 Document Mode <sup>**RECOMMENDED**</sup>
+
+Convert entire documents and ebooks into professional audiobooks with chapter markers.
+
 ```bash
 python3.11 main_document_mode.py
+
+# Or provide file path directly:
+python3.11 main_document_mode.py /path/to/document.pdf
 ```
 
-**For text input:**
-```bash
-python3.11 main_playwright_persistent.py
-```
+**Three Flexible Input Methods:**
 
-**Remember:** Always activate the virtual environment before running:
-```bash
-source venv/bin/activate  # macOS/Linux
-```
+| Method | Description | Use Case |
+|--------|-------------|----------|
+| 🖱️ **File Browser** | Native OS file picker | Quick document selection |
+| ✍️ **Plaintext Input** | Type or paste directly | Meeting notes, custom text |
+| ⌨️ **Manual Path** | Enter file path | Automation, scripting |
 
-## 📁 Output Structure
+**Supported Formats:**
+- ✅ **PDF** - Searchable text PDFs
+- ✅ **EPUB** - Ebooks (non-DRM)
+- ✅ **DOCX** - Microsoft Word documents
+- ✅ **TXT** - Plain text (auto-encoding detection)
+- ✅ **HTML/HTM** - Web pages and articles
+- ✅ **Markdown** - Documentation files
 
-All audio files are saved to timestamped directories:
-
-### Document Mode
+**Output:**
 ```
 audio/
   └── othello_2025-01-14-10-30-45/
       ├── othello-1.mp3
       ├── othello-2.mp3
       ├── othello-3.mp3
-      ├── ...
-      └── othello.m4b        (Complete audiobook with chapter markers)
+      └── othello.m4b  ← Complete audiobook with chapters!
 ```
 
-### Text Mode
+**Key Features:**
+- ✅ One-time CAPTCHA solving for unlimited conversions
+- ✅ Smart text chunking (~1000 chars, sentence-aware)
+- ✅ M4B creation with chapter markers and metadata
+- ✅ Progress tracking with live updates
+- ✅ Named output files based on document name
+
+[📖 **Full Document Mode Guide →**](README_DOCUMENT_MODE.md)
+
+---
+
+### 💬 Text Mode
+
+Perfect for quick text-to-speech conversions and short content.
+
+```bash
+python3.11 main_playwright_persistent.py
+```
+
+**Features:**
+- ✨ Interactive text input (multiline support)
+- ♾️ Multiple conversions in one session
+- 🌐 Persistent browser session
+- 🔄 Type "END" to finish input
+
+**Output:**
 ```
 audio/
   └── 2025-01-14 10-30-45/
@@ -179,45 +175,73 @@ audio/
       └── ...
 ```
 
-## 🎬 How It Works
+---
 
-### Document Mode Workflow
+### 🍪 Manual Cookie Mode
 
-1. **Extract Text** - Automatically parse PDF, EPUB, DOCX, TXT, HTML, or Markdown
-2. **Smart Chunking** - Split text at sentence boundaries (1000 chars default)
-3. **Browser Session** - Solve CAPTCHA once at startup
-4. **Convert** - Process each chunk through TTS API
-5. **Named Output** - Save as `filename-1.mp3`, `filename-2.mp3`, etc.
-6. **Create M4B** - Combine all MP3s into single audiobook with chapter markers (requires ffmpeg)
+Advanced mode for headless environments and automation.
 
-### Text Mode Workflow
+```bash
+python3.11 main.py
+```
 
-1. **Browser Session** - Solve CAPTCHA once at startup
-2. **Enter Text** - Type or paste text (type END to finish)
-3. **Auto-Chunk** - Split into 1000 character chunks
-4. **Convert** - Process through TTS API
-5. **Save** - Output to timestamped directory
+**Features:**
+- 🪶 Lightweight execution (no browser)
+- 🖥️ Works in headless environments
+- ⚙️ Ideal for automation
+- ⚠️ Requires manual cookie extraction
 
-## 🔧 Configuration Options
+---
 
-### Chunk Size
-Adjust how text is split (default: 1000 characters):
+## 🎯 Use Cases
 
-- **500-800**: Short sentences, poetry
-- **1000**: General books and articles (default)
-- **1500-2000**: Long passages, technical documents
+<table>
+<tr>
+<th>📚 Learning & Education</th>
+<th>📖 Reading & Entertainment</th>
+</tr>
+<tr>
+<td>
+• Study textbooks while commuting<br/>
+• Listen to research papers<br/>
+• Convert lecture notes to audio<br/>
+• Learn languages with native speakers<br/>
+</td>
+<td>
+• Convert ebooks to audiobooks<br/>
+• Listen to articles and blogs<br/>
+• Enjoy public domain classics<br/>
+• Accessibility for visual impairments<br/>
+</td>
+</tr>
+</table>
 
-### Voice Selection
-583 voices to choose from:
+<table>
+<tr>
+<th>💼 Professional</th>
+<th>🔧 Technical</th>
+</tr>
+<tr>
+<td>
+• Convert reports and documents<br/>
+• Meeting notes playback<br/>
+• Content creation for podcasts<br/>
+• Email and document review<br/>
+</td>
+<td>
+• Batch document processing<br/>
+• API integration workflows<br/>
+• Automated content generation<br/>
+• Multi-language localization<br/>
+</td>
+</tr>
+</table>
 
-- **Multilingual**: Multiple languages per voice
-- **Regional**: UK, US, Australian English, etc.
-- **Gender**: Male and female options
-- **Specialty**: Expressive and standard variants
+---
 
 ## 📝 Examples
 
-### Example 1: Convert a Document with File Browser
+### Example 1: Convert an Ebook with File Browser
 
 ```bash
 $ python3.11 main_document_mode.py
@@ -229,7 +253,7 @@ $ python3.11 main_document_mode.py
 
 Choice (1, 2, or 3): 1
 
-[Native file picker opens - select your document]
+[Native file picker opens - select your EPUB file]
 
 📚 Reading EPUB...
 ✅ Extracted 145,230 characters from EPUB
@@ -250,9 +274,12 @@ Proceed with conversion? (y/n): y
 [Processing...]
 ✅ Successful: 147/147 chunks
 📖 Creating M4B audiobook: othello.m4b
+🎉 Complete! Your audiobook is ready.
 ```
 
-### Example 2: Convert Plaintext
+---
+
+### Example 2: Convert Custom Text
 
 ```bash
 $ python3.11 main_document_mode.py
@@ -271,17 +298,17 @@ What would you like to name this conversion? Meeting Notes
 
 📝 Enter your text:
 (Type END on a new line when finished)
-(Minimum 10 characters required)
 
-Today's meeting covered the quarterly results.
+Today's meeting covered quarterly results.
 We discussed revenue growth and market expansion.
-Action items were assigned to each team member.
+Action items were assigned to each team.
 END
 
 ✅ Received 152 characters
-
-[Processing continues...]
+🔄 Processing...
 ```
+
+---
 
 ### Example 3: CLI Mode (Automation)
 
@@ -290,98 +317,65 @@ $ python3.11 main_document_mode.py ~/Documents/report.pdf
 
 📄 File provided via CLI: ~/Documents/report.pdf
 
-[Conversion proceeds directly with interactive prompts for voice and chunk size]
+[Conversion proceeds with interactive voice selection]
 ```
 
-### Convert Short Text
+---
 
-```bash
-$ python3.11 main_playwright_persistent.py
+## 🔧 Configuration
 
-📋 Available voices:
-...
+### Chunk Size
 
-Voice number (1-583): 25
+Adjust text splitting for different content types (default: 1000 characters):
 
-📝 Enter your text:
-(Type END on a new line when finished)
-The quick brown fox jumps over the lazy dog.
-This is a test of the text-to-speech system.
-END
+| Size | Best For |
+|------|----------|
+| **500-800** | Poetry, short sentences, dramatic pauses |
+| **1000** | General books and articles _(recommended)_ |
+| **1500-2000** | Technical documents, long passages |
 
-📊 Processing 1 chunk(s)...
-✅ Saved to audio/2025-01-14-11-00-00/audio_chunk_1.mp3
-```
+### Voice Selection
 
-## 🎯 Use Cases
+**583 voices organized by:**
+- 🌍 **Language**: English, Spanish, French, German, Chinese, Arabic, and 70+ more
+- 🗺️ **Region**: UK, US, Australia, Canada, India, etc.
+- 👤 **Gender**: Male and female options
+- 🎭 **Style**: Standard and expressive variants
 
-| Use Case | Mode | Input Method | Example |
-|----------|------|--------------|---------|
-| Convert ebook to audiobook | Document | File Browser/CLI | `Othello.epub` → `othello-1.mp3` ... |
-| Study textbooks | Document | File Browser/CLI | `Biology_Ch5.pdf` → `biology-ch5-1.mp3` ... |
-| Listen to research papers | Document | File Browser/Path | `paper.pdf` → `paper-1.mp3` ... |
-| Convert Word documents | Document | File Browser/CLI | `report.docx` → `report-1.mp3` ... |
-| Convert web articles | Document | File Browser/Path | `article.html` → `article-1.mp3` ... |
-| Convert Markdown docs | Document | File Browser/Path | `README.md` → `readme-1.mp3` ... |
-| Convert meeting notes | Document | Plaintext Input | Type text → `meeting-notes-1.mp3` ... |
-| Quick announcements | Document | Plaintext Input | Paste text → `announcement-1.mp3` ... |
-| Script automation | Document | CLI Argument | `script.sh` passes file path |
-| Batch processing | Document | CLI Argument | Loop through files programmatically |
+---
 
-## ⚠️ Important Notes
+## 📊 Performance
 
-### CAPTCHA Handling
-- Solve CAPTCHA **once** at startup
-- Browser stays open for unlimited conversions
-- If CAPTCHA reappears, script will pause and prompt you
+| Metric | Value |
+|--------|-------|
+| **Processing Speed** | ~1-2 seconds per chunk |
+| **Throughput** | ~50-100 chunks per hour |
+| **Large Book (500 pages)** | 30-60 minutes |
+| **Audio Format** | MP3 (streaming quality) |
+| **File Size** | ~30-50 KB per chunk |
 
-### File Format Support
-
-**Document Mode:**
-- ✅ **PDF** - Searchable text PDFs
-- ✅ **EPUB** - Ebooks (not DRM-protected)
-- ✅ **DOCX** - Microsoft Word documents
-- ✅ **TXT** - Plain text files (auto-detects encoding)
-- ✅ **HTML/HTM** - Web pages and articles
-- ✅ **Markdown (.md)** - Markdown documents
-- ❌ Scanned PDFs (need OCR first)
-- ❌ Images or graphic-only PDFs
-
-### Performance
-
-**Processing Speed:**
-- ~1-2 seconds per chunk
-- ~50-100 chunks per hour
-- Large books (500 pages): 30-60 minutes
-
-**Audio Quality:**
-- Format: MP3
-- Bitrate: Standard streaming quality
-- Size: ~30-50 KB per chunk
+---
 
 ## 🔍 Troubleshooting
 
-### "File browser not available (tkinter not installed)"
-
-**Problem:** File browser (option 1) doesn't work - shows "tkinter not installed" error.
+<details>
+<summary><b>🚫 "File browser not available (tkinter not installed)"</b></summary>
 
 **Quick Solutions:**
-- **Use option 2**: Type or paste text directly (works without tkinter)
-- **Use option 3**: Enter file path manually (works without tkinter)
-- **Use CLI mode**: `python3.11 main_document_mode.py /path/to/file.pdf`
+- ✅ **Option 2**: Type or paste text directly (no tkinter needed)
+- ✅ **Option 3**: Enter file path manually (no tkinter needed)
+- ✅ **CLI Mode**: `python3.11 main_document_mode.py /path/to/file.pdf`
 
 **Why this happens:**
-- tkinter is not included in all Python installations (especially pyenv, conda, or custom builds)
-- File browser is a convenience feature - other input methods work perfectly
+- tkinter isn't included in all Python installations (pyenv, conda, custom builds)
+- File browser is optional - other methods work perfectly
 
 **To enable file browser (optional):**
 
 **macOS (with pyenv):**
 ```bash
-# Install tcl-tk
 brew install tcl-tk
 
-# Reinstall Python 3.11 with tkinter support
 env \
   PATH="$(brew --prefix tcl-tk)/bin:$PATH" \
   LDFLAGS="-L$(brew --prefix tcl-tk)/lib" \
@@ -390,137 +384,147 @@ env \
   CFLAGS="-I$(brew --prefix tcl-tk)/include" \
   PYTHON_CONFIGURE_OPTS="--with-tcltk-includes='-I$(brew --prefix tcl-tk)/include' --with-tcltk-libs='-L$(brew --prefix tcl-tk)/lib -ltcl8.6 -ltk8.6'" \
   pyenv install --force 3.11.11
-
-# Verify installation
-python3.11 -c "import tkinter; print('✅ tkinter works!')"
 ```
 
 **Ubuntu/Debian:**
 ```bash
 sudo apt-get install python3-tk
 ```
+</details>
 
-**Windows:**
-- tkinter is usually included by default
-- If missing, reinstall Python from python.org with "tcl/tk and IDLE" option checked
+<details>
+<summary><b>🔴 "403 Forbidden" errors</b></summary>
+
+- CAPTCHA needs solving
+- Script will prompt automatically
+- Keep browser window visible
+</details>
+
+<details>
+<summary><b>📄 "No text extracted from PDF"</b></summary>
+
+- PDF might be scanned images (needs OCR)
+- Verify PDF has selectable text
+- Try a different PDF
+</details>
+
+<details>
+<summary><b>🌐 Browser won't open</b></summary>
+
+- Install Chromium: `playwright install chromium`
+- Ensure you have a desktop session
+- Use manual cookie mode for headless environments
+</details>
 
 ---
 
-### "No text extracted from PDF"
-- PDF might be scanned images (needs OCR)
-- Verify PDF has selectable text
-- Try a different PDF reader
+## 🛠️ Technical Architecture
 
-### "403 Forbidden" errors
-- CAPTCHA needs solving
-- Script will prompt you automatically
-- Make sure browser window is visible
+```mermaid
+graph TD
+    A[Python Script] --> B[Playwright Browser]
+    B --> C[Text Processing]
+    C --> D[TTS API]
 
-### "File not found"
-- Check file path is correct
-- Use quotes for paths with spaces
-- Try absolute path: `/full/path/to/file.pdf`
+    C --> C1[PDF - pypdf]
+    C --> C2[EPUB - ebooklib]
+    C --> C3[DOCX - python-docx]
+    C --> C4[TXT - chardet]
+    C --> C5[HTML - BeautifulSoup]
+    C --> C6[Markdown - mistune]
 
-### Browser won't open
-- Make sure Chromium is installed: `playwright install chromium`
-- Check you have a display/desktop session
-- Not supported in pure headless environments (use manual cookie mode)
-
-## 📚 Documentation
-
-- [Document Mode Guide](README_DOCUMENT_MODE.md) - Full guide for PDF/EPUB conversion
-
-## 🛠️ Technical Details
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│  Python Script                              │
-│  (Document/Text Mode)                       │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│  Playwright Browser (Chromium)              │
-│  • Automatic cookie management              │
-│  • CAPTCHA solving interface                │
-│  • Persistent session                       │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│  Text Processing                            │
-│  • PDF extraction (pypdf)                   │
-│  • EPUB extraction (ebooklib)               │
-│  • DOCX extraction (python-docx)            │
-│  • TXT extraction (chardet)                 │
-│  • HTML extraction (BeautifulSoup)          │
-│  • Markdown extraction (mistune)            │
-│  • Smart chunking algorithm                 │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│  TTS API (speechma.com)                     │
-│  • 583 voices across 76 languages           │
-│  • Returns MP3 audio files                  │
-└─────────────────────────────────────────────┘
+    D --> E[MP3 Output]
+    E --> F[M4B Audiobook]
 ```
 
-### Dependencies
+### Core Dependencies
 
-**Core:**
-- **requests** - HTTP requests
+**Runtime:**
+- **requests** - HTTP communication
 - **playwright** - Browser automation
 
 **Document Processing:**
-- **pypdf** - PDF text extraction
-- **ebooklib** - EPUB text extraction
-- **python-docx** - DOCX text extraction
-- **chardet** - TXT encoding detection
+- **pypdf** - PDF extraction
+- **ebooklib** - EPUB extraction
+- **python-docx** - DOCX extraction
+- **chardet** - Encoding detection
 - **beautifulsoup4** - HTML parsing
 - **mistune** - Markdown parsing
 
-### Python Version
+**Audio Processing:**
+- **ffmpeg** - M4B audiobook creation (optional)
 
-Requires Python 3.11+
+---
 
-## 📄 License
+## 💡 Pro Tips
 
-This project is for personal and educational use. Respect speechma.com's terms of service.
+| Tip | Description |
+|-----|-------------|
+| 🧪 **Start Small** | Test with small documents first |
+| 🎭 **Match Voices** | British English for Shakespeare, etc. |
+| 📏 **Adjust Chunks** | Smaller for poetry, larger for prose |
+| 👀 **Keep Visible** | Don't minimize browser during conversion |
+| 🌐 **Stable Internet** | Ensure reliable connection for long books |
+| 📦 **Use M4B** | Single file with chapters > multiple MP3s |
 
-## 🤝 Contributing
+---
 
-Found a bug or have a feature request? Please open an issue!
+## 📚 Documentation
 
-## ⭐ Features
+- [📖 Document Mode Full Guide](README_DOCUMENT_MODE.md) - Comprehensive PDF/EPUB conversion guide
+- [🎯 Project Overview](CLAUDE.md) - Technical architecture and development notes
 
-- ✅ Complete 583 voice library (76 languages)
-- ✅ Multiple document formats (PDF, EPUB, DOCX, TXT, HTML, Markdown)
-- ✅ M4B audiobook creation with chapter markers
+---
+
+## 🚀 What's Next?
+
+### Current Features
+- ✅ 583 voices across 76 languages
+- ✅ Multi-format document support
+- ✅ M4B audiobook creation
 - ✅ Persistent browser sessions
 - ✅ Smart text chunking
 - ✅ Progress tracking
-- ✅ Named output files
-- ✅ Automatic encoding detection for text files
 
-### Future Enhancements
-
+### Roadmap
 - [ ] Batch processing multiple files
 - [ ] Resume interrupted conversions
-- [ ] Audio file merging options
-- [ ] ODT and RTF file support
+- [ ] Audio merging and splitting tools
+- [ ] ODT and RTF support
+- [ ] Custom voice speed and pitch control
+- [ ] GUI application
 
-## 💡 Tips
+---
 
-1. **Test with small documents first** - Get familiar with the process
-2. **Choose appropriate voices** - British English for Shakespeare, etc.
-3. **Adjust chunk size** - Smaller for poetry, larger for prose
-4. **Keep browser visible** - Don't minimize during conversion
-5. **Stable internet** - Ensure reliable connection for long conversions
+## 🙏 Acknowledgments
 
-## 🎉 Ready to Start?
+This project is built upon [Speechma-API](https://github.com/fairy-root/Speechma-API) by [FairyRoot](https://github.com/fairy-root).
+
+**Enhancements in this fork:**
+- ✨ Complete 583-voice library from speechma.com
+- 🎭 Playwright-based persistent browser automation
+- 📚 Multi-format document processing (PDF, EPUB, DOCX, TXT, HTML, Markdown)
+- 🎵 M4B audiobook creation with chapter markers and metadata
+- 📋 Comprehensive documentation and examples
+- 🔧 Modern dependency management with requirements.txt
+
+---
+
+## 📄 License
+
+This project is for personal and educational use. Please respect speechma.com's terms of service.
+
+---
+
+## 🤝 Contributing
+
+Found a bug or have a feature request? Please [open an issue](../../issues)!
+
+---
+
+<div align="center">
+
+### 🎧 Ready to Create Your First Audiobook?
 
 **For documents:**
 ```bash
@@ -532,20 +536,10 @@ python3.11 main_document_mode.py
 python3.11 main_playwright_persistent.py
 ```
 
-Happy converting! 🎧📚✨
-
 ---
 
-## 🙏 Credits
+**Made with ❤️ for audiobook enthusiasts**
 
-This project is based on [Speechma-API](https://github.com/fairy-root/Speechma-API) by [FairyRoot](https://github.com/fairy-root).
+*Star ⭐ this repo if you find it helpful!*
 
-**Enhancements in this fork:**
-- Complete 583 voice library extracted from speechma.com
-- Playwright-based persistent browser mode
-- Document conversion features with multi-format support
-  - PDF, EPUB, DOCX, TXT, HTML, Markdown
-- M4B audiobook creation with chapter markers
-- Automatic encoding detection for text files
-- requirements.txt for easy installation
-- Comprehensive documentation
+</div>
