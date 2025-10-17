@@ -273,9 +273,7 @@ class TestChunkChapterText:
 
     def test_chunk_short_chapter(self):
         """Test chunking chapter with short text"""
-        chapter = Chapter(
-            number=1, title="Test", dir_name="01-test", text="Short text here.", chunks=[]
-        )
+        chapter = Chapter(number=1, title="Test", dir_name="01-test", text="Short text here.", chunks=[])
         chunk_chapter_text(chapter, chunk_size=1000)
         assert len(chapter.chunks) == 1
         assert chapter.chunks[0] == "Short text here."
@@ -341,6 +339,7 @@ class TestFindExistingAudioDirectory:
 
         # Touch new_dir to make it more recent
         import time
+
         time.sleep(0.01)
         new_dir.touch()
 
