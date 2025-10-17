@@ -250,6 +250,53 @@ def show_ffmpeg_install_instructions():
     print_colored("=" * 60, "yellow")
 
 
+def kebab_to_title_case(kebab_str: str) -> str:
+    """
+    Convert kebab-case string to Title Case
+    Example: "the-republic" -> "The Republic"
+
+    Args:
+        kebab_str: Kebab-case string (e.g., "the-odyssey")
+
+    Returns:
+        Title-cased string (e.g., "The Odyssey")
+    """
+    # Split on hyphens and capitalize each word
+    words = kebab_str.split("-")
+
+    # List of words that should be lowercase in titles (unless first word)
+    lowercase_words = {
+        "a",
+        "an",
+        "the",
+        "and",
+        "or",
+        "but",
+        "for",
+        "nor",
+        "on",
+        "at",
+        "to",
+        "from",
+        "by",
+        "of",
+        "in",
+        "its",
+    }
+
+    # Capitalize first word always
+    title_words = [words[0].capitalize()]
+
+    # Handle remaining words
+    for word in words[1:]:
+        if word.lower() in lowercase_words:
+            title_words.append(word.lower())
+        else:
+            title_words.append(word.capitalize())
+
+    return " ".join(title_words)
+
+
 def embed_cover_art(m4b_file_path: str, cover_image_path: str) -> bool:
     """
     Embed cover art into an m4b audiobook file using AtomicParsley.
@@ -318,16 +365,27 @@ def prompt_for_cover_art(audiobook_dir: str) -> Optional[str]:
         if response == "n":
             return None
         elif response == "y":
-            # Check if cover.jpg exists in the audiobook directory
-            default_cover = os.path.join(audiobook_dir, "cover.jpg")
-            if os.path.exists(default_cover):
+            # Check for any common cover image format in the audiobook directory
+            cover_filenames = ["cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"]
+            found_cover = None
+
+            for filename in cover_filenames:
+                cover_path = os.path.join(audiobook_dir, filename)
+                if os.path.exists(cover_path):
+                    found_cover = cover_path
+                    break
+
+            if found_cover:
                 use_default = (
-                    input_colored(f"\n✅ Found cover.jpg in audiobook directory. Use this file? (y/n): ", "blue")
+                    input_colored(
+                        f"\n✅ Found {os.path.basename(found_cover)} in audiobook directory. Use this file? (y/n): ",
+                        "blue",
+                    )
                     .lower()
                     .strip()
                 )
                 if use_default == "y":
-                    return default_cover
+                    return found_cover
 
             # Prompt for custom path
             while True:
@@ -446,6 +504,43 @@ async def concatenate_chapter_mp3s(chapter_dir: str, chapter_name: str, chunk_fi
         return None
 
 
+def prompt_for_author(default_author: Optional[str] = None) -> str:
+    """
+    Prompt user to enter author name with optional default
+
+    Args:
+        default_author: Optional default author name (from EPUB metadata or filename)
+
+    Returns:
+        Author name (user-entered or default or "Unknown Author")
+    """
+    if default_author:
+        print_colored(f"\n📝 Author Metadata", "cyan")
+        print_colored(f"   Detected: {default_author}", "yellow")
+
+        response = input_colored("\nUse this author? (y/n/enter custom): ", "blue").strip().lower()
+
+        if response == "y":
+            return default_author
+        elif response == "n":
+            return "Unknown Author"
+        else:
+            # User wants to enter custom name
+            custom_author = input_colored("Enter author name: ", "cyan").strip()
+            if custom_author:
+                return custom_author
+            return "Unknown Author"
+    else:
+        print_colored(f"\n📝 Author Metadata", "cyan")
+        print_colored("   No author metadata found", "yellow")
+
+        response = input_colored("\nEnter author name (or press Enter to skip): ", "blue").strip()
+
+        if response:
+            return response
+        return "Unknown Author"
+
+
 async def create_m4b_audiobook(
     base_directory: str, chapters: List["Chapter"], book_title: str, author: str = "Unknown Author"
 ) -> Optional[str]:
@@ -455,13 +550,17 @@ async def create_m4b_audiobook(
     Args:
         base_directory: Directory containing chapter MP3 files
         chapters: List of Chapter objects with metadata
-        book_title: Title of the book
+        book_title: Title of the book (will be converted from kebab-case to Title Case)
         author: Author name for metadata
 
     Returns:
         Path to M4B file, or None on failure
     """
-    print_colored(f"\n📖 Creating M4B audiobook: {book_title}", "cyan")
+    # Convert kebab-case title to Title Case for metadata
+    display_title = kebab_to_title_case(book_title)
+
+    print_colored(f"\n📖 Creating M4B audiobook: {display_title}", "cyan")
+    print_colored(f"   Author: {author}", "cyan")
 
     # Collect all chapter MP3 files
     chapter_files = []
@@ -547,9 +646,9 @@ async def create_m4b_audiobook(
         metadata_file = os.path.join(base_directory, "chapters_metadata.txt")
         with open(metadata_file, "w", encoding="utf-8") as f:
             f.write(";FFMETADATA1\n")
-            f.write(f"title={book_title}\n")
+            f.write(f"title={display_title}\n")
             f.write(f"artist={author}\n")
-            f.write(f"album={book_title}\n")
+            f.write(f"album={display_title}\n")
             f.write("genre=Audiobook\n\n")
 
             for chapter in chapter_markers:
@@ -668,6 +767,35 @@ class DocumentParser:
         clean = re.sub(r"-+", "-", clean)
         # Trim hyphens from ends
         return clean.strip("-")
+
+    @staticmethod
+    def extract_author_from_epub(file_path: str) -> Optional[str]:
+        """
+        Extract author metadata from EPUB file
+
+        Args:
+            file_path: Path to EPUB file
+
+        Returns:
+            Author name if found, None otherwise
+        """
+        try:
+            book = epub.read_epub(file_path)
+
+            # Try to get author from Dublin Core metadata
+            author = book.get_metadata("DC", "creator")
+
+            if author and len(author) > 0:
+                # author is a list of tuples: [(author_name, metadata_dict)]
+                author_name = author[0][0]
+                if author_name and author_name.strip():
+                    return author_name.strip()
+
+            return None
+
+        except Exception as e:
+            print_colored(f"⚠️  Could not extract author from EPUB: {e}", "yellow")
+            return None
 
     @staticmethod
     def extract_chapters_from_epub(file_path: str) -> List[Chapter]:
@@ -1400,9 +1528,23 @@ def analyze_progress(base_directory: str, chapters: List[Chapter]) -> Tuple[int,
 
 
 async def process_chapters_to_speech(
-    browser: PersistentBrowser, voice_id: str, chapters: List[Chapter], output_name: str, chunk_size: int = 1000
+    browser: PersistentBrowser,
+    voice_id: str,
+    chapters: List[Chapter],
+    output_name: str,
+    chunk_size: int = 1000,
+    author: str = "Unknown Author",
 ):
-    """Process chapters to speech with nested directory structure"""
+    """Process chapters to speech with nested directory structure
+
+    Args:
+        browser: PersistentBrowser instance for API requests
+        voice_id: Voice ID for text-to-speech
+        chapters: List of Chapter objects with text content
+        output_name: Name for output files
+        chunk_size: Maximum characters per chunk
+        author: Author name for M4B metadata
+    """
 
     if not chapters:
         print_colored("❌ No chapters to process", "red")
@@ -1447,7 +1589,7 @@ async def process_chapters_to_speech(
                 return
             else:
                 print_colored(f"\n📖 Creating M4B audiobook from completed chunks...", "cyan")
-                m4b_file = await create_m4b_audiobook(existing_dir, chapters, output_name, author="Unknown Author")
+                m4b_file = await create_m4b_audiobook(existing_dir, chapters, output_name, author)
                 if m4b_file:
                     print_colored(f"\n✅ M4B AUDIOBOOK READY", "green")
                     print_colored(f"📖 File: {os.path.basename(m4b_file)}", "cyan")
@@ -1683,7 +1825,7 @@ async def process_chapters_to_speech(
             base_directory,
             chapters,
             output_name,
-            author="Unknown Author",  # TODO: Could be extracted from EPUB metadata
+            author,
         )
 
         if m4b_file:
@@ -1928,6 +2070,7 @@ async def main():
             # Process file or plaintext
             chapters = None  # For chapter-based processing
             text = None  # For text-based processing
+            author = None  # For M4B metadata
 
             if file_path:
                 # Validate file format
@@ -1952,6 +2095,9 @@ async def main():
                     if not chapters:
                         print_colored("❌ No chapters extracted from EPUB", "red")
                         continue
+
+                    # Extract author from EPUB metadata
+                    author = DocumentParser.extract_author_from_epub(file_path)
                 elif suffix == ".pdf":
                     # Extract chapters from PDF
                     chapters = DocumentParser.extract_chapters_from_pdf(file_path)
@@ -2031,9 +2177,13 @@ async def main():
             chunk_size = 2000
             print_colored(f"✅ Using chunk size: {chunk_size} characters (optimal for performance)", "green")
 
+            # Prompt for author if processing chapters (for M4B metadata)
+            if chapters:
+                author = prompt_for_author(author)
+
             # Process document (chapter-based or text-based)
             if chapters:
-                await process_chapters_to_speech(browser, voice_id, chapters, output_name, chunk_size)
+                await process_chapters_to_speech(browser, voice_id, chapters, output_name, chunk_size, author)
             else:
                 await process_document_to_speech(browser, voice_id, text, output_name, chunk_size)
 
