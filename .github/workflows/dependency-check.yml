@@ -92,10 +92,20 @@ jobs:
         echo "Generated on: $(date)" >> dependency-report.md
         echo "" >> dependency-report.md
         echo "## Installed Packages" >> dependency-report.md
-        pip list --format=markdown >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "| Package | Version |" >> dependency-report.md
+        echo "|---------|---------|" >> dependency-report.md
+        pip list --format=json | python3 -c "import sys, json; packages = json.load(sys.stdin); [print(f\"| {p['name']} | {p['version']} |\") for p in packages]" >> dependency-report.md
         echo "" >> dependency-report.md
         echo "## Outdated Packages" >> dependency-report.md
-        pip list --outdated --format=markdown >> dependency-report.md || echo "All packages up to date" >> dependency-report.md
+        echo "" >> dependency-report.md
+        if pip list --outdated --format=json | python3 -c "import sys, json; packages = json.load(sys.stdin); exit(0 if packages else 1)"; then
+          echo "| Package | Current | Latest | Type |" >> dependency-report.md
+          echo "|---------|---------|--------|------|" >> dependency-report.md
+          pip list --outdated --format=json | python3 -c "import sys, json; packages = json.load(sys.stdin); [print(f\"| {p['name']} | {p['version']} | {p['latest_version']} | {p.get('latest_filetype', 'wheel')} |\") for p in packages]" >> dependency-report.md
+        else
+          echo "✅ All packages are up to date!" >> dependency-report.md
+        fi
 
     - name: Upload dependency report
       uses: actions/upload-artifact@v4
