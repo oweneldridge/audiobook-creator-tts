@@ -1,0 +1,110 @@
+name: Welcome
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    name: Welcome New Contributors
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Welcome new issue contributor
+      if: github.event_name == 'issues'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issue = context.payload.issue;
+          const isFirstIssue = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            creator: issue.user.login,
+            state: 'all'
+          }).then(response => response.data.length === 1);
+
+          if (isFirstIssue) {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `👋 Welcome to Audiobook Creator TTS, @${issue.user.login}!
+
+              Thank you for opening your first issue! We're excited to have you as part of our community. 🎉
+
+              **What happens next?**
+              - A maintainer will review your issue and respond as soon as possible
+              - Please ensure you've provided all the necessary information
+              - Feel free to provide any additional context that might help us understand the issue better
+
+              **Useful Resources:**
+              - [README](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/README.md) - Project documentation
+              - [Document Mode Guide](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/README_DOCUMENT_MODE.md) - Comprehensive guide
+
+              If you have any questions, feel free to ask. We're here to help! 🙏`
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: ['first-time-contributor']
+            });
+          }
+
+    - name: Welcome new PR contributor
+      if: github.event_name == 'pull_request_target'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          const isFirstPR = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'all'
+          }).then(response => {
+            const userPRs = response.data.filter(p => p.user.login === pr.user.login);
+            return userPRs.length === 1;
+          });
+
+          if (isFirstPR) {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `🎉 Welcome to Audiobook Creator TTS, @${pr.user.login}!
+
+              Thank you for opening your first pull request! We're thrilled to have your contribution. 🚀
+
+              **What happens next?**
+              - A maintainer will review your PR and provide feedback
+              - Please ensure all CI checks pass
+              - Address any review comments promptly
+              - Be patient - reviews may take some time
+
+              **PR Checklist:**
+              - [ ] Code follows project style guidelines
+              - [ ] Tests pass locally
+              - [ ] Documentation is updated (if applicable)
+              - [ ] Commit messages are clear and descriptive
+
+              **Useful Resources:**
+              - [README](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/README.md) - Project documentation
+              - [CLAUDE.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CLAUDE.md) - Technical architecture
+
+              Thank you for contributing! 🙏`
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['first-time-contributor']
+            });
+          }

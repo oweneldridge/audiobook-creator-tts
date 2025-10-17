@@ -1,0 +1,135 @@
+name: Dependency Security Check
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9:00 UTC
+    - cron: '0 9 * * 1'
+  push:
+    branches: [ main ]
+    paths:
+      - 'requirements.txt'
+      - 'requirements-test.txt'
+  pull_request:
+    paths:
+      - 'requirements.txt'
+      - 'requirements-test.txt'
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety pip-audit
+
+    - name: Run Safety check
+      run: |
+        safety check --json || true
+        safety check || echo "⚠️ Safety found vulnerabilities"
+      continue-on-error: true
+
+    - name: Run pip-audit
+      run: |
+        pip-audit --desc --requirement requirements.txt || echo "⚠️ pip-audit found vulnerabilities"
+        pip-audit --desc --requirement requirements-test.txt || echo "⚠️ pip-audit found vulnerabilities in test dependencies"
+      continue-on-error: true
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: moderate
+        deny-licenses: GPL-3.0, AGPL-3.0
+
+  check-outdated:
+    name: Check Outdated Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+
+    - name: Check for outdated packages
+      run: |
+        pip list --outdated || echo "All packages up to date"
+
+    - name: Generate requirements report
+      run: |
+        echo "# Dependency Report" > dependency-report.md
+        echo "Generated on: $(date)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "## Installed Packages" >> dependency-report.md
+        pip list --format=markdown >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "## Outdated Packages" >> dependency-report.md
+        pip list --outdated --format=markdown >> dependency-report.md || echo "All packages up to date" >> dependency-report.md
+
+    - name: Upload dependency report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-report
+        path: dependency-report.md
+
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-licenses
+        pip install -r requirements.txt
+
+    - name: Check licenses
+      run: |
+        pip-licenses --format=markdown --with-urls --with-description > licenses.md
+        echo "✅ License report generated"
+
+    - name: Upload license report
+      uses: actions/upload-artifact@v4
+      with:
+        name: license-report
+        path: licenses.md
