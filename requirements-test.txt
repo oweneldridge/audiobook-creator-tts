@@ -1,8 +1,8 @@
 # Testing dependencies for Audiobook Creator TTS
 
 # Core testing framework
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
+pytest>=7.4.0,<9.0.0
+pytest-asyncio>=0.23.0  # >=0.23.0 required for Python 3.12 compatibility
 pytest-cov>=4.1.0
 pytest-mock>=3.12.0
 
