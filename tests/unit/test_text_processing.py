@@ -3,6 +3,7 @@ Unit tests for text processing functions
 
 Tests for split_text, validate_text, split_text_smart, and chunk_chapter_text
 """
+
 import pytest
 from main import split_text, validate_text
 from main_document_mode import split_text_smart, chunk_chapter_text, Chapter
@@ -36,7 +37,7 @@ class TestSplitText:
         assert len(result) > 1
         # Each chunk should end with a period
         for chunk in result[:-1]:  # All except last
-            assert chunk.rstrip().endswith('.')
+            assert chunk.rstrip().endswith(".")
 
     def test_split_text_at_comma(self):
         """Test splitting at comma when no period available"""
@@ -46,7 +47,7 @@ class TestSplitText:
         assert len(result) > 1
         # Should split at commas
         for chunk in result[:-1]:
-            assert ',' in chunk
+            assert "," in chunk
 
     def test_split_text_no_punctuation(self):
         """Test splitting when no period or comma available"""
@@ -170,8 +171,8 @@ class TestSplitTextSmart:
         assert len(result) > 1
         # Each chunk should ideally end with punctuation
         for chunk in result[:-1]:
-            last_char = chunk.rstrip()[-1] if chunk.strip() else ''
-            assert last_char in '.!?,'
+            last_char = chunk.rstrip()[-1] if chunk.strip() else ""
+            assert last_char in ".!?,"
 
     def test_split_text_smart_respects_chunk_size(self):
         """Test that chunks don't exceed size limit significantly"""
@@ -190,11 +191,12 @@ class TestChunkChapterText:
 
     def test_chunk_chapter_text_basic(self):
         """Test basic chapter chunking"""
-        chapter = Chapter(number=1, title="Test Chapter", dir_name="01-test-chapter",
-                         text="Test content. " * 100, chunks=[])
+        chapter = Chapter(
+            number=1, title="Test Chapter", dir_name="01-test-chapter", text="Test content. " * 100, chunks=[]
+        )
         chunk_chapter_text(chapter, chunk_size=500)
 
-        assert hasattr(chapter, 'chunks')
+        assert hasattr(chapter, "chunks")
         assert len(chapter.chunks) > 0
         assert all(isinstance(chunk, str) for chunk in chapter.chunks)
 
@@ -203,28 +205,26 @@ class TestChunkChapterText:
         chapter = Chapter(number=1, title="Empty", dir_name="01-empty", text="", chunks=[])
         chunk_chapter_text(chapter, chunk_size=1000)
 
-        assert hasattr(chapter, 'chunks')
+        assert hasattr(chapter, "chunks")
         # Should handle empty gracefully
 
     def test_chunk_chapter_text_modifies_chapter_object(self):
         """Test that function modifies the chapter object in place"""
-        chapter = Chapter(number=1, title="Test", dir_name="01-test",
-                         text="Content. " * 50, chunks=[])
+        chapter = Chapter(number=1, title="Test", dir_name="01-test", text="Content. " * 50, chunks=[])
 
         # Clear chunks to test modification
         chapter.chunks = []
 
         chunk_chapter_text(chapter, chunk_size=500)
 
-        assert hasattr(chapter, 'chunks')
+        assert hasattr(chapter, "chunks")
         assert chapter.chunks is not None
         assert len(chapter.chunks) > 0
 
     def test_chunk_chapter_text_preserves_content(self):
         """Test that chunking preserves all text content"""
         original_text = "Chapter content. " * 100
-        chapter = Chapter(number=1, title="Test", dir_name="01-test",
-                         text=original_text, chunks=[])
+        chapter = Chapter(number=1, title="Test", dir_name="01-test", text=original_text, chunks=[])
 
         chunk_chapter_text(chapter, chunk_size=500)
 

@@ -1,6 +1,6 @@
-# Speechma Text-to-Speech CLI
+# Audiobook Creator TTS CLI
 
-A powerful command-line tool to convert text to speech using the Speechma API with 583 voices across 76 languages.
+A powerful command-line tool to convert text to speech with 583 voices across 76 languages.
 
 ## 🚀 Installation
 
@@ -186,7 +186,7 @@ audio/
 1. **Extract Text** - Automatically parse PDF, EPUB, DOCX, TXT, HTML, or Markdown
 2. **Smart Chunking** - Split text at sentence boundaries (1000 chars default)
 3. **Browser Session** - Solve CAPTCHA once at startup
-4. **Convert** - Process each chunk through Speechma API
+4. **Convert** - Process each chunk through TTS API
 5. **Named Output** - Save as `filename-1.mp3`, `filename-2.mp3`, etc.
 6. **Create M4B** - Combine all MP3s into single audiobook with chapter markers (requires ffmpeg)
 
@@ -195,7 +195,7 @@ audio/
 1. **Browser Session** - Solve CAPTCHA once at startup
 2. **Enter Text** - Type or paste text (type END to finish)
 3. **Auto-Chunk** - Split into 1000 character chunks
-4. **Convert** - Process through Speechma API
+4. **Convert** - Process through TTS API
 5. **Save** - Output to timestamped directory
 
 ## 🔧 Configuration Options
@@ -462,7 +462,7 @@ sudo apt-get install python3-tk
                    │
                    ▼
 ┌─────────────────────────────────────────────┐
-│  Speechma API                               │
+│  TTS API (speechma.com)                     │
 │  • 583 voices across 76 languages           │
 │  • Returns MP3 audio files                  │
 └─────────────────────────────────────────────┘
@@ -488,7 +488,7 @@ Requires Python 3.11+
 
 ## 📄 License
 
-This project is for personal and educational use. Respect Speechma's terms of service.
+This project is for personal and educational use. Respect speechma.com's terms of service.
 
 ## 🤝 Contributing
 

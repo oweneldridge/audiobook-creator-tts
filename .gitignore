@@ -25,5 +25,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Build artifacts
+build/
+dist/
+*.spec
+
 # Audio output (optional - uncomment if you don't want to commit audio files)
 # audio/

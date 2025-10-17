@@ -3,6 +3,7 @@ Integration tests for complete workflows
 
 Tests for end-to-end text-to-speech conversion workflows
 """
+
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
@@ -12,8 +13,8 @@ from pathlib import Path
 class TestTextToSpeechWorkflow:
     """Integration tests for complete TTS workflow"""
 
-    @patch('main.get_audio')
-    @patch('main.save_audio')
+    @patch("main.get_audio")
+    @patch("main.save_audio")
     def test_single_chunk_workflow(self, mock_save, mock_get, short_text, mock_audio_response):
         """Test complete workflow for single chunk"""
         from main import split_text, validate_text
@@ -36,8 +37,8 @@ class TestTextToSpeechWorkflow:
         # Verify calls
         assert mock_save.called
 
-    @patch('main.get_audio')
-    @patch('main.save_audio')
+    @patch("main.get_audio")
+    @patch("main.save_audio")
     def test_multi_chunk_workflow(self, mock_save, mock_get, long_text, mock_audio_response):
         """Test complete workflow for multiple chunks"""
         from main import split_text, validate_text
@@ -61,8 +62,8 @@ class TestTextToSpeechWorkflow:
         assert success_count == len(chunks)
         assert mock_save.call_count == len(chunks)
 
-    @patch('main.get_audio')
-    @patch('main.save_audio')
+    @patch("main.get_audio")
+    @patch("main.save_audio")
     def test_workflow_with_retry_logic(self, mock_save, mock_get, short_text, mock_audio_response):
         """Test workflow with retry on failure"""
         from main import split_text, validate_text
@@ -89,9 +90,9 @@ class TestTextToSpeechWorkflow:
         # Should eventually succeed
         assert mock_save.called
 
-    @patch('main.load_voices')
-    @patch('main.get_audio')
-    @patch('main.save_audio')
+    @patch("main.load_voices")
+    @patch("main.get_audio")
+    @patch("main.save_audio")
     def test_complete_workflow_with_voice_selection(
         self, mock_save, mock_get, mock_load, sample_voices_data, short_text, mock_audio_response
     ):
@@ -126,8 +127,8 @@ class TestDocumentConversionWorkflow:
     """Integration tests for document conversion workflows"""
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.DocumentParser.extract_text_from_txt')
-    @patch('main_document_mode.PersistentBrowser')
+    @patch("main_document_mode.DocumentParser.extract_text_from_txt")
+    @patch("main_document_mode.PersistentBrowser")
     async def test_txt_to_speech_workflow(self, mock_browser, mock_extract, tmp_path):
         """Test complete TXT to speech workflow"""
         from main_document_mode import split_text_smart
@@ -136,9 +137,11 @@ class TestDocumentConversionWorkflow:
 
         # Mock browser
         mock_browser_instance = Mock()
+
         # Make request_audio an async function
         async def mock_request_audio(chunk, voice_id):
             return b"fake audio"
+
         mock_browser_instance.request_audio = mock_request_audio
         mock_browser.return_value = mock_browser_instance
 
@@ -156,8 +159,8 @@ class TestDocumentConversionWorkflow:
             assert audio is not None
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.DocumentParser.extract_chapters_from_epub')
-    @patch('main_document_mode.PersistentBrowser')
+    @patch("main_document_mode.DocumentParser.extract_chapters_from_epub")
+    @patch("main_document_mode.PersistentBrowser")
     async def test_epub_to_speech_workflow(self, mock_browser, mock_extract, sample_chapter_data):
         """Test complete EPUB to speech workflow"""
         from main_document_mode import Chapter, chunk_chapter_text
@@ -165,11 +168,11 @@ class TestDocumentConversionWorkflow:
         # Mock chapter extraction
         chapters = [
             Chapter(
-                number=ch['number'],
-                title=ch['title'],
+                number=ch["number"],
+                title=ch["title"],
                 dir_name=f"{ch['number']:02d}-{ch['title'].lower().replace(' ', '-')}",
-                text=ch['text'],
-                chunks=[]
+                text=ch["text"],
+                chunks=[],
             )
             for ch in sample_chapter_data
         ]
@@ -177,9 +180,11 @@ class TestDocumentConversionWorkflow:
 
         # Mock browser
         mock_browser_instance = Mock()
+
         # Make request_audio an async function
         async def mock_request_audio(chunk, voice_id):
             return b"fake audio"
+
         mock_browser_instance.request_audio = mock_request_audio
         mock_browser.return_value = mock_browser_instance
 
@@ -191,26 +196,26 @@ class TestDocumentConversionWorkflow:
         # Chunk each chapter
         for chapter in extracted_chapters:
             chunk_chapter_text(chapter, chunk_size=1000)
-            assert hasattr(chapter, 'chunks')
+            assert hasattr(chapter, "chunks")
 
         # Process all chunks
         total_chunks = sum(len(ch.chunks) for ch in extracted_chapters)
         assert total_chunks > 0
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.concatenate_chapter_mp3s')
-    @patch('main_document_mode.create_m4b_audiobook')
+    @patch("main_document_mode.concatenate_chapter_mp3s")
+    @patch("main_document_mode.create_m4b_audiobook")
     async def test_post_processing_workflow(self, mock_m4b, mock_concat, sample_chapter_data, tmp_path):
         """Test post-processing workflow (concatenation + M4B)"""
         from main_document_mode import Chapter
 
         chapters = [
             Chapter(
-                number=ch['number'],
-                title=ch['title'],
+                number=ch["number"],
+                title=ch["title"],
                 dir_name=f"{ch['number']:02d}-{ch['title'].lower().replace(' ', '-')}",
-                text=ch['text'],
-                chunks=[]
+                text=ch["text"],
+                chunks=[],
             )
             for ch in sample_chapter_data
         ]
@@ -234,8 +239,8 @@ class TestDocumentConversionWorkflow:
 class TestErrorRecoveryWorkflows:
     """Integration tests for error recovery in workflows"""
 
-    @patch('main.get_audio')
-    @patch('main.save_audio')
+    @patch("main.get_audio")
+    @patch("main.save_audio")
     def test_partial_failure_recovery(self, mock_save, mock_get, long_text, mock_audio_response):
         """Test recovery from partial failures"""
         from main import split_text, validate_text
@@ -246,7 +251,7 @@ class TestErrorRecoveryWorkflows:
             None,  # Fail
             mock_audio_response,  # Success
             None,  # Fail
-            mock_audio_response   # Success
+            mock_audio_response,  # Success
         ]
         mock_get.side_effect = success_pattern
 
@@ -270,19 +275,19 @@ class TestErrorRecoveryWorkflows:
         assert success_count + len(failed_chunks) == len(chunks)
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.find_existing_audio_directory')
-    @patch('main_document_mode.analyze_progress')
+    @patch("main_document_mode.find_existing_audio_directory")
+    @patch("main_document_mode.analyze_progress")
     async def test_resume_from_checkpoint(self, mock_analyze, mock_find, sample_chapter_data, tmp_path):
         """Test resuming conversion from checkpoint"""
         from main_document_mode import Chapter
 
         chapters = [
             Chapter(
-                number=ch['number'],
-                title=ch['title'],
+                number=ch["number"],
+                title=ch["title"],
                 dir_name=f"{ch['number']:02d}-{ch['title'].lower().replace(' ', '-')}",
-                text=ch['text'],
-                chunks=[]
+                text=ch["text"],
+                chunks=[],
             )
             for ch in sample_chapter_data
         ]
@@ -342,7 +347,7 @@ class TestDataFlowWorkflows:
         assert voice_id is not None
         assert voice_id.startswith("voice-")
 
-    @patch('main.get_audio')
+    @patch("main.get_audio")
     def test_chunk_to_audio_flow(self, mock_get, short_text, mock_audio_response):
         """Test flow from text chunk to audio data"""
         from main import validate_text
@@ -365,7 +370,7 @@ class TestDataFlowWorkflows:
 class TestConcurrentWorkflows:
     """Integration tests for concurrent operations"""
 
-    @patch('main.get_audio')
+    @patch("main.get_audio")
     def test_concurrent_chunk_processing(self, mock_get, long_text, mock_audio_response):
         """Test processing multiple chunks concurrently"""
         import concurrent.futures
@@ -396,11 +401,11 @@ class TestConcurrentWorkflows:
 
         chapters = [
             Chapter(
-                number=ch['number'],
-                title=ch['title'],
+                number=ch["number"],
+                title=ch["title"],
                 dir_name=f"{ch['number']:02d}-{ch['title'].lower().replace(' ', '-')}",
-                text=ch['text'],
-                chunks=[]
+                text=ch["text"],
+                chunks=[],
             )
             for ch in sample_chapter_data
         ]

@@ -1,6 +1,7 @@
 """
-Pytest configuration and shared fixtures for Speechma-API tests
+Pytest configuration and shared fixtures for Audiobook Creator TTS tests
 """
+
 import pytest
 import json
 import os
@@ -14,6 +15,7 @@ from unittest.mock import Mock, MagicMock
 # ============================================================================
 # Path Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def project_root():
@@ -46,46 +48,22 @@ def temp_audio_dir():
 # Voice Data Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def sample_voices_data() -> Dict[str, Any]:
     """Return minimal voice configuration for testing"""
     return {
         "English": {
             "United States": {
-                "female": {
-                    "Ava": "voice-111",
-                    "Emma": "voice-115"
-                },
-                "male": {
-                    "Andrew": "voice-107",
-                    "Brian": "voice-112"
-                }
+                "female": {"Ava": "voice-111", "Emma": "voice-115"},
+                "male": {"Andrew": "voice-107", "Brian": "voice-112"},
             },
-            "United Kingdom": {
-                "female": {
-                    "Sonia": "voice-35",
-                    "Maisie": "voice-30"
-                },
-                "male": {
-                    "Oliver": "voice-20"
-                }
-            }
+            "United Kingdom": {"female": {"Sonia": "voice-35", "Maisie": "voice-30"}, "male": {"Oliver": "voice-20"}},
         },
         "Spanish": {
-            "Spain": {
-                "female": {
-                    "Lucia": "voice-200"
-                },
-                "male": {
-                    "Diego": "voice-201"
-                }
-            },
-            "Mexico": {
-                "female": {
-                    "Sofia": "voice-210"
-                }
-            }
-        }
+            "Spain": {"female": {"Lucia": "voice-200"}, "male": {"Diego": "voice-201"}},
+            "Mexico": {"female": {"Sofia": "voice-210"}},
+        },
     }
 
 
@@ -93,7 +71,7 @@ def sample_voices_data() -> Dict[str, Any]:
 def voices_json_file(tmp_path, sample_voices_data):
     """Create a temporary voices.json file"""
     voices_file = tmp_path / "voices.json"
-    with open(voices_file, 'w', encoding='utf-8') as f:
+    with open(voices_file, "w", encoding="utf-8") as f:
         json.dump(sample_voices_data, f, indent=2)
     return voices_file
 
@@ -102,7 +80,7 @@ def voices_json_file(tmp_path, sample_voices_data):
 def mock_voices_json(tmp_path, sample_voices_data, monkeypatch):
     """Mock voices.json in the current directory"""
     voices_file = tmp_path / "voices.json"
-    with open(voices_file, 'w', encoding='utf-8') as f:
+    with open(voices_file, "w", encoding="utf-8") as f:
         json.dump(sample_voices_data, f, indent=2)
 
     # Change to temp directory so load_voices() finds our test file
@@ -119,6 +97,7 @@ def mock_voices_json(tmp_path, sample_voices_data, monkeypatch):
 # Text Content Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def short_text():
     """Short text sample (under chunk size)"""
@@ -128,19 +107,23 @@ def short_text():
 @pytest.fixture
 def medium_text():
     """Medium text sample (around 1-2 chunks)"""
-    return """
+    return (
+        """
     This is a medium-length text sample that will be used for testing.
     It contains multiple sentences and should be split into chunks.
     The text processing system should handle this gracefully.
     We want to ensure that sentence boundaries are preserved when possible.
     This helps maintain natural speech flow in the audio output.
-    """ * 10
+    """
+        * 10
+    )
 
 
 @pytest.fixture
 def long_text():
     """Long text sample (multiple chunks)"""
-    return """
+    return (
+        """
     Chapter 1: The Beginning
 
     This is a long text that spans multiple paragraphs and will definitely
@@ -159,7 +142,9 @@ def long_text():
 
     The text may also contain apostrophes, quotation marks, and other
     symbols that need to be sanitized before sending to the API.
-    """ * 20
+    """
+        * 20
+    )
 
 
 @pytest.fixture
@@ -178,11 +163,12 @@ def non_ascii_text():
 # API Response Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def mock_audio_response():
     """Mock successful audio response"""
     # Minimal valid MP3 header
-    return b'\xff\xfb\x90\x00' + b'\x00' * 100
+    return b"\xff\xfb\x90\x00" + b"\x00" * 100
 
 
 @pytest.fixture
@@ -190,7 +176,7 @@ def mock_api_success_response(mock_audio_response):
     """Mock successful API response object"""
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.headers = {'Content-Type': 'audio/mpeg'}
+    mock_response.headers = {"Content-Type": "audio/mpeg"}
     mock_response.content = mock_audio_response
     mock_response.raise_for_status = Mock()
     return mock_response
@@ -201,7 +187,7 @@ def mock_api_error_response():
     """Mock error API response object"""
     mock_response = Mock()
     mock_response.status_code = 403
-    mock_response.headers = {'Content-Type': 'text/html'}
+    mock_response.headers = {"Content-Type": "text/html"}
     mock_response.text = "Forbidden - CAPTCHA required"
     mock_response.raise_for_status = Mock(side_effect=Exception("403 Forbidden"))
     return mock_response
@@ -212,7 +198,7 @@ def mock_api_rate_limit_response():
     """Mock rate limit response"""
     mock_response = Mock()
     mock_response.status_code = 429
-    mock_response.headers = {'Content-Type': 'application/json'}
+    mock_response.headers = {"Content-Type": "application/json"}
     mock_response.text = '{"error": "Rate limit exceeded"}'
     mock_response.raise_for_status = Mock(side_effect=Exception("429 Too Many Requests"))
     return mock_response
@@ -221,6 +207,7 @@ def mock_api_rate_limit_response():
 # ============================================================================
 # Document Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def sample_chapter_data():
@@ -255,13 +242,14 @@ def sample_epub_content():
         "chapters": [
             {"title": "Chapter 1", "content": "First chapter content. " * 50},
             {"title": "Chapter 2", "content": "Second chapter content. " * 50},
-        ]
+        ],
     }
 
 
 # ============================================================================
 # Utility Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def mock_datetime(monkeypatch):
@@ -276,6 +264,7 @@ def mock_datetime(monkeypatch):
             return mock_dt
 
     import main
+
     monkeypatch.setattr(main, "datetime", MockDateTime)
     return MockDateTime
 
@@ -289,6 +278,7 @@ def capture_print_output(monkeypatch):
         printed_messages.append({"text": text, "color": color})
 
     import main
+
     monkeypatch.setattr(main, "print_colored", mock_print_colored)
 
     return printed_messages
@@ -314,14 +304,14 @@ def mock_file_operations(monkeypatch, tmp_path):
 
     original_open = open
 
-    def mock_open(file, mode='r', *args, **kwargs):
-        if 'w' in mode or 'a' in mode:
+    def mock_open(file, mode="r", *args, **kwargs):
+        if "w" in mode or "a" in mode:
             # Track writes
-            files_written[file] = {'mode': mode}
+            files_written[file] = {"mode": mode}
             return original_open(tmp_path / Path(file).name, mode, *args, **kwargs)
-        elif 'r' in mode:
+        elif "r" in mode:
             # Track reads
-            files_read[file] = {'mode': mode}
+            files_read[file] = {"mode": mode}
             if file in files_written:
                 return original_open(tmp_path / Path(file).name, mode, *args, **kwargs)
         return original_open(file, mode, *args, **kwargs)

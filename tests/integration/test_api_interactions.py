@@ -3,6 +3,7 @@ Integration tests for API interactions
 
 Tests for complete request/response cycles with mocked HTTP
 """
+
 import pytest
 import responses
 from unittest.mock import Mock, patch
@@ -20,19 +21,10 @@ class TestGetAudioIntegration:
         url = "https://speechma.com/com.api/tts-api.php"
 
         # Mock the HTTP response
-        responses.add(
-            responses.POST,
-            url,
-            body=mock_audio_response,
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body=mock_audio_response, status=200, headers={"Content-Type": "audio/mpeg"})
 
         data = {"text": "Test message", "voice": "voice-111"}
-        headers = {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0'
-        }
+        headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
 
         result = get_audio(url, data, headers)
 
@@ -45,16 +37,10 @@ class TestGetAudioIntegration:
         """Test handling 403 Forbidden response"""
         url = "https://speechma.com/com.api/tts-api.php"
 
-        responses.add(
-            responses.POST,
-            url,
-            body="Forbidden",
-            status=403,
-            headers={'Content-Type': 'text/html'}
-        )
+        responses.add(responses.POST, url, body="Forbidden", status=403, headers={"Content-Type": "text/html"})
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         result = get_audio(url, data, headers)
 
@@ -70,11 +56,11 @@ class TestGetAudioIntegration:
             url,
             json={"error": "Rate limit exceeded"},
             status=429,
-            headers={'Content-Type': 'application/json'}
+            headers={"Content-Type": "application/json"},
         )
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         result = get_audio(url, data, headers)
 
@@ -85,15 +71,10 @@ class TestGetAudioIntegration:
         """Test handling 500 server error"""
         url = "https://speechma.com/com.api/tts-api.php"
 
-        responses.add(
-            responses.POST,
-            url,
-            body="Internal Server Error",
-            status=500
-        )
+        responses.add(responses.POST, url, body="Internal Server Error", status=500)
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         result = get_audio(url, data, headers)
 
@@ -106,14 +87,11 @@ class TestGetAudioIntegration:
 
         # Mock timeout exception
         import requests
-        responses.add(
-            responses.POST,
-            url,
-            body=requests.exceptions.Timeout("Connection timeout")
-        )
+
+        responses.add(responses.POST, url, body=requests.exceptions.Timeout("Connection timeout"))
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         # Should handle timeout gracefully
         result = get_audio(url, data, headers)
@@ -124,17 +102,11 @@ class TestGetAudioIntegration:
         """Test request with cookies"""
         url = "https://speechma.com/com.api/tts-api.php"
 
-        responses.add(
-            responses.POST,
-            url,
-            body=mock_audio_response,
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body=mock_audio_response, status=200, headers={"Content-Type": "audio/mpeg"})
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
-        cookies = {'cf_clearance': 'test_token', '__cfruid': 'test_ruid'}
+        headers = {"Content-Type": "application/json"}
+        cookies = {"cf_clearance": "test_token", "__cfruid": "test_ruid"}
 
         result = get_audio(url, data, headers, cookies=cookies)
 
@@ -146,15 +118,11 @@ class TestGetAudioIntegration:
         url = "https://speechma.com/com.api/tts-api.php"
 
         responses.add(
-            responses.POST,
-            url,
-            body="<html>Error page</html>",
-            status=200,
-            headers={'Content-Type': 'text/html'}
+            responses.POST, url, body="<html>Error page</html>", status=200, headers={"Content-Type": "text/html"}
         )
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         result = get_audio(url, data, headers)
 
@@ -167,18 +135,12 @@ class TestGetAudioIntegration:
         url = "https://speechma.com/com.api/tts-api.php"
 
         # Simulate large audio file (1MB)
-        large_audio = b'\xff\xfb\x90\x00' + b'\x00' * (1024 * 1024)
+        large_audio = b"\xff\xfb\x90\x00" + b"\x00" * (1024 * 1024)
 
-        responses.add(
-            responses.POST,
-            url,
-            body=large_audio,
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body=large_audio, status=200, headers={"Content-Type": "audio/mpeg"})
 
         data = {"text": "Long text" * 100, "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         result = get_audio(url, data, headers)
 
@@ -190,16 +152,10 @@ class TestGetAudioIntegration:
         """Test handling empty audio response"""
         url = "https://speechma.com/com.api/tts-api.php"
 
-        responses.add(
-            responses.POST,
-            url,
-            body=b"",
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body=b"", status=200, headers={"Content-Type": "audio/mpeg"})
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         result = get_audio(url, data, headers)
 
@@ -219,22 +175,12 @@ class TestAPIRetryLogic:
         url = "https://speechma.com/com.api/tts-api.php"
 
         # First two calls fail, third succeeds
-        responses.add(
-            responses.POST, url, body="Error", status=500
-        )
-        responses.add(
-            responses.POST, url, body="Error", status=500
-        )
-        responses.add(
-            responses.POST,
-            url,
-            body=mock_audio_response,
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body="Error", status=500)
+        responses.add(responses.POST, url, body="Error", status=500)
+        responses.add(responses.POST, url, body=mock_audio_response, status=200, headers={"Content-Type": "audio/mpeg"})
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         # Simulate retry logic (actual implementation in main code)
         result = None
@@ -252,12 +198,10 @@ class TestAPIRetryLogic:
 
         # All calls fail
         for _ in range(3):
-            responses.add(
-                responses.POST, url, body="Error", status=500
-            )
+            responses.add(responses.POST, url, body="Error", status=500)
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         # Simulate retry logic
         result = None
@@ -279,20 +223,14 @@ class TestAPIDataSanitization:
         """Test API call with sanitized text"""
         url = "https://speechma.com/com.api/tts-api.php"
 
-        responses.add(
-            responses.POST,
-            url,
-            body=mock_audio_response,
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body=mock_audio_response, status=200, headers={"Content-Type": "audio/mpeg"})
 
         # Text should have quotes and special chars removed
         original_text = "Hello 'world' and \"universe\" & more!"
-        sanitized_text = original_text.replace("'", "").replace('"', '').replace("&", "and")
+        sanitized_text = original_text.replace("'", "").replace('"', "").replace("&", "and")
 
         data = {"text": sanitized_text, "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         result = get_audio(url, data, headers)
 
@@ -309,19 +247,13 @@ class TestAPIDataSanitization:
         """Test API call with text at length limit"""
         url = "https://speechma.com/com.api/tts-api.php"
 
-        responses.add(
-            responses.POST,
-            url,
-            body=mock_audio_response,
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body=mock_audio_response, status=200, headers={"Content-Type": "audio/mpeg"})
 
         # Text at or near 1000 char limit
         long_text = "Word. " * 166  # ~1000 chars
 
         data = {"text": long_text[:1000], "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         result = get_audio(url, data, headers)
 
@@ -338,22 +270,16 @@ class TestAPIHeaderValidation:
         """Test that all required headers are included"""
         url = "https://speechma.com/com.api/tts-api.php"
 
-        responses.add(
-            responses.POST,
-            url,
-            body=mock_audio_response,
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body=mock_audio_response, status=200, headers={"Content-Type": "audio/mpeg"})
 
         data = {"text": "Test", "voice": "voice-111"}
         headers = {
-            'Host': 'speechma.com',
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0',
-            'Accept': '*/*',
-            'Origin': 'https://speechma.com',
-            'Referer': 'https://speechma.com/'
+            "Host": "speechma.com",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "*/*",
+            "Origin": "https://speechma.com",
+            "Referer": "https://speechma.com/",
         }
 
         result = get_audio(url, data, headers)
@@ -362,7 +288,7 @@ class TestAPIHeaderValidation:
 
         # Verify headers were sent
         request = responses.calls[0].request
-        assert request.headers.get('Content-Type') == 'application/json'
+        assert request.headers.get("Content-Type") == "application/json"
 
     @responses.activate
     def test_api_without_user_agent(self, mock_audio_response):
@@ -370,15 +296,10 @@ class TestAPIHeaderValidation:
         url = "https://speechma.com/com.api/tts-api.php"
 
         # Server might reject without User-Agent
-        responses.add(
-            responses.POST,
-            url,
-            body="Forbidden",
-            status=403
-        )
+        responses.add(responses.POST, url, body="Forbidden", status=403)
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}  # No User-Agent
+        headers = {"Content-Type": "application/json"}  # No User-Agent
 
         result = get_audio(url, data, headers)
 
@@ -398,16 +319,10 @@ class TestAPIPerformance:
 
         url = "https://speechma.com/com.api/tts-api.php"
 
-        responses.add(
-            responses.POST,
-            url,
-            body=mock_audio_response,
-            status=200,
-            headers={'Content-Type': 'audio/mpeg'}
-        )
+        responses.add(responses.POST, url, body=mock_audio_response, status=200, headers={"Content-Type": "audio/mpeg"})
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         start_time = time.time()
         result = get_audio(url, data, headers)
@@ -426,22 +341,15 @@ class TestAPIPerformance:
         # Add multiple responses
         for _ in range(5):
             responses.add(
-                responses.POST,
-                url,
-                body=mock_audio_response,
-                status=200,
-                headers={'Content-Type': 'audio/mpeg'}
+                responses.POST, url, body=mock_audio_response, status=200, headers={"Content-Type": "audio/mpeg"}
             )
 
         data = {"text": "Test", "voice": "voice-111"}
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
 
         # Make concurrent calls
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [
-                executor.submit(get_audio, url, data, headers)
-                for _ in range(5)
-            ]
+            futures = [executor.submit(get_audio, url, data, headers) for _ in range(5)]
 
             results = [f.result() for f in concurrent.futures.as_completed(futures)]
 

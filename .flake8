@@ -1,0 +1,41 @@
+[flake8]
+# Flake8 configuration for Audiobook Creator TTS
+
+# Maximum line length
+max-line-length = 120
+
+# Ignore specific error codes
+# E203: Whitespace before ':' (conflicts with Black)
+# W503: Line break before binary operator (conflicts with Black)
+# E501: Line too long (handled by Black)
+# F401: Unused imports (common in test files)
+# F841: Unused variables (common in test assertions)
+# F541: f-string without placeholders
+# E402: Module level import not at top (sometimes necessary)
+# C901: Function too complex (will address in future refactoring)
+extend-ignore = E203,W503,E501,F401,F841,F541,E402,C901
+
+# Exclude directories from linting
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    env,
+    .venv,
+    build,
+    dist,
+    .pytest_cache,
+    .eggs,
+    *.egg-info
+
+# Maximum complexity (cyclomatic complexity) - disabled via C901 ignore
+max-complexity = 50
+
+# Show source code for errors
+show-source = True
+
+# Count errors
+count = True
+
+# Display statistics
+statistics = True

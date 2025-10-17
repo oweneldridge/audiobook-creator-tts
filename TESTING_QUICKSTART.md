@@ -1,6 +1,6 @@
 # Testing Quick Start Guide
 
-Get started with the Speechma-API test suite in 5 minutes.
+Get started with the Audiobook Creator TTS test suite in 5 minutes.
 
 ## 1. Install Test Dependencies (30 seconds)
 
@@ -132,7 +132,7 @@ Required test coverage of 80% PASSED
 ### Import Errors
 ```bash
 # Make sure you're in the project root
-cd /path/to/Speechma-API
+cd /path/to/Audiobook-Creator-TTS
 pytest
 ```
 

@@ -1,6 +1,6 @@
 # Test Fixtures
 
-This directory contains test fixtures and sample data for the Speechma-API test suite.
+This directory contains test fixtures and sample data for the Audiobook Creator TTS test suite.
 
 ## Contents
 

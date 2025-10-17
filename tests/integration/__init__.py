@@ -1,1 +1,1 @@
-"""Integration tests for Speechma-API"""
+"""Integration tests for Audiobook Creator TTS"""
