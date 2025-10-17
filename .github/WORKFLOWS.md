@@ -422,8 +422,9 @@ Add these badges to your README for at-a-glance status:
 For questions or issues with workflows:
 1. Check workflow run logs in GitHub Actions
 2. Review this documentation
-3. Open an issue with the `ci` label
-4. Consult [GitHub Actions documentation](https://docs.github.com/en/actions)
+3. See [.github/INDEX.md](INDEX.md) for configuration overview
+4. Open an issue with the `ci` label
+5. Consult [GitHub Actions documentation](https://docs.github.com/en/actions)
 
 ---
 
