@@ -582,7 +582,9 @@ class TestMainAdditional:
         monkeypatch.setattr("main.prompt_graceful_exit", lambda: None)
 
         # Use temp path for audio output
-        monkeypatch.setattr("os.path.join", lambda *args: str(tmp_path / "audio" / "chunk.mp3"))
+        # Pre-compute path to avoid recursion in Python 3.12 (pathlib uses os.path.join internally)
+        audio_chunk_path = str(tmp_path / "audio" / "chunk.mp3")
+        monkeypatch.setattr("os.path.join", lambda *args: audio_chunk_path)
         monkeypatch.setattr("os.path.exists", lambda path: False)
         monkeypatch.setattr("os.makedirs", lambda path: None)
 
