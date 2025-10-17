@@ -3,15 +3,18 @@ Unit tests for file operations
 
 Tests for save_audio, audio concatenation, M4B creation, and progress tracking
 """
+
 import pytest
 import os
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, call
 from main import save_audio
 from main_document_mode import (
-    concatenate_chapter_mp3s, create_m4b_audiobook,
-    find_existing_audio_directory, analyze_progress,
-    check_ffmpeg_installed
+    concatenate_chapter_mp3s,
+    create_m4b_audiobook,
+    find_existing_audio_directory,
+    analyze_progress,
+    check_ffmpeg_installed,
 )
 
 
@@ -25,8 +28,8 @@ class TestSaveAudio:
         directory = tmp_path / "audio"
         chunk_num = 1
 
-        with patch('main.os.makedirs') as mock_makedirs:
-            with patch('builtins.open', create=True) as mock_open:
+        with patch("main.os.makedirs") as mock_makedirs:
+            with patch("builtins.open", create=True) as mock_open:
                 save_audio(mock_audio_response, str(directory), chunk_num)
 
                 # Should create directory (without exist_ok argument)
@@ -59,7 +62,7 @@ class TestSaveAudio:
 
         assert not directory.exists()
 
-        with patch('builtins.open', create=True):
+        with patch("builtins.open", create=True):
             save_audio(mock_audio_response, str(directory), 1)
 
             # Directory creation would be called
@@ -68,8 +71,8 @@ class TestSaveAudio:
         """Test correct file path formatting"""
         directory = tmp_path / "audio"
 
-        with patch('main.os.makedirs'):
-            with patch('builtins.open', create=True) as mock_open:
+        with patch("main.os.makedirs"):
+            with patch("builtins.open", create=True) as mock_open:
                 save_audio(mock_audio_response, str(directory), 42)
 
                 # Check file path contains chunk number
@@ -81,8 +84,8 @@ class TestSaveAudio:
         """Test handling write errors"""
         directory = tmp_path / "audio"
 
-        with patch('main.os.makedirs'):
-            with patch('builtins.open', side_effect=IOError("Write error")):
+        with patch("main.os.makedirs"):
+            with patch("builtins.open", side_effect=IOError("Write error")):
                 save_audio(mock_audio_response, str(directory), 1)
 
                 captured = capsys.readouterr()
@@ -92,8 +95,8 @@ class TestSaveAudio:
         """Test saving multiple chunks in sequence"""
         directory = tmp_path / "audio"
 
-        with patch('main.os.makedirs'):
-            with patch('builtins.open', create=True) as mock_open:
+        with patch("main.os.makedirs"):
+            with patch("builtins.open", create=True) as mock_open:
                 for i in range(1, 4):
                     save_audio(mock_audio_response, str(directory), i)
 
@@ -106,7 +109,7 @@ class TestSaveAudio:
 class TestCheckFFmpegInstalled:
     """Tests for check_ffmpeg_installed function"""
 
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     def test_ffmpeg_installed(self, mock_run):
         """Test when ffmpeg is installed"""
         mock_run.return_value = Mock(returncode=0)
@@ -116,7 +119,7 @@ class TestCheckFFmpegInstalled:
         assert result is True
         mock_run.assert_called_once()
 
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     def test_ffmpeg_not_installed(self, mock_run):
         """Test when ffmpeg is not installed"""
         mock_run.side_effect = FileNotFoundError()
@@ -125,12 +128,13 @@ class TestCheckFFmpegInstalled:
 
         assert result is False
 
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     def test_ffmpeg_check_error(self, mock_run):
         """Test handling errors during ffmpeg check"""
         import subprocess
+
         # Use TimeoutExpired which is caught by the implementation
-        mock_run.side_effect = subprocess.TimeoutExpired(cmd='ffmpeg', timeout=5)
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd="ffmpeg", timeout=5)
 
         result = check_ffmpeg_installed()
 
@@ -143,8 +147,8 @@ class TestConcatenateChapterMP3s:
     """Tests for concatenate_chapter_mp3s function"""
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.subprocess.run')
-    @patch('main_document_mode.os.path.getsize')
+    @patch("main_document_mode.subprocess.run")
+    @patch("main_document_mode.os.path.getsize")
     async def test_concatenate_success(self, mock_getsize, mock_run, tmp_path):
         """Test successful MP3 concatenation"""
         # Create dummy MP3 files
@@ -166,7 +170,7 @@ class TestConcatenateChapterMP3s:
         assert mock_run.called
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     async def test_concatenate_empty_list(self, mock_run, tmp_path):
         """Test concatenation with empty file list"""
         chapter_dir = str(tmp_path)
@@ -178,7 +182,7 @@ class TestConcatenateChapterMP3s:
         assert result is None
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     async def test_concatenate_single_file(self, mock_run, tmp_path):
         """Test concatenation with single file"""
         mp3_file = tmp_path / "chunk_1.mp3"
@@ -195,7 +199,7 @@ class TestConcatenateChapterMP3s:
         # Should handle single file (may or may not concatenate depending on implementation)
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     async def test_concatenate_error_handling(self, mock_run, tmp_path):
         """Test error handling during concatenation"""
         mp3_files = [str(tmp_path / "file1.mp3"), str(tmp_path / "file2.mp3")]
@@ -215,20 +219,17 @@ class TestCreateM4BAudiobook:
     """Tests for create_m4b_audiobook function"""
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     async def test_create_m4b_success(self, mock_run, tmp_path, sample_chapter_data):
         """Test successful M4B creation"""
         # Create chapters with proper directory structure
         chapters = []
         for i, ch_data in enumerate(sample_chapter_data):
             from main_document_mode import Chapter
+
             dir_name = f"{ch_data['number']:02d}-{ch_data['title'].lower().replace(' ', '-')}"
             chapter = Chapter(
-                number=ch_data['number'],
-                title=ch_data['title'],
-                dir_name=dir_name,
-                text=ch_data['text'],
-                chunks=[]
+                number=ch_data["number"], title=ch_data["title"], dir_name=dir_name, text=ch_data["text"], chunks=[]
             )
             chapters.append(chapter)
 
@@ -250,7 +251,7 @@ class TestCreateM4BAudiobook:
         assert mock_run.called
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     async def test_create_m4b_no_chapters(self, mock_run, tmp_path):
         """Test M4B creation with no chapters"""
         # Use correct parameter order: base_directory, chapters, book_title
@@ -260,13 +261,12 @@ class TestCreateM4BAudiobook:
         assert result is None
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     async def test_create_m4b_error_handling(self, mock_run, tmp_path, sample_chapter_data):
         """Test error handling during M4B creation"""
         from main_document_mode import Chapter
-        chapters = [
-            Chapter(number=1, title="Test", dir_name="01-test", text="Content", chunks=[])
-        ]
+
+        chapters = [Chapter(number=1, title="Test", dir_name="01-test", text="Content", chunks=[])]
         chapters[0].output_file = str(tmp_path / "test.mp3")
 
         mock_run.side_effect = Exception("FFmpeg error")
@@ -349,11 +349,11 @@ class TestAnalyzeProgress:
 
         chapters = [
             Chapter(
-                number=ch['number'],
-                title=ch['title'],
+                number=ch["number"],
+                title=ch["title"],
                 dir_name=f"{ch['number']:02d}-{ch['title'].lower().replace(' ', '-')}",
-                text=ch['text'],
-                chunks=[]
+                text=ch["text"],
+                chunks=[],
             )
             for ch in sample_chapter_data
         ]
@@ -374,11 +374,11 @@ class TestAnalyzeProgress:
 
         chapters = [
             Chapter(
-                number=ch['number'],
-                title=ch['title'],
+                number=ch["number"],
+                title=ch["title"],
                 dir_name=f"{ch['number']:02d}-{ch['title'].lower().replace(' ', '-')}",
-                text=ch['text'],
-                chunks=[]
+                text=ch["text"],
+                chunks=[],
             )
             for ch in sample_chapter_data
         ]
@@ -405,11 +405,11 @@ class TestAnalyzeProgress:
 
         chapters = [
             Chapter(
-                number=ch['number'],
-                title=ch['title'],
+                number=ch["number"],
+                title=ch["title"],
                 dir_name=f"{ch['number']:02d}-{ch['title'].lower().replace(' ', '-')}",
-                text=ch['text'],
-                chunks=[]
+                text=ch["text"],
+                chunks=[],
             )
             for ch in sample_chapter_data
         ]
@@ -424,7 +424,7 @@ class TestAnalyzeProgress:
             chapter_dir.mkdir()
 
             # Extract the numeric prefix from dir_name for filename
-            dir_prefix = chapter.dir_name.split('-')[0]
+            dir_prefix = chapter.dir_name.split("-")[0]
 
             for i in range(len(chapter.chunks)):
                 chunk_file = chapter_dir / f"{dir_prefix}-chunk-{i+1}.mp3"
@@ -447,8 +447,8 @@ class TestFileOperationEdgeCases:
         directory = tmp_path / "audio:test"  # Colon invalid on some systems
 
         # Should handle or sanitize
-        with patch('main.os.makedirs'):
-            with patch('builtins.open', create=True):
+        with patch("main.os.makedirs"):
+            with patch("builtins.open", create=True):
                 try:
                     save_audio(mock_audio_response, str(directory), 1)
                 except (OSError, ValueError):
@@ -458,8 +458,8 @@ class TestFileOperationEdgeCases:
         """Test with very large chunk numbers"""
         directory = tmp_path / "audio"
 
-        with patch('main.os.makedirs'):
-            with patch('builtins.open', create=True) as mock_open:
+        with patch("main.os.makedirs"):
+            with patch("builtins.open", create=True) as mock_open:
                 save_audio(mock_audio_response, str(directory), 999999)
 
                 call_args = mock_open.call_args
@@ -467,13 +467,10 @@ class TestFileOperationEdgeCases:
                 assert "999999" in file_path
 
     @pytest.mark.asyncio
-    @patch('main_document_mode.subprocess.run')
+    @patch("main_document_mode.subprocess.run")
     async def test_concatenate_nonexistent_files(self, mock_run, tmp_path):
         """Test concatenation with non-existent source files"""
-        mp3_files = [
-            str(tmp_path / "nonexistent1.mp3"),
-            str(tmp_path / "nonexistent2.mp3")
-        ]
+        mp3_files = [str(tmp_path / "nonexistent1.mp3"), str(tmp_path / "nonexistent2.mp3")]
         chapter_dir = str(tmp_path)
         chapter_name = "01-test-chapter"
 

@@ -1,4 +1,4 @@
-# Speechma TTS - Document Mode
+# Audiobook Creator TTS - Document Mode
 
 Convert entire EPUB and PDF documents to audio with automatic text extraction and smart chunking.
 
@@ -26,7 +26,7 @@ python3.11 main_document_mode.py
 $ python3.11 main_document_mode.py
 
 ============================================================
-📚 Speechma TTS - Document Mode
+📚 Audiobook Creator TTS - Document Mode
 ============================================================
 Convert EPUB and PDF files to audio
 ============================================================

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.11
 """
-Speechma TTS with Persistent Playwright Browser
+Audiobook Creator TTS with Persistent Playwright Browser
 Keeps browser session alive across multiple text-to-speech conversions
 User only needs to solve CAPTCHA once at startup
 """
@@ -16,9 +16,15 @@ from playwright.async_api import async_playwright, Browser, Page
 # Import functions from main.py to avoid duplication
 sys.path.insert(0, os.path.dirname(__file__))
 from main import (
-    print_colored, input_colored, load_voices, display_voices,
-    get_voice_id, split_text, validate_text, count_voice_stats,
-    select_voice_interactive
+    print_colored,
+    input_colored,
+    load_voices,
+    display_voices,
+    get_voice_id,
+    split_text,
+    validate_text,
+    count_voice_stats,
+    select_voice_interactive,
 )
 
 
@@ -41,33 +47,34 @@ class PersistentBrowser:
         self.browser = await self.playwright.chromium.launch(
             headless=False,  # Visible for CAPTCHA solving
             args=[
-                '--disable-blink-features=AutomationControlled',
-                '--disable-dev-shm-usage',
-                '--no-sandbox',
-                '--disable-web-security',
-                '--disable-features=IsolateOrigins,site-per-process'
-            ]
+                "--disable-blink-features=AutomationControlled",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-web-security",
+                "--disable-features=IsolateOrigins,site-per-process",
+            ],
         )
 
         context = await self.browser.new_context(
-            viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.140 Safari/537.36',
-            locale='en-US',
-            permissions=['geolocation'],
+            viewport={"width": 1920, "height": 1080},
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.140 Safari/537.36",
+            locale="en-US",
+            permissions=["geolocation"],
             extra_http_headers={
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1'
-            }
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+            },
         )
 
         self.page = await context.new_page()
 
         # Add stealth JavaScript to mask automation
-        await self.page.add_init_script("""
+        await self.page.add_init_script(
+            """
             Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined
             });
@@ -83,22 +90,23 @@ class PersistentBrowser:
             window.chrome = {
                 runtime: {}
             };
-        """)
+        """
+        )
 
         # Navigate to the site
         print_colored("🌐 Navigating to speechma.com...", "cyan")
-        await self.page.goto('https://speechma.com', wait_until='domcontentloaded')
+        await self.page.goto("https://speechma.com", wait_until="domcontentloaded")
         await asyncio.sleep(3)
 
         # Check for CAPTCHA
-        print_colored("\n" + "="*60, "yellow")
+        print_colored("\n" + "=" * 60, "yellow")
         print_colored("⚠️  CAPTCHA CHECK", "yellow")
-        print_colored("="*60, "yellow")
+        print_colored("=" * 60, "yellow")
         print_colored("If you see a CAPTCHA in the browser window:", "yellow")
         print_colored("  1. Solve the CAPTCHA", "yellow")
         print_colored("  2. Wait for the page to fully load", "yellow")
         print_colored("  3. Press Enter here to continue", "yellow")
-        print_colored("="*60, "yellow")
+        print_colored("=" * 60, "yellow")
         input()
 
         self.captcha_solved = True
@@ -110,9 +118,9 @@ class PersistentBrowser:
             # Check for common Cloudflare Turnstile CAPTCHA indicators
             captcha_selectors = [
                 'iframe[src*="challenges.cloudflare.com"]',
-                '#challenge-form',
-                '.cf-challenge-running',
-                '[id^="cf-challenge"]'
+                "#challenge-form",
+                ".cf-challenge-running",
+                '[id^="cf-challenge"]',
             ]
 
             for selector in captcha_selectors:
@@ -153,14 +161,12 @@ class PersistentBrowser:
                     input()
                     return await self.request_audio(text, voice_id, retry_on_captcha=False)
                 return None
-            url = 'https://speechma.com/com.api/tts-api.php'
-            data = {
-                "text": text.replace("'", "").replace('"', '').replace("&", "and"),
-                "voice": voice_id
-            }
+            url = "https://speechma.com/com.api/tts-api.php"
+            data = {"text": text.replace("'", "").replace('"', "").replace("&", "and"), "voice": voice_id}
 
             # Execute fetch request in browser context (includes all cookies)
-            result = await self.page.evaluate("""
+            result = await self.page.evaluate(
+                """
                 async ({ url, data }) => {
                     try {
                         const response = await fetch(url, {
@@ -203,34 +209,36 @@ class PersistentBrowser:
                         };
                     }
                 }
-            """, {'url': url, 'data': data})
+            """,
+                {"url": url, "data": data},
+            )
 
-            if result.get('success'):
-                return bytes(result['audio'])
+            if result.get("success"):
+                return bytes(result["audio"])
 
             # Handle errors
-            status = result.get('status', 'unknown')
+            status = result.get("status", "unknown")
 
             # Handle 429 Rate Limit
             if status == 429:
                 print_colored("⚠️  Rate limit reached (429)", "yellow")
-                if 'text' in result:
+                if "text" in result:
                     print_colored(f"Response: {result['text'][:200]}", "yellow")
 
                 # Return special marker to indicate rate limit
-                return 'RATE_LIMIT'
+                return "RATE_LIMIT"
 
             # Handle 403 CAPTCHA
             elif status == 403:
                 print_colored("❌ 403 Forbidden - CAPTCHA required!", "red")
 
                 if retry_on_captcha:
-                    print_colored("\n" + "="*60, "yellow")
+                    print_colored("\n" + "=" * 60, "yellow")
                     print_colored("⚠️  CAPTCHA DETECTED", "yellow")
-                    print_colored("="*60, "yellow")
+                    print_colored("=" * 60, "yellow")
                     print_colored("Please solve the CAPTCHA in the browser window", "yellow")
                     print_colored("Then press Enter to retry...", "yellow")
-                    print_colored("="*60, "yellow")
+                    print_colored("=" * 60, "yellow")
                     input()
 
                     # Retry once after user solves CAPTCHA
@@ -239,7 +247,7 @@ class PersistentBrowser:
             # Handle other errors
             else:
                 print_colored(f"❌ Request failed: Status {status}", "red")
-                if 'text' in result:
+                if "text" in result:
                     print_colored(f"Response: {result['text'][:200]}", "red")
 
             return None
@@ -298,7 +306,7 @@ async def process_text_to_speech(browser: PersistentBrowser, voice_id: str, text
             if audio_data:
                 # Save audio file
                 file_path = os.path.join(directory, f"audio_chunk_{i}.mp3")
-                with open(file_path, 'wb') as f:
+                with open(file_path, "wb") as f:
                     f.write(audio_data)
                 print_colored(f"✅ Saved to {file_path} ({len(audio_data)} bytes)", "green")
                 success_count += 1
@@ -322,9 +330,9 @@ async def main():
     """Main application loop"""
 
     # Display header
-    print_colored("\n" + "="*60, "cyan")
-    print_colored("🎤 Speechma TTS - Persistent Browser Mode", "magenta")
-    print_colored("="*60, "cyan")
+    print_colored("\n" + "=" * 60, "cyan")
+    print_colored("🎤 Audiobook Creator TTS - Persistent Browser Mode", "magenta")
+    print_colored("=" * 60, "cyan")
 
     # Load voices
     voices = load_voices()
@@ -338,7 +346,7 @@ async def main():
     print(f"   • {stats['total']} voices")
     print(f"   • {len(stats['languages'])} languages")
     print(f"   • {len(stats['countries'])} countries")
-    print_colored("="*60, "cyan")
+    print_colored("=" * 60, "cyan")
 
     # Initialize browser (one-time setup)
     browser = PersistentBrowser()
@@ -348,9 +356,9 @@ async def main():
 
         # Main loop
         while True:
-            print_colored("\n" + "="*60, "blue")
+            print_colored("\n" + "=" * 60, "blue")
             print_colored("NEW CONVERSION", "blue")
-            print_colored("="*60, "blue")
+            print_colored("=" * 60, "blue")
 
             # Use interactive voice selection
             voice_id, voice_name = select_voice_interactive(voices)
@@ -382,9 +390,9 @@ async def main():
             # Continue?
             while True:
                 choice = input_colored("\n🔄 Convert another text? (y/n): ", "blue").lower()
-                if choice == 'y':
+                if choice == "y":
                     break
-                elif choice == 'n':
+                elif choice == "n":
                     print_colored("\n👋 Goodbye!", "magenta")
                     return
                 else:

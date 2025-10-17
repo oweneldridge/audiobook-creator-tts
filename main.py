@@ -2,8 +2,10 @@ import requests as req
 import json
 import sys
 import os
+import subprocess
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
+
 
 # Function to print colored text
 def print_colored(text: str, color: str) -> None:
@@ -20,11 +22,12 @@ def print_colored(text: str, color: str) -> None:
         "blue": "\033[94m",
         "yellow": "\033[93m",
         "cyan": "\033[96m",
-        "magenta": "\033[95m"
+        "magenta": "\033[95m",
     }
     color_code: str = colors.get(color.lower(), "\033[0m")
     colored_text: str = f"{color_code}{text}\033[0m"
     print(colored_text)
+
 
 # Function to get user input with colored prompt
 def input_colored(prompt: str, color: str) -> str:
@@ -44,17 +47,18 @@ def input_colored(prompt: str, color: str) -> str:
         "blue": "\033[94m",
         "yellow": "\033[93m",
         "cyan": "\033[96m",
-        "magenta": "\033[95m"
+        "magenta": "\033[95m",
     }
     color_code: str = colors.get(color.lower(), "\033[0m")
     colored_prompt: str = f"{color_code}{prompt}\033[0m"
     return input(colored_prompt)
 
+
 # Load voices from voices.json file
 def load_voices():
     """Load voice data from voices.json file"""
     try:
-        with open('voices.json', 'r', encoding='utf-8') as f:
+        with open("voices.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         print_colored("Error: voices.json file not found!", "red")
@@ -62,6 +66,7 @@ def load_voices():
     except json.JSONDecodeError as e:
         print_colored(f"Error parsing voices.json: {e}", "red")
         return None
+
 
 # Recursively display voices in an enumerated format with enhanced information
 def display_voices(voices, prefix="", show_ids=False):
@@ -85,6 +90,7 @@ def display_voices(voices, prefix="", show_ids=False):
                 print(f"{index}- {prefix}{key}")
     return index
 
+
 # Recursively get the selected voice ID based on user input
 def get_voice_id(voices, choice, current_index=0):
     for key, value in voices.items():
@@ -98,13 +104,14 @@ def get_voice_id(voices, choice, current_index=0):
                 return value, current_index
     return None, current_index
 
+
 # Function to get audio from the server
 def get_audio(url, data, headers, cookies=None):
     try:
         json_data = json.dumps(data)
         response = req.post(url, data=json_data, headers=headers, cookies=cookies)
         response.raise_for_status()
-        if response.headers.get('Content-Type') == 'audio/mpeg':
+        if response.headers.get("Content-Type") == "audio/mpeg":
             return response.content
         else:
             print_colored(f"Unexpected response format: {response.headers.get('Content-Type')}", "red")
@@ -118,6 +125,7 @@ def get_audio(url, data, headers, cookies=None):
         print_colored(f"An unexpected error occurred: {e}", "red")
         return None
 
+
 # Function to save audio to a file
 def save_audio(response, directory, chunk_num):
     if response:
@@ -125,13 +133,14 @@ def save_audio(response, directory, chunk_num):
             os.makedirs(directory)
         file_path = os.path.join(directory, f"audio_chunk_{chunk_num}.mp3")
         try:
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 f.write(response)
             print_colored(f"Audio saved to {file_path}", "green")
         except IOError as e:
             print_colored(f"Error saving audio: {e}", "red")
     else:
         print_colored("No audio data to save", "red")
+
 
 # Function to split text into chunks
 def split_text(text, chunk_size=1000):
@@ -145,8 +154,8 @@ def split_text(text, chunk_size=1000):
             chunks.append(text)
             break
         chunk = text[:chunk_size]
-        last_full_stop = chunk.rfind('.')
-        last_comma = chunk.rfind(',')
+        last_full_stop = chunk.rfind(".")
+        last_comma = chunk.rfind(",")
         split_index = last_full_stop if last_full_stop != -1 else last_comma
         if split_index == -1:
             split_index = chunk_size
@@ -156,9 +165,11 @@ def split_text(text, chunk_size=1000):
         text = text[split_index:].lstrip()
     return chunks
 
+
 # Function to validate text
 def validate_text(text):
-    return ''.join(char for char in text if ord(char) < 128)
+    return "".join(char for char in text if ord(char) < 128)
+
 
 # Function to get multiline input
 def get_multiline_input(prompt="Enter your text (type END on a new line when finished):"):
@@ -172,6 +183,7 @@ def get_multiline_input(prompt="Enter your text (type END on a new line when fin
         lines.append(line)
     return " ".join(lines)
 
+
 # Function to prompt for graceful exit
 def prompt_graceful_exit():
     while True:
@@ -183,6 +195,7 @@ def prompt_graceful_exit():
             return
         else:
             print_colored("Invalid choice. Please enter 'y' or 'n'.", "red")
+
 
 # Helper function to count voices at each level
 def count_voices_by_level(voices, level=0):
@@ -201,6 +214,7 @@ def count_voices_by_level(voices, level=0):
     count_recursive(voices)
     return counts
 
+
 # Helper function to get all voice IDs from a nested dict
 def get_all_voice_ids(data):
     """Recursively get all voice IDs from nested structure"""
@@ -209,6 +223,7 @@ def get_all_voice_ids(data):
             yield from get_all_voice_ids(value)
         else:
             yield value
+
 
 # Interactive voice selection with filtering
 def select_voice_interactive(voices):
@@ -222,9 +237,9 @@ def select_voice_interactive(voices):
 
     while True:
         # Step 1: Select Language
-        print_colored("\n" + "="*60, "blue")
+        print_colored("\n" + "=" * 60, "blue")
         print_colored("STEP 1: Select Language", "blue")
-        print_colored("="*60, "blue")
+        print_colored("=" * 60, "blue")
 
         lang_counts = count_voices_by_level(voices, level=0)
         languages = sorted(lang_counts.keys())
@@ -238,9 +253,9 @@ def select_voice_interactive(voices):
         lang_input = input_colored(f"\nSelect language (1-{len(languages)}): ", "green").strip()
 
         # Handle special inputs
-        if lang_input.lower() == 'q':
+        if lang_input.lower() == "q":
             return None, None
-        if lang_input.startswith('voice-'):
+        if lang_input.startswith("voice-"):
             return lang_input, f"Direct ID: {lang_input}"
 
         try:
@@ -256,9 +271,9 @@ def select_voice_interactive(voices):
 
         # Step 2: Select Country
         while True:
-            print_colored("\n" + "="*60, "blue")
+            print_colored("\n" + "=" * 60, "blue")
             print_colored(f"STEP 2: Select Country ({selected_language})", "blue")
-            print_colored("="*60, "blue")
+            print_colored("=" * 60, "blue")
 
             country_data = voices[selected_language]
             country_counts = count_voices_by_level({selected_language: country_data}, level=1)
@@ -272,11 +287,11 @@ def select_voice_interactive(voices):
 
             country_input = input_colored(f"\nSelect country (1-{len(countries)}): ", "green").strip()
 
-            if country_input.lower() == 'b':
+            if country_input.lower() == "b":
                 break  # Go back to language selection
-            if country_input.lower() == 'r':
+            if country_input.lower() == "r":
                 return select_voice_interactive(voices)  # Restart
-            if country_input.lower() == 'q':
+            if country_input.lower() == "q":
                 return None, None
 
             try:
@@ -292,9 +307,9 @@ def select_voice_interactive(voices):
 
             # Step 3: Select Gender
             while True:
-                print_colored("\n" + "="*60, "blue")
+                print_colored("\n" + "=" * 60, "blue")
                 print_colored(f"STEP 3: Select Gender ({selected_language} - {selected_country})", "blue")
-                print_colored("="*60, "blue")
+                print_colored("=" * 60, "blue")
 
                 gender_data = country_data[selected_country]
                 genders = sorted(gender_data.keys())
@@ -307,11 +322,11 @@ def select_voice_interactive(voices):
 
                 gender_input = input_colored(f"\nSelect gender (1-{len(genders)}): ", "green").strip()
 
-                if gender_input.lower() == 'b':
+                if gender_input.lower() == "b":
                     break  # Go back to country selection
-                if gender_input.lower() == 'r':
+                if gender_input.lower() == "r":
                     return select_voice_interactive(voices)  # Restart
-                if gender_input.lower() == 'q':
+                if gender_input.lower() == "q":
                     return None, None
 
                 try:
@@ -327,10 +342,10 @@ def select_voice_interactive(voices):
 
                 # Step 4: Select Voice Name
                 while True:
-                    print_colored("\n" + "="*60, "blue")
+                    print_colored("\n" + "=" * 60, "blue")
                     print_colored(f"STEP 4: Select Voice", "blue")
                     print_colored(f"{selected_language} - {selected_country} - {selected_gender.capitalize()}", "cyan")
-                    print_colored("="*60, "blue")
+                    print_colored("=" * 60, "blue")
 
                     voice_names = gender_data[selected_gender]
                     sorted_names = sorted(voice_names.keys())
@@ -339,14 +354,14 @@ def select_voice_interactive(voices):
                     show_ids_input = input_colored("\nShow voice IDs? (y/n, default: n): ", "blue").lower().strip()
 
                     # Handle navigation commands at the ID prompt
-                    if show_ids_input == 'b':
+                    if show_ids_input == "b":
                         break  # Go back to gender selection
-                    if show_ids_input == 'r':
+                    if show_ids_input == "r":
                         return select_voice_interactive(voices)  # Restart
-                    if show_ids_input == 'q':
+                    if show_ids_input == "q":
                         return None, None
 
-                    show_ids = show_ids_input == 'y'
+                    show_ids = show_ids_input == "y"
 
                     print()
                     for i, name in enumerate(sorted_names, 1):
@@ -360,11 +375,11 @@ def select_voice_interactive(voices):
 
                     voice_input = input_colored(f"\nSelect voice (1-{len(sorted_names)}): ", "green").strip()
 
-                    if voice_input.lower() == 'b':
+                    if voice_input.lower() == "b":
                         break  # Go back to gender selection
-                    if voice_input.lower() == 'r':
+                    if voice_input.lower() == "r":
                         return select_voice_interactive(voices)  # Restart
-                    if voice_input.lower() == 'q':
+                    if voice_input.lower() == "q":
                         return None, None
 
                     try:
@@ -380,42 +395,143 @@ def select_voice_interactive(voices):
                     selected_voice_id = voice_names[selected_name]
 
                     # Show final selection
-                    print_colored("\n" + "="*60, "green")
+                    print_colored("\n" + "=" * 60, "green")
                     print_colored("✓ Voice Selected!", "green")
-                    print_colored("="*60, "green")
+                    print_colored("=" * 60, "green")
                     print(f"Language: {selected_language}")
                     print(f"Country: {selected_country}")
                     print(f"Gender: {selected_gender.capitalize()}")
                     print(f"Voice: {selected_name}")
                     print(f"Voice ID: {selected_voice_id}")
-                    print_colored("="*60, "green")
+                    print_colored("=" * 60, "green")
 
                     return selected_voice_id, selected_name
 
+
 # Function to count voices in the hierarchical structure
 def count_voice_stats(voices):
-    stats = {
-        'total': 0,
-        'languages': set(),
-        'countries': set(),
-        'genders': set()
-    }
+    stats = {"total": 0, "languages": set(), "countries": set(), "genders": set()}
 
     def count_recursive(data, level=0):
         for key, value in data.items():
             if isinstance(value, dict):
                 if level == 0:  # Language level
-                    stats['languages'].add(key)
+                    stats["languages"].add(key)
                 elif level == 1:  # Country level
-                    stats['countries'].add(key)
+                    stats["countries"].add(key)
                 elif level == 2:  # Gender level
-                    stats['genders'].add(key)
+                    stats["genders"].add(key)
                 count_recursive(value, level + 1)
             else:
-                stats['total'] += 1
+                stats["total"] += 1
 
     count_recursive(voices)
     return stats
+
+
+# Function to embed cover art into m4b file using AtomicParsley
+def embed_cover_art(m4b_file_path: str, cover_image_path: str) -> bool:
+    """
+    Embed cover art into an m4b audiobook file using AtomicParsley.
+
+    Args:
+        m4b_file_path: Path to the m4b audiobook file
+        cover_image_path: Path to the cover image file (jpg, png, etc.)
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Check if AtomicParsley is installed
+        result = subprocess.run(["which", "AtomicParsley"], capture_output=True, text=True)
+        if result.returncode != 0:
+            print_colored("Error: AtomicParsley is not installed.", "red")
+            print_colored("Install it with: brew install atomicparsley", "yellow")
+            return False
+
+        # Check if files exist
+        if not os.path.exists(m4b_file_path):
+            print_colored(f"Error: M4B file not found: {m4b_file_path}", "red")
+            return False
+
+        if not os.path.exists(cover_image_path):
+            print_colored(f"Error: Cover image not found: {cover_image_path}", "red")
+            return False
+
+        # Run AtomicParsley to embed cover art
+        print_colored(f"\nEmbedding cover art into {os.path.basename(m4b_file_path)}...", "yellow")
+
+        cmd = ["AtomicParsley", m4b_file_path, "--artwork", cover_image_path, "--overWrite"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            print_colored("✓ Cover art embedded successfully!", "green")
+            return True
+        else:
+            print_colored(f"Error embedding cover art: {result.stderr}", "red")
+            return False
+
+    except Exception as e:
+        print_colored(f"Error during cover art embedding: {e}", "red")
+        return False
+
+
+# Function to prompt user for cover art
+def prompt_for_cover_art(audiobook_dir: str) -> Optional[str]:
+    """
+    Prompt user if they want to add cover art and get the file path.
+
+    Args:
+        audiobook_dir: Directory where the audiobook is located
+
+    Returns:
+        Path to cover image file, or None if user declines
+    """
+    while True:
+        response = input_colored("\nWould you like to add cover art to the audiobook? (y/n): ", "blue").lower().strip()
+
+        if response == "n":
+            return None
+        elif response == "y":
+            # Check if cover.jpg exists in the audiobook directory
+            default_cover = os.path.join(audiobook_dir, "cover.jpg")
+            if os.path.exists(default_cover):
+                use_default = (
+                    input_colored(f"\nFound cover.jpg in audiobook directory. Use this file? (y/n): ", "blue")
+                    .lower()
+                    .strip()
+                )
+                if use_default == "y":
+                    return default_cover
+
+            # Prompt for custom path
+            while True:
+                cover_path = input_colored("\nEnter the full path to the cover image file: ", "cyan").strip()
+
+                # Handle quoted paths
+                if cover_path.startswith('"') and cover_path.endswith('"'):
+                    cover_path = cover_path[1:-1]
+                elif cover_path.startswith("'") and cover_path.endswith("'"):
+                    cover_path = cover_path[1:-1]
+
+                # Expand user home directory
+                cover_path = os.path.expanduser(cover_path)
+
+                if os.path.exists(cover_path):
+                    # Validate it's an image file
+                    valid_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
+                    if any(cover_path.lower().endswith(ext) for ext in valid_extensions):
+                        return cover_path
+                    else:
+                        print_colored("Error: File must be an image (jpg, png, gif, bmp)", "red")
+                else:
+                    print_colored(f"Error: File not found: {cover_path}", "red")
+                    retry = input_colored("Try again? (y/n): ", "blue").lower().strip()
+                    if retry != "y":
+                        return None
+        else:
+            print_colored("Invalid choice. Please enter 'y' or 'n'.", "red")
+
 
 # Main function
 def main():
@@ -427,7 +543,7 @@ def main():
     # Display statistics
     stats = count_voice_stats(voices)
     print_colored("=" * 60, "cyan")
-    print_colored("🎤 Speechma Text-to-Speech", "magenta")
+    print_colored("🎤 Audiobook Creator TTS", "magenta")
     print_colored("=" * 60, "cyan")
     print_colored(f"📊 Voice Library: {stats['total']} voices", "yellow")
     print(f"   • {len(stats['languages'])} languages")
@@ -441,33 +557,33 @@ def main():
         return
 
     text = get_multiline_input().replace("  ", " ")
-    
+
     if not text:
         print_colored("Error: No text provided. Exiting.", "red")
         return
-    elif len(text) <= 9 :
+    elif len(text) <= 9:
         print_colored("Error: The text must be more than 9 characters. Exiting.", "red")
         return
 
     text = validate_text(text)
 
-    url = 'https://speechma.com/com.api/tts-api.php'
+    url = "https://speechma.com/com.api/tts-api.php"
     headers = {
-        'Host': 'speechma.com',
-        'Sec-Ch-Ua-Platform': 'Windows',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Sec-Ch-Ua': '"Chromium";v="131", "Not_A Brand";v="24"',
-        'Content-Type': 'application/json',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.140 Safari/537.36',
-        'Accept': '*/*',
-        'Origin': 'https://speechma.com',
-        'Sec-Fetch-Site': 'same-origin',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Dest': 'empty',
-        'Referer': 'https://speechma.com/',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Priority': 'u=1, i'
+        "Host": "speechma.com",
+        "Sec-Ch-Ua-Platform": "Windows",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Sec-Ch-Ua": '"Chromium";v="131", "Not_A Brand";v="24"',
+        "Content-Type": "application/json",
+        "Sec-Ch-Ua-Mobile": "?0",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.140 Safari/537.36",
+        "Accept": "*/*",
+        "Origin": "https://speechma.com",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Dest": "empty",
+        "Referer": "https://speechma.com/",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Priority": "u=1, i",
     }
 
     # IMPORTANT: You need to get cookies from your browser after visiting speechma.com
@@ -486,13 +602,10 @@ def main():
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
     directory = os.path.join("audio", timestamp)
-    
+
     for i, chunk in enumerate(chunks, start=1):
         print_colored(f"\nProcessing chunk {i}...", "yellow")
-        data = {
-            "text": chunk.replace("'", "").replace('"', '').replace("&", "and"),
-            "voice": voice_id
-        }
+        data = {"text": chunk.replace("'", "").replace('"', "").replace("&", "and"), "voice": voice_id}
 
         max_retries = 3
         for retry in range(max_retries):
@@ -506,6 +619,7 @@ def main():
             print_colored(f"Failed to process chunk {i} after {max_retries} retries.", "red")
 
     prompt_graceful_exit()
+
 
 # Main execution
 if __name__ == "__main__":

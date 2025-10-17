@@ -9,22 +9,26 @@ import asyncio
 import sys
 from pathlib import Path
 from main_document_mode import (
-    DocumentParser, process_chapters_to_speech,
-    PersistentBrowser, print_colored,
-    check_ffmpeg_installed, show_ffmpeg_install_instructions
+    DocumentParser,
+    process_chapters_to_speech,
+    PersistentBrowser,
+    print_colored,
+    check_ffmpeg_installed,
+    show_ffmpeg_install_instructions,
 )
 
+
 async def convert_document(voice_id: str, file_path: str):
-    print_colored("\n" + "="*60, "cyan")
+    print_colored("\n" + "=" * 60, "cyan")
     print_colored("📚 Document → Audio Converter (Chapter Mode)", "magenta")
-    print_colored("="*60, "cyan")
+    print_colored("=" * 60, "cyan")
 
     # Check for ffmpeg
     ffmpeg_available = check_ffmpeg_installed()
     if not ffmpeg_available:
         show_ffmpeg_install_instructions()
         confirm = input("\nContinue without MP3 concatenation? (y/n): ").lower()
-        if confirm != 'y':
+        if confirm != "y":
             print_colored("\nCancelled", "yellow")
             return
     else:
@@ -34,9 +38,9 @@ async def convert_document(voice_id: str, file_path: str):
     file_path_obj = Path(file_path)
     suffix = file_path_obj.suffix.lower()
 
-    if suffix == '.epub':
+    if suffix == ".epub":
         chapters = DocumentParser.extract_chapters_from_epub(file_path)
-    elif suffix == '.pdf':
+    elif suffix == ".pdf":
         chapters = DocumentParser.extract_chapters_from_pdf(file_path)
     else:
         print_colored(f"\n❌ Unsupported file type: {suffix}", "red")
@@ -50,7 +54,8 @@ async def convert_document(voice_id: str, file_path: str):
     # Get filename for output
     base_name = file_path_obj.stem
     import re
-    output_name = re.sub(r'[^a-z0-9]+', '-', base_name.lower()).strip('-')
+
+    output_name = re.sub(r"[^a-z0-9]+", "-", base_name.lower()).strip("-")
 
     # Calculate total characters
     total_chars = sum(len(ch.text) for ch in chapters)
@@ -73,7 +78,7 @@ async def convert_document(voice_id: str, file_path: str):
 
     # Confirm
     confirm = input("\n🚀 Start conversion? (y/n): ").lower()
-    if confirm != 'y':
+    if confirm != "y":
         print_colored("Cancelled", "yellow")
         return
 
@@ -82,16 +87,15 @@ async def convert_document(voice_id: str, file_path: str):
 
     try:
         await browser.initialize()
-        await process_chapters_to_speech(
-            browser, voice_id, chapters, output_name, chunk_size=1000
-        )
+        await process_chapters_to_speech(browser, voice_id, chapters, output_name, chunk_size=1000)
     finally:
         await browser.cleanup()
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("\n📚 Convert EPUB/PDF to Audio with Custom Voice")
-        print("="*60)
+        print("=" * 60)
         print("\nUsage:")
         print(f"  python3.11 {sys.argv[0]} <voice-id> <file-path>")
         print("\nExamples:")
@@ -103,7 +107,7 @@ if __name__ == "__main__":
         print("\nKnown Voice IDs:")
         print("  voice-111 - Ava (English US Female)")
         print("  voice-18  - Unknown (test to find out)")
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         sys.exit(1)
 
     voice_id = sys.argv[1]

@@ -1,6 +1,6 @@
-# Speechma-API Test Suite Documentation
+# Audiobook Creator TTS Test Suite Documentation
 
-Comprehensive testing suite for the Speechma text-to-speech API project.
+Comprehensive testing suite for the Audiobook Creator text-to-speech API project.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ Comprehensive testing suite for the Speechma text-to-speech API project.
 
 ## Overview
 
-The Speechma-API test suite provides comprehensive functional testing with mocked external dependencies. The suite is designed to achieve 80%+ code coverage while maintaining fast execution times and deterministic results.
+The Audiobook Creator TTS test suite provides comprehensive functional testing with mocked external dependencies. The suite is designed to achieve 80%+ code coverage while maintaining fast execution times and deterministic results.
 
 **Test Philosophy:**
 - **No Browser Testing**: All browser-based functionality is mocked
@@ -388,11 +388,11 @@ Use markers to categorize tests:
 **Solution**:
 ```bash
 # Run from project root
-cd /path/to/Speechma-API
+cd /path/to/Audiobook-Creator-TTS
 pytest
 
 # Or set PYTHONPATH
-export PYTHONPATH="${PYTHONPATH}:/path/to/Speechma-API"
+export PYTHONPATH="${PYTHONPATH}:/path/to/Audiobook-Creator-TTS"
 pytest
 ```
 

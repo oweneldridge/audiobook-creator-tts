@@ -1,4 +1,4 @@
-# Testing dependencies for Speechma-API
+# Testing dependencies for Audiobook Creator TTS
 
 # Core testing framework
 pytest>=7.4.0
@@ -15,3 +15,9 @@ faker>=20.0.0
 # Additional utilities
 pytest-timeout>=2.2.0
 pytest-xdist>=3.5.0  # Parallel test execution
+
+# Code quality and linting
+flake8>=7.0.0         # Style guide enforcement
+black>=24.0.0         # Code formatter
+mypy>=1.8.0          # Static type checker
+pylint>=3.0.0        # Code analysis

@@ -1,6 +1,6 @@
 Sample Text Document for Testing
 
-This is a sample text document used for testing the Speechma-API text-to-speech conversion system.
+This is a sample text document used for testing the Audiobook Creator TTS text-to-speech conversion system.
 
 Chapter 1: Introduction
 

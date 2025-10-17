@@ -1,4 +1,4 @@
-# Speechma-API Production Dependencies
+# Audiobook Creator TTS Production Dependencies
 # Install with: pip install -r requirements.txt
 
 # HTTP Requests

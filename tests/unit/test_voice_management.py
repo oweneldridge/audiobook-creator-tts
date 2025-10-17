@@ -4,12 +4,18 @@ Unit tests for voice management functions
 Tests for load_voices, display_voices, get_voice_id, count_voice_stats,
 select_voice_interactive, and related helper functions
 """
+
 import pytest
 import json
 from unittest.mock import Mock, patch, mock_open
 from main import (
-    load_voices, display_voices, get_voice_id, count_voice_stats,
-    count_voices_by_level, get_all_voice_ids, select_voice_interactive
+    load_voices,
+    display_voices,
+    get_voice_id,
+    count_voice_stats,
+    count_voices_by_level,
+    get_all_voice_ids,
+    select_voice_interactive,
 )
 
 
@@ -59,11 +65,9 @@ class TestLoadVoices:
     def test_load_voices_encoding(self, tmp_path, monkeypatch):
         """Test that UTF-8 encoding is handled correctly"""
         # Create file with UTF-8 characters
-        voices_data = {
-            "Français": {"France": {"female": {"Amélie": "voice-1"}}}
-        }
+        voices_data = {"Français": {"France": {"female": {"Amélie": "voice-1"}}}}
         voices_file = tmp_path / "voices.json"
-        with open(voices_file, 'w', encoding='utf-8') as f:
+        with open(voices_file, "w", encoding="utf-8") as f:
             json.dump(voices_data, f)
 
         monkeypatch.chdir(tmp_path)
@@ -122,13 +126,7 @@ class TestDisplayVoices:
 
     def test_display_voices_prefix_formatting(self, capsys):
         """Test that prefix is properly formatted"""
-        voices = {
-            "English": {
-                "US": {
-                    "female": {"Ava": "voice-111"}
-                }
-            }
-        }
+        voices = {"English": {"US": {"female": {"Ava": "voice-111"}}}}
 
         display_voices(voices)
         captured = capsys.readouterr()
@@ -139,21 +137,8 @@ class TestDisplayVoices:
     def test_display_voices_recursive_structure(self):
         """Test handling of nested dictionary structure"""
         voices = {
-            "Lang1": {
-                "Country1": {
-                    "gender1": {
-                        "Voice1": "voice-1",
-                        "Voice2": "voice-2"
-                    }
-                }
-            },
-            "Lang2": {
-                "Country2": {
-                    "gender2": {
-                        "Voice3": "voice-3"
-                    }
-                }
-            }
+            "Lang1": {"Country1": {"gender1": {"Voice1": "voice-1", "Voice2": "voice-2"}}},
+            "Lang2": {"Country2": {"gender2": {"Voice3": "voice-3"}}},
         }
 
         count = display_voices(voices)
@@ -220,59 +205,53 @@ class TestCountVoiceStats:
         """Test counting total voices"""
         stats = count_voice_stats(sample_voices_data)
 
-        assert stats['total'] == 10  # Based on sample data
+        assert stats["total"] == 10  # Based on sample data
 
     def test_count_voice_stats_languages(self, sample_voices_data):
         """Test counting languages"""
         stats = count_voice_stats(sample_voices_data)
 
-        assert len(stats['languages']) == 2  # English and Spanish
-        assert 'English' in stats['languages']
-        assert 'Spanish' in stats['languages']
+        assert len(stats["languages"]) == 2  # English and Spanish
+        assert "English" in stats["languages"]
+        assert "Spanish" in stats["languages"]
 
     def test_count_voice_stats_countries(self, sample_voices_data):
         """Test counting countries"""
         stats = count_voice_stats(sample_voices_data)
 
-        assert len(stats['countries']) == 4
-        assert 'United States' in stats['countries']
-        assert 'United Kingdom' in stats['countries']
-        assert 'Spain' in stats['countries']
-        assert 'Mexico' in stats['countries']
+        assert len(stats["countries"]) == 4
+        assert "United States" in stats["countries"]
+        assert "United Kingdom" in stats["countries"]
+        assert "Spain" in stats["countries"]
+        assert "Mexico" in stats["countries"]
 
     def test_count_voice_stats_genders(self, sample_voices_data):
         """Test counting genders"""
         stats = count_voice_stats(sample_voices_data)
 
-        assert len(stats['genders']) == 2
-        assert 'female' in stats['genders']
-        assert 'male' in stats['genders']
+        assert len(stats["genders"]) == 2
+        assert "female" in stats["genders"]
+        assert "male" in stats["genders"]
 
     def test_count_voice_stats_empty(self):
         """Test with empty voices dict"""
         stats = count_voice_stats({})
 
-        assert stats['total'] == 0
-        assert len(stats['languages']) == 0
-        assert len(stats['countries']) == 0
-        assert len(stats['genders']) == 0
+        assert stats["total"] == 0
+        assert len(stats["languages"]) == 0
+        assert len(stats["countries"]) == 0
+        assert len(stats["genders"]) == 0
 
     def test_count_voice_stats_single_voice(self):
         """Test with single voice"""
-        voices = {
-            "English": {
-                "US": {
-                    "female": {"Ava": "voice-111"}
-                }
-            }
-        }
+        voices = {"English": {"US": {"female": {"Ava": "voice-111"}}}}
 
         stats = count_voice_stats(voices)
 
-        assert stats['total'] == 1
-        assert len(stats['languages']) == 1
-        assert len(stats['countries']) == 1
-        assert len(stats['genders']) == 1
+        assert stats["total"] == 1
+        assert len(stats["languages"]) == 1
+        assert len(stats["countries"]) == 1
+        assert len(stats["genders"]) == 1
 
 
 @pytest.mark.unit
@@ -284,19 +263,19 @@ class TestCountVoicesByLevel:
         """Test counting at language level"""
         counts = count_voices_by_level(sample_voices_data, level=0)
 
-        assert 'English' in counts
-        assert 'Spanish' in counts
-        assert counts['English'] == 7  # 7 English voices
-        assert counts['Spanish'] == 3  # 3 Spanish voices
+        assert "English" in counts
+        assert "Spanish" in counts
+        assert counts["English"] == 7  # 7 English voices
+        assert counts["Spanish"] == 3  # 3 Spanish voices
 
     def test_count_by_country_level(self, sample_voices_data):
         """Test counting at country level"""
         counts = count_voices_by_level(sample_voices_data, level=1)
 
-        assert 'United States' in counts
-        assert 'United Kingdom' in counts
-        assert 'Spain' in counts
-        assert 'Mexico' in counts
+        assert "United States" in counts
+        assert "United Kingdom" in counts
+        assert "Spain" in counts
+        assert "Mexico" in counts
 
 
 @pytest.mark.unit
@@ -309,8 +288,8 @@ class TestGetAllVoiceIds:
         result = get_all_voice_ids(sample_voices_data)
 
         # Should be a generator
-        assert hasattr(result, '__iter__')
-        assert hasattr(result, '__next__')
+        assert hasattr(result, "__iter__")
+        assert hasattr(result, "__next__")
 
     def test_get_all_voice_ids_count(self, sample_voices_data):
         """Test getting all voice IDs"""
@@ -347,7 +326,7 @@ class TestSelectVoiceInteractive:
         """Test direct voice ID input"""
         # Mock user input to provide direct voice ID
         inputs = iter(["voice-111"])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
 
         voice_id, voice_name = select_voice_interactive(sample_voices_data)
 
@@ -357,7 +336,7 @@ class TestSelectVoiceInteractive:
     def test_select_voice_quit(self, sample_voices_data, monkeypatch):
         """Test quitting voice selection"""
         inputs = iter(["q"])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
 
         voice_id, voice_name = select_voice_interactive(sample_voices_data)
 
@@ -368,7 +347,7 @@ class TestSelectVoiceInteractive:
         """Test complete selection flow"""
         # Simulate: Select English (1) -> US (1) -> Female (1) -> Show IDs (n) -> First voice (1)
         inputs = iter(["1", "1", "1", "n", "1"])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
 
         voice_id, voice_name = select_voice_interactive(sample_voices_data)
 
@@ -380,7 +359,7 @@ class TestSelectVoiceInteractive:
         """Test back navigation"""
         # Select language, country, then go back, then quit
         inputs = iter(["1", "1", "b", "q"])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
 
         voice_id, voice_name = select_voice_interactive(sample_voices_data)
 
@@ -391,7 +370,7 @@ class TestSelectVoiceInteractive:
         """Test invalid input followed by valid input"""
         # Invalid language choice, then valid choice, then quit
         inputs = iter(["999", "q"])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
 
         voice_id, voice_name = select_voice_interactive(sample_voices_data)
 
@@ -402,7 +381,7 @@ class TestSelectVoiceInteractive:
         """Test restart functionality"""
         # Go to country level, restart, then quit
         inputs = iter(["1", "r", "q"])
-        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
 
         voice_id, voice_name = select_voice_interactive(sample_voices_data)
 
@@ -417,55 +396,28 @@ class TestVoiceManagementEdgeCases:
 
     def test_deeply_nested_structure(self):
         """Test handling of unexpected nesting"""
-        voices = {
-            "Level1": {
-                "Level2": {
-                    "Level3": {
-                        "Level4": {"Voice": "voice-1"}
-                    }
-                }
-            }
-        }
+        voices = {"Level1": {"Level2": {"Level3": {"Level4": {"Voice": "voice-1"}}}}}
 
         count = display_voices(voices)
         assert count == 1
 
     def test_mixed_structure_types(self):
         """Test handling mixed structure (shouldn't happen, but defensive)"""
-        voices = {
-            "Normal": {
-                "Country": {
-                    "gender": {"Voice1": "voice-1"}
-                }
-            }
-        }
+        voices = {"Normal": {"Country": {"gender": {"Voice1": "voice-1"}}}}
 
         stats = count_voice_stats(voices)
-        assert stats['total'] >= 1
+        assert stats["total"] >= 1
 
     def test_special_characters_in_names(self):
         """Test voice names with special characters"""
-        voices = {
-            "English": {
-                "US": {
-                    "female": {
-                        "María José": "voice-1",
-                        "O'Brien": "voice-2"
-                    }
-                }
-            }
-        }
+        voices = {"English": {"US": {"female": {"María José": "voice-1", "O'Brien": "voice-2"}}}}
 
         count = display_voices(voices)
         assert count == 2
 
     def test_empty_nested_levels(self):
         """Test handling of empty nested levels"""
-        voices = {
-            "English": {
-                "US": {}
-            }
-        }
+        voices = {"English": {"US": {}}}
 
         stats = count_voice_stats(voices)
-        assert stats['total'] == 0
+        assert stats["total"] == 0
