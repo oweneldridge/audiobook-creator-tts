@@ -5,11 +5,16 @@ Convert entire EPUB and PDF documents to audio with automatic text extraction an
 ## Features
 
 ✅ **Automatic text extraction** from PDF and EPUB files
+✅ **Chapter-based organization** with nested directories for books
+✅ **Smart metadata extraction** - automatically extracts author from EPUB files
+✅ **Intelligent title handling** - removes author from filename when detected
 ✅ **Smart chunking** that preserves sentence boundaries
 ✅ **Named output files** based on input filename (e.g., `othello-1.mp3`, `othello-2.mp3`)
 ✅ **M4B audiobook creation** with chapter markers and metadata (requires ffmpeg)
 ✅ **Cover art embedding** for professional audiobooks (requires AtomicParsley)
+✅ **Apple Books integration** - open finished audiobooks directly in Books app (macOS)
 ✅ **Progress tracking** with live updates
+✅ **Resume capability** - pick up where you left off if interrupted
 ✅ **One-time CAPTCHA** solve, then convert unlimited documents
 ✅ **Configurable chunk size** (100-2000 characters)
 
@@ -105,6 +110,10 @@ Chunk size in characters (default: 1000, max: 2000): 1000
 ✅ Created M4B audiobook: othello.m4b (125.3 MB)
 
 🎧 Audiobook ready: audio/othello_2025-01-14-10-30-45/othello.m4b
+
+📖 Open audiobook in Books app? (y/n): y
+📚 Opening in Books app...
+✅ Audiobook opened in Books app!
 ============================================================
 
 🔄 Convert another document? (y/n): n
@@ -275,6 +284,54 @@ If you already have an M4B file and want to add cover art later:
 ```bash
 AtomicParsley audiobook.m4b --artwork cover.jpg --overWrite
 ```
+
+## Apple Books Integration (macOS)
+
+After creating your M4B audiobook, you can open it directly in Apple Books for immediate listening and library management.
+
+**When Asked:**
+The script will prompt to open the audiobook in Books **after M4B creation completes**, so your audiobook is immediately ready to enjoy.
+
+**Workflow:**
+1. TTS conversion completes successfully
+2. M4B file created with metadata and cover art
+3. **→ Open in Books app? (asked here)**
+4. Audiobook opens in Apple Books, ready to play
+
+**Platform Support:**
+- **macOS only** - Uses the native `open` command to launch Books app
+- Automatically skipped on other platforms (Linux, Windows)
+- Books app must be installed (pre-installed on macOS)
+
+**Options:**
+- **Yes (y)**: Opens the M4B file in Books app immediately
+- **No (n)**: Skip opening, audiobook file remains in output directory
+
+**Example:**
+```
+✅ Created M4B audiobook: othello.m4b (125.3 MB)
+
+🎧 Audiobook ready: audio/othello_2025-01-14-10-30-45/othello.m4b
+
+📖 Open audiobook in Books app? (y/n): y
+
+📚 Opening in Books app...
+✅ Audiobook opened in Books app!
+```
+
+**Error Handling:**
+The script gracefully handles common issues:
+- **File association not set**: Shows warning if M4B files aren't linked to Books
+- **Timeout**: Shows warning if Books app takes too long to launch
+- **Other errors**: Displays specific error message but continues normally
+
+**Manual Opening:**
+You can always open the audiobook in Books later:
+```bash
+open audio/othello_2025-01-14-10-30-45/othello.m4b
+```
+
+Or drag and drop the M4B file directly into the Books app.
 
 ## Features in Detail
 
