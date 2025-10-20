@@ -733,6 +733,27 @@ async def create_m4b_audiobook(
             if cover_image_path:
                 embed_cover_art(output_m4b, cover_image_path)
 
+            # Offer to open in Books app (macOS only)
+            if sys.platform == "darwin":
+                while True:
+                    open_response = input_colored("\n📖 Open audiobook in Books app? (y/n): ", "blue").lower().strip()
+                    if open_response == "y":
+                        try:
+                            print_colored("📚 Opening in Books app...", "cyan")
+                            subprocess.run(["open", output_m4b], check=True, timeout=10)
+                            print_colored("✅ Audiobook opened in Books app!", "green")
+                        except subprocess.CalledProcessError:
+                            print_colored("⚠️  Could not open in Books app (file association may not be set)", "yellow")
+                        except subprocess.TimeoutExpired:
+                            print_colored("⚠️  Timeout while trying to open Books app", "yellow")
+                        except Exception as e:
+                            print_colored(f"⚠️  Error opening Books app: {e}", "yellow")
+                        break
+                    elif open_response == "n":
+                        break
+                    else:
+                        print_colored("Please enter 'y' or 'n'", "red")
+
             return output_m4b
         else:
             print_colored(f"❌ M4B conversion failed: {result.stderr[:200]}", "red")
@@ -2105,6 +2126,16 @@ async def main():
 
                     # Extract author from EPUB metadata
                     author = DocumentParser.extract_author_from_epub(file_path)
+
+                    # Remove author name from output_name if present
+                    if author:
+                        # Convert author to sanitized format (same as output_name)
+                        author_sanitized = re.sub(r"[^a-z0-9]+", "-", author.lower()).strip("-")
+                        # Remove author from end of output_name if present
+                        if output_name.endswith("-" + author_sanitized):
+                            output_name = output_name[: -(len(author_sanitized) + 1)]
+                        elif output_name.endswith(author_sanitized):
+                            output_name = output_name[: -len(author_sanitized)]
                 elif suffix == ".pdf":
                     # Extract chapters from PDF
                     chapters = DocumentParser.extract_chapters_from_pdf(file_path)
