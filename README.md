@@ -420,39 +420,163 @@ sudo apt-get install python3-tk
 
 ## 🛠️ Technical Architecture
 
+### High-Level Flow
+
 ```mermaid
-graph TD
-    A[Python Script] --> B[Playwright Browser]
-    B --> C[Text Processing]
-    C --> D[TTS API]
-
-    C --> C1[PDF - pypdf]
-    C --> C2[EPUB - ebooklib]
-    C --> C3[DOCX - python-docx]
-    C --> C4[TXT - chardet]
-    C --> C5[HTML - BeautifulSoup]
-    C --> C6[Markdown - mistune]
-
-    D --> E[MP3 Output]
-    E --> F[M4B Audiobook]
+graph LR
+    A[📄 Input<br/>PDF/EPUB/Text] --> B[📖 Document Parser<br/>pypdf, ebooklib, etc.]
+    B --> C[✂️ Smart Chunking<br/>Sentence boundaries]
+    C --> D[🌐 TTS API<br/>Playwright + speechma.com]
+    D --> E[🎵 MP3 Chunks]
+    E --> F[📦 Post-Processing<br/>ffmpeg, AtomicParsley]
+    F --> G[🎧 M4B Audiobook<br/>Chapters + Metadata]
 ```
+
+**Key Features:**
+- **One-time CAPTCHA** solving for unlimited conversions
+- **Resume capability** for interrupted sessions
+- **Smart chunking** preserves natural reading flow
+- **Chapter markers** in M4B with metadata and cover art
+
+<details>
+<summary><b>📐 Detailed Architecture (click to expand)</b></summary>
+
+### Complete System Architecture
+
+```mermaid
+graph TB
+    A[👤 User Input] --> B{Input Type?}
+
+    B -->|File Path| C[📂 Document Parser]
+    B -->|Plain Text| D[✅ Text Validation]
+
+    C --> C1[📄 PDF Parser<br/>pypdf]
+    C --> C2[📚 EPUB Parser<br/>ebooklib + BeautifulSoup]
+    C --> C3[📝 DOCX Parser<br/>python-docx]
+    C --> C4[📃 TXT Parser<br/>chardet encoding]
+    C --> C5[🌐 HTML Parser<br/>BeautifulSoup]
+    C --> C6[📋 Markdown Parser<br/>mistune]
+
+    C1 --> E[📖 Chapter Extraction<br/>TOC + Headings + Structure]
+    C2 --> E
+    C3 --> F[📝 Text Extraction]
+    C4 --> F
+    C5 --> F
+    C6 --> F
+    D --> F
+
+    E --> G[📊 Chapter Metadata<br/>Title, Number, Directory]
+    F --> G
+
+    G --> H[✂️ Smart Text Chunking<br/>Sentence/Comma/Word Boundaries<br/>Max 2000 chars]
+
+    H --> I[🔍 Resume Check<br/>Analyze existing progress<br/>Identify missing chunks]
+
+    I --> J[🎭 Voice Selection<br/>583 voices, 76 languages<br/>Interactive menu]
+
+    J --> K[🌐 Playwright Browser Session<br/>Persistent authentication<br/>CAPTCHA handling]
+
+    K --> L[🔊 TTS API Requests<br/>speechma.com/com.api/tts-api.php<br/>Rate limit management]
+
+    L --> M[💾 MP3 Chunk Storage<br/>Nested directory structure<br/>Named: bookname-N.mp3]
+
+    M --> N{Multiple<br/>Chunks?}
+    N -->|Yes| O[🎵 Chapter Concatenation<br/>ffmpeg concat protocol<br/>Delete originals]
+    N -->|Single| P
+
+    O --> P[📖 M4B Creation Decision]
+
+    P --> Q[🎬 M4B Audiobook Builder<br/>ffmpeg AAC encoding<br/>Chapter markers + metadata]
+
+    Q --> R{Cover<br/>Art?}
+    R -->|Yes| S[🎨 Cover Embedding<br/>AtomicParsley]
+    R -->|No| T[✅ Final M4B File]
+
+    S --> T
+
+    T --> U{macOS<br/>Platform?}
+    U -->|Yes| V[📚 Open in Books App<br/>macOS 'open' command]
+    U -->|No| W[✅ Conversion Complete]
+    V --> W
+
+    style A fill:#e1f5ff
+    style W fill:#c8e6c9
+    style K fill:#fff9c4
+    style L fill:#ffecb3
+    style Q fill:#f8bbd0
+```
+
+### Component Details
+
+**Document Parsing Layer:**
+- Automatic format detection by file extension
+- Chapter extraction strategies: TOC → Headings → File structure
+- Author metadata extraction from EPUB Dublin Core
+- Smart title handling (removes author from filename)
+
+**Text Processing:**
+- ASCII sanitization for API compatibility
+- Smart chunking at sentence/comma/word boundaries
+- Configurable chunk size (100-2000 characters)
+- Preview generation for user confirmation
+
+**Voice Management:**
+- 583 voices organized by language, country, gender
+- Interactive selection with search capability
+- Voice statistics and filtering
+- Session persistence
+
+**TTS Conversion:**
+- Playwright maintains authenticated browser session
+- JavaScript `fetch()` in browser context for cookies
+- Automatic CAPTCHA detection and user prompting
+- Rate limit handling with session restart
+- 3 retry attempts per chunk with exponential backoff
+
+**Progress & Resume:**
+- Analyzes existing audio directories by name pattern
+- Calculates completion percentage
+- Identifies missing chunks by chapter and index
+- Offers resume or fresh start options
+- Tracks concatenated vs. individual chunk files
+
+**Post-Processing Pipeline:**
+- **Chapter Concatenation**: ffmpeg concat protocol, stream copy (no re-encoding)
+- **M4B Creation**: AAC encoding at 64kbps mono, FFMETADATA1 format
+- **Chapter Markers**: Calculated from audio durations with millisecond precision
+- **Cover Art**: AtomicParsley embedding with format validation
+- **Apple Books**: macOS integration with error handling
+
+**Output Structure:**
+```
+audio/
+  └── bookname_2025-01-14-10-30-45/
+      ├── 01-chapter-one/
+      │   └── 01-chunk-1.mp3 (or 01-chapter-one.mp3 if concatenated)
+      ├── 02-chapter-two/
+      │   └── 02-chapter-two.mp3
+      └── bookname.m4b (final audiobook with chapters)
+```
+
+</details>
 
 ### Core Dependencies
 
 **Runtime:**
-- **requests** - HTTP communication
-- **playwright** - Browser automation
+- **playwright** - Browser automation and session management
+- **asyncio** - Asynchronous request handling
 
 **Document Processing:**
-- **pypdf** - PDF extraction
-- **ebooklib** - EPUB extraction
-- **python-docx** - DOCX extraction
-- **chardet** - Encoding detection
-- **beautifulsoup4** - HTML parsing
-- **mistune** - Markdown parsing
+- **pypdf** - PDF text extraction
+- **ebooklib** - EPUB parsing and metadata
+- **python-docx** - Microsoft Word documents
+- **chardet** - Text encoding detection
+- **beautifulsoup4** - HTML/EPUB content parsing
+- **mistune** - Markdown rendering
 
 **Audio Processing:**
-- **ffmpeg** - M4B audiobook creation (optional)
+- **ffmpeg** - MP3 concatenation and M4B creation (optional but recommended)
+- **AtomicParsley** - Cover art embedding (optional)
 
 ---
 
