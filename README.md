@@ -52,6 +52,32 @@
 
 ### Installation
 
+**⚡ Quick Install (Recommended)**
+
+One command installs everything:
+
+```bash
+# Clone repository
+git clone https://github.com/oweneldridge/audiobook-creator-tts.git
+cd audiobook-creator-tts
+
+# Create virtual environment
+python3.11 -m venv venv
+source venv/bin/activate  # macOS/Linux
+
+# Run automated installer (installs ALL dependencies)
+./install.sh
+```
+
+The installer automatically handles:
+- ✅ Python packages (requests, playwright, pypdf, etc.)
+- ✅ Playwright browser (Chromium)
+- ✅ System packages (tkinter, ffmpeg, AtomicParsley)
+- ✅ Installation verification
+
+<details>
+<summary><b>📝 Manual Installation (Alternative)</b></summary>
+
 ```bash
 # 1. Clone repository
 git clone https://github.com/oweneldridge/audiobook-creator-tts.git
@@ -68,10 +94,20 @@ pip install -r requirements.txt
 # 4. Install Playwright browser
 playwright install chromium
 
-# 5. (Optional) Install ffmpeg for M4B audiobook creation
-# macOS: brew install ffmpeg
-# Ubuntu: sudo apt-get install ffmpeg
+# 5. (Optional) Install system packages for enhanced features
+# File Browser (tkinter) - enables Option 1 "Select file" dialog
+brew install python-tk@3.11  # macOS (Homebrew)
+# sudo apt-get install python3-tk  # Ubuntu/Debian
+
+# M4B Audiobook Creation (ffmpeg) - recommended
+brew install ffmpeg  # macOS
+# sudo apt-get install ffmpeg  # Ubuntu/Debian
+
+# Cover Art Embedding (AtomicParsley) - optional
+brew install atomicparsley  # macOS
 ```
+
+</details>
 
 ### Usage
 
@@ -364,18 +400,23 @@ Adjust text splitting for different content types (default: 2000 characters):
 <details>
 <summary><b>🚫 "File browser not available (tkinter not installed)"</b></summary>
 
-**Quick Solutions:**
-- ✅ **Option 2**: Type or paste text directly (no tkinter needed)
-- ✅ **Option 3**: Enter file path manually (no tkinter needed)
+**Quick Solutions (No tkinter needed):**
+- ✅ **Option 2**: Type or paste text directly
+- ✅ **Option 3**: Enter file path manually
 - ✅ **CLI Mode**: `python3.11 main_document_mode.py /path/to/file.pdf`
 
 **Why this happens:**
-- tkinter isn't included in all Python installations (pyenv, conda, custom builds)
-- File browser is optional - other methods work perfectly
+- tkinter isn't included by default in Homebrew Python 3.11+
+- File browser is optional - other input methods work perfectly
 
 **To enable file browser (optional):**
 
-**macOS (with pyenv):**
+**macOS (Homebrew Python):**
+```bash
+brew install python-tk@3.11
+```
+
+**macOS (pyenv):**
 ```bash
 brew install tcl-tk
 
@@ -386,12 +427,17 @@ env \
   PKG_CONFIG_PATH="$(brew --prefix tcl-tk)/lib/pkgconfig" \
   CFLAGS="-I$(brew --prefix tcl-tk)/include" \
   PYTHON_CONFIGURE_OPTS="--with-tcltk-includes='-I$(brew --prefix tcl-tk)/include' --with-tcltk-libs='-L$(brew --prefix tcl-tk)/lib -ltcl8.6 -ltk8.6'" \
-  pyenv install --force 3.11.11
+  pyenv install --force 3.11
 ```
 
 **Ubuntu/Debian:**
 ```bash
 sudo apt-get install python3-tk
+```
+
+**Verify installation:**
+```bash
+python3.11 -c "import tkinter; print('✅ tkinter available')"
 ```
 </details>
 

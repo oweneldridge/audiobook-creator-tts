@@ -1748,6 +1748,9 @@ async def process_chapters_to_speech(
 
                 # Check for rate limit
                 if audio_data == "RATE_LIMIT":
+                    # Check session health before presenting options
+                    health_ok = await browser.check_session_health()
+
                     print_colored("\n" + "=" * 60, "yellow")
                     print_colored("⏸️  RATE LIMIT REACHED", "yellow")
                     print_colored("=" * 60, "yellow")
@@ -1755,7 +1758,10 @@ async def process_chapters_to_speech(
                     print_colored(f"Progress: {success_count}/{total_chunks} chunks completed", "cyan")
                     print_colored(f"Current: Chapter {chapter.number}, Chunk {chunk_idx}/{len(chapter.chunks)}", "cyan")
                     print_colored("\nOptions:", "yellow")
-                    print_colored("  1. Restart browser session and solve CAPTCHA (recommended)", "green")
+                    if not health_ok:
+                        print_colored("  1. Restart browser session (STRONGLY RECOMMENDED - poor health)", "green")
+                    else:
+                        print_colored("  1. Restart browser session and solve CAPTCHA (recommended)", "green")
                     print_colored("  2. Wait a few minutes and retry with same session", "yellow")
                     print_colored("  3. Press Ctrl+C to stop and resume later", "red")
                     print_colored("=" * 60, "yellow")
@@ -1913,6 +1919,9 @@ async def process_document_to_speech(
 
             # Check for rate limit
             if audio_data == "RATE_LIMIT":
+                # Check session health before presenting options
+                health_ok = await browser.check_session_health()
+
                 print_colored("\n" + "=" * 60, "yellow")
                 print_colored("⏸️  RATE LIMIT REACHED", "yellow")
                 print_colored("=" * 60, "yellow")
@@ -1920,7 +1929,10 @@ async def process_document_to_speech(
                 print_colored(f"Progress: {success_count}/{len(chunks)} chunks completed", "cyan")
                 print_colored(f"Current: Chunk {i}/{len(chunks)}", "cyan")
                 print_colored("\nOptions:", "yellow")
-                print_colored("  1. Restart browser session and solve CAPTCHA (recommended)", "green")
+                if not health_ok:
+                    print_colored("  1. Restart browser session (STRONGLY RECOMMENDED - poor health)", "green")
+                else:
+                    print_colored("  1. Restart browser session and solve CAPTCHA (recommended)", "green")
                 print_colored("  2. Wait a few minutes and retry with same session", "yellow")
                 print_colored("  3. Press Ctrl+C to stop and resume later", "red")
                 print_colored("=" * 60, "yellow")

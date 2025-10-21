@@ -1,6 +1,17 @@
 # Audiobook Creator TTS Production Dependencies
 # Install with: pip install -r requirements.txt
 
+# SYSTEM PACKAGES (not pip-installable, install separately):
+# - tkinter: Required for file browser (optional)
+#   macOS (Homebrew): brew install python-tk@3.11
+#   Ubuntu/Debian: sudo apt-get install python3-tk
+#   File browser can be skipped - other input methods available
+# - ffmpeg: Required for M4B audiobook creation (optional but recommended)
+#   macOS: brew install ffmpeg
+#   Ubuntu: sudo apt-get install ffmpeg
+# - AtomicParsley: Required for cover art embedding (optional)
+#   macOS: brew install atomicparsley
+
 # HTTP Requests
 requests==2.32.5
 
