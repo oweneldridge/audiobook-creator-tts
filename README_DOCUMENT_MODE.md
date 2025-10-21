@@ -4,19 +4,19 @@ Convert entire EPUB and PDF documents to audio with automatic text extraction an
 
 ## Features
 
-✅ **Automatic text extraction** from PDF and EPUB files
-✅ **Chapter-based organization** with nested directories for books
-✅ **Smart metadata extraction** - automatically extracts author from EPUB files
-✅ **Intelligent title handling** - removes author from filename when detected
-✅ **Smart chunking** that preserves sentence boundaries
-✅ **Named output files** based on input filename (e.g., `othello-1.mp3`, `othello-2.mp3`)
-✅ **M4B audiobook creation** with chapter markers and metadata (requires ffmpeg)
-✅ **Cover art embedding** for professional audiobooks (requires AtomicParsley)
-✅ **Apple Books integration** - open finished audiobooks directly in Books app (macOS)
-✅ **Progress tracking** with live updates
-✅ **Resume capability** - pick up where you left off if interrupted
-✅ **One-time CAPTCHA** solve, then convert unlimited documents
-✅ **Configurable chunk size** (100-2000 characters)
+- **Automatic text extraction** from PDF and EPUB files
+- **Chapter-based organization** with nested directories for books
+- **Smart metadata extraction** - automatically extracts author from EPUB files
+- **Intelligent title handling** - removes author from filename when detected
+- **Smart chunking** that preserves sentence boundaries
+- **Named output files** based on input filename (e.g., `othello-1.mp3`, `othello-2.mp3`)
+- **M4B audiobook creation** with chapter markers and metadata (requires ffmpeg)
+- **Cover art embedding** for professional audiobooks (requires AtomicParsley)
+- **Apple Books integration** - open finished audiobooks directly in Books app (macOS)
+- **Progress tracking** with live updates
+- **Resume capability** - pick up where you left off if interrupted
+- **One-time CAPTCHA** solve, then convert unlimited documents
+- **Configurable chunk size** (100-2000 characters)
 
 ## Quick Start
 
