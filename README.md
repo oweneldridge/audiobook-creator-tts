@@ -646,6 +646,7 @@ audio/
 
 - [📖 Document Mode Full Guide](README_DOCUMENT_MODE.md) - Comprehensive PDF/EPUB conversion guide
 - [🛠️ Development Guide](DEVELOPMENT.md) - Technical architecture and development workflow
+- [⚡ CAPTCHA & Rate Limiting Improvements](IMPROVEMENTS.md) - Adaptive rate limiting, session health monitoring, and performance optimizations
 
 ---
 
