@@ -10,10 +10,15 @@ import os
 import re
 import sys
 import subprocess
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple
 from dataclasses import dataclass
+
+# Suppress ebooklib warnings (library-level, not our code)
+warnings.filterwarnings("ignore", category=UserWarning, module="ebooklib")
+warnings.filterwarnings("ignore", category=FutureWarning, module="ebooklib")
 
 # File dialog support
 try:
@@ -387,31 +392,96 @@ def prompt_for_cover_art(audiobook_dir: str) -> Optional[str]:
                 if use_default == "y":
                     return found_cover
 
-            # Prompt for custom path
+            # Present selection method options
+            print_colored("\n📁 Cover Image Selection:", "cyan")
+            print_colored("   1. Open file browser (recommended)", "green")
+            print_colored("   2. Enter file path manually", "green")
+            print_colored("   3. Skip cover art", "yellow")
+
             while True:
-                cover_path = input_colored("\n📁 Enter the full path to the cover image file: ", "cyan").strip()
+                choice = input_colored("\nChoice (1, 2, or 3): ", "blue").strip()
 
-                # Handle quoted paths
-                if cover_path.startswith('"') and cover_path.endswith('"'):
-                    cover_path = cover_path[1:-1]
-                elif cover_path.startswith("'") and cover_path.endswith("'"):
-                    cover_path = cover_path[1:-1]
+                if choice == "1":
+                    # Open file browser for cover image
+                    if not TKINTER_AVAILABLE:
+                        print_colored("❌ File browser not available (tkinter not installed)", "red")
+                        print_colored("Please install tkinter or enter path manually (choice 2)", "yellow")
+                        continue
 
-                # Expand user home directory
-                cover_path = os.path.expanduser(cover_path)
+                    try:
+                        # Create hidden root window
+                        root = tk.Tk()
+                        root.withdraw()
+                        root.attributes("-topmost", True)
 
-                if os.path.exists(cover_path):
-                    # Validate it's an image file
-                    valid_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
-                    if any(cover_path.lower().endswith(ext) for ext in valid_extensions):
-                        return cover_path
+                        # Define image file type filters
+                        filetypes = [
+                            ("Image Files", "*.jpg *.jpeg *.png *.gif *.bmp"),
+                            ("JPEG Images", "*.jpg *.jpeg"),
+                            ("PNG Images", "*.png"),
+                            ("All Files", "*.*"),
+                        ]
+
+                        # Open file dialog
+                        cover_path = filedialog.askopenfilename(
+                            title="Select Cover Image",
+                            filetypes=filetypes,
+                            initialdir=os.path.expanduser("~"),
+                        )
+
+                        # Cleanup
+                        root.destroy()
+
+                        if not cover_path:
+                            print_colored("Cover image selection cancelled", "yellow")
+                            continue
+
+                        # Validate it's an image file
+                        valid_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
+                        if any(cover_path.lower().endswith(ext) for ext in valid_extensions):
+                            print_colored(f"✅ Selected: {os.path.basename(cover_path)}", "green")
+                            return cover_path
+                        else:
+                            print_colored("❌ File must be an image (jpg, png, gif, bmp)", "red")
+                            continue
+
+                    except Exception as e:
+                        print_colored(f"❌ File browser error: {e}", "red")
+                        continue
+
+                elif choice == "2":
+                    # Manual path entry
+                    cover_path = input_colored("\n📁 Enter the full path to the cover image file: ", "cyan").strip()
+
+                    # Handle quoted paths
+                    if cover_path.startswith('"') and cover_path.endswith('"'):
+                        cover_path = cover_path[1:-1]
+                    elif cover_path.startswith("'") and cover_path.endswith("'"):
+                        cover_path = cover_path[1:-1]
+
+                    # Expand user home directory
+                    cover_path = os.path.expanduser(cover_path)
+
+                    if os.path.exists(cover_path):
+                        # Validate it's an image file
+                        valid_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
+                        if any(cover_path.lower().endswith(ext) for ext in valid_extensions):
+                            return cover_path
+                        else:
+                            print_colored("❌ File must be an image (jpg, png, gif, bmp)", "red")
                     else:
-                        print_colored("❌ File must be an image (jpg, png, gif, bmp)", "red")
+                        print_colored(f"❌ File not found: {cover_path}", "red")
+                        retry = input_colored("Try again? (y/n): ", "blue").lower().strip()
+                        if retry != "y":
+                            return None
+
+                elif choice == "3":
+                    # Skip cover art
+                    return None
+
                 else:
-                    print_colored(f"❌ File not found: {cover_path}", "red")
-                    retry = input_colored("Try again? (y/n): ", "blue").lower().strip()
-                    if retry != "y":
-                        return None
+                    print_colored("Please enter 1, 2, or 3", "red")
+
         else:
             print_colored("Invalid choice. Please enter 'y' or 'n'.", "red")
 
