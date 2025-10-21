@@ -29,7 +29,7 @@ from main import (
 
 
 class PersistentBrowser:
-    """Manages a persistent browser session for API requests"""
+    """Manages a persistent browser session for API requests with adaptive rate limiting"""
 
     def __init__(self):
         self.browser: Optional[Browser] = None
@@ -37,7 +37,22 @@ class PersistentBrowser:
         self.playwright = None
         self.captcha_solved = False
         self.last_request_time = 0
-        self.min_request_delay = 2  # Minimum seconds between requests
+
+        # Adaptive Rate Limiting
+        self.base_delay = 2.5  # Base seconds between requests (increased from 2.0)
+        self.current_delay = 2.5  # Current adaptive delay
+        self.max_delay = 8.0  # Maximum delay under stress
+
+        # Session Health Monitoring
+        self.request_count = 0
+        self.success_count = 0
+        self.recent_results = []  # Track last 20 results for health score
+        self.health_window_size = 20
+
+        # Response Time Monitoring
+        self.response_times = []
+        self.baseline_response_time = None
+        self.response_time_window = 10  # Track last 10 response times
 
     async def initialize(self):
         """Start browser and navigate to site"""
@@ -132,35 +147,144 @@ class PersistentBrowser:
         except Exception:
             return False
 
+    def update_health(self, success: bool):
+        """Update session health tracking"""
+        self.recent_results.append(success)
+        if len(self.recent_results) > self.health_window_size:
+            self.recent_results.pop(0)
+
+        self.request_count += 1
+        if success:
+            self.success_count += 1
+
+    def get_health_score(self) -> float:
+        """Calculate session health score (0.0 to 1.0)"""
+        if not self.recent_results:
+            return 1.0
+        return sum(self.recent_results) / len(self.recent_results)
+
+    def update_response_time(self, response_time: float):
+        """Track response times for baseline calculation"""
+        self.response_times.append(response_time)
+        if len(self.response_times) > self.response_time_window:
+            self.response_times.pop(0)
+
+        # Update baseline (average of tracked times)
+        if len(self.response_times) >= 3:
+            self.baseline_response_time = sum(self.response_times) / len(self.response_times)
+
+    def calculate_adaptive_delay(self) -> float:
+        """Calculate adaptive delay based on health and response times"""
+        delay = self.base_delay
+
+        # Health-based adjustment
+        health = self.get_health_score()
+        if health < 0.90:
+            # Poor health: increase delay progressively
+            health_penalty = (0.90 - health) * 10  # 0-9 second penalty
+            delay += health_penalty
+
+        # Response time-based adjustment
+        if self.baseline_response_time and self.response_times:
+            recent_avg = sum(self.response_times[-3:]) / min(3, len(self.response_times))
+            if recent_avg > self.baseline_response_time * 1.5:
+                # Slow responses detected: add delay
+                delay += 2.0
+
+        # Cap at maximum delay
+        return min(delay, self.max_delay)
+
+    async def display_captcha_notification(self):
+        """Display CAPTCHA screenshot in terminal and send system notification"""
+        import subprocess
+        import tempfile
+
+        try:
+            # Take screenshot of current page
+            screenshot_path = tempfile.mktemp(suffix=".png")
+            await self.page.screenshot(path=screenshot_path)
+
+            print_colored("\n" + "=" * 70, "yellow")
+            print_colored("╔══════════════════════════════════════════════════════════════════╗", "yellow")
+            print_colored("║  ⚠️  CAPTCHA REQUIRED - Solve in browser window                 ║", "yellow")
+            print_colored("╚══════════════════════════════════════════════════════════════════╝", "yellow")
+
+            # Display screenshot in iTerm2
+            try:
+                # Try iTerm2 imgcat protocol
+                result = subprocess.run(["imgcat", screenshot_path], capture_output=True, timeout=5, check=False)
+                if result.returncode != 0:
+                    # Fallback: show file path
+                    print_colored(f"\n📸 Screenshot saved: {screenshot_path}", "cyan")
+                    print_colored("   Open screenshot to see CAPTCHA", "yellow")
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                # imgcat not available, just show path
+                print_colored(f"\n📸 Screenshot saved: {screenshot_path}", "cyan")
+                print_colored("   Open screenshot for reference", "yellow")
+
+            # Session health stats
+            health = self.get_health_score()
+            print_colored(f"\n📊 Session Health: {health*100:.1f}%", "cyan")
+            print_colored(f"   Total Requests: {self.request_count}", "cyan")
+            print_colored(f"   Current Delay: {self.current_delay:.1f}s", "cyan")
+
+            # Send macOS notification
+            try:
+                notification_title = "Audiobook Creator TTS"
+                notification_message = "CAPTCHA solving required"
+                subprocess.run(
+                    [
+                        "osascript",
+                        "-e",
+                        f'display notification "{notification_message}" with title "{notification_title}" sound name "Hero"',
+                    ],
+                    capture_output=True,
+                    timeout=5,
+                    check=False,
+                )
+            except Exception:
+                pass  # Notification failed, not critical
+
+            print_colored("\n→ Solve the CAPTCHA in the browser window above", "green")
+            print_colored("→ Press Enter when complete", "green")
+            print_colored("=" * 70, "yellow")
+
+        except Exception as e:
+            print_colored(f"⚠️  Screenshot error: {e}", "yellow")
+
     async def wait_if_needed(self):
-        """Add intelligent delay between requests to avoid triggering rate limits"""
+        """Add adaptive delay between requests to avoid triggering rate limits"""
         current_time = time.time()
         time_since_last = current_time - self.last_request_time
 
-        if time_since_last < self.min_request_delay:
-            wait_time = self.min_request_delay - time_since_last
+        # Calculate adaptive delay
+        self.current_delay = self.calculate_adaptive_delay()
+
+        if time_since_last < self.current_delay:
+            wait_time = self.current_delay - time_since_last
             await asyncio.sleep(wait_time)
 
         self.last_request_time = time.time()
 
     async def request_audio(self, text: str, voice_id: str, retry_on_captcha: bool = True) -> Optional[bytes]:
         """
-        Make API request using browser context
-        Returns audio bytes or None on failure
+        Make API request using browser context with health monitoring
+        Returns audio bytes or None on failure, or "RATE_LIMIT" string
         """
         try:
-            # Add intelligent delay to avoid triggering rate limits/CAPTCHA
+            # Add adaptive delay to avoid triggering rate limits/CAPTCHA
             await self.wait_if_needed()
 
             # Check for CAPTCHA before making request
             if await self.check_for_captcha():
-                print_colored("⚠️  CAPTCHA detected before request!", "yellow")
+                await self.display_captcha_notification()
                 if retry_on_captcha:
-                    print_colored("Please solve the CAPTCHA in the browser window", "yellow")
-                    print_colored("Then press Enter to continue...", "yellow")
                     input()
                     return await self.request_audio(text, voice_id, retry_on_captcha=False)
                 return None
+
+            # Track request start time for response time monitoring
+            request_start = time.time()
             url = "https://speechma.com/com.api/tts-api.php"
             data = {"text": text.replace("'", "").replace('"', "").replace("&", "and"), "voice": voice_id}
 
@@ -213,10 +337,17 @@ class PersistentBrowser:
                 {"url": url, "data": data},
             )
 
+            # Track response time
+            response_time = time.time() - request_start
+            self.update_response_time(response_time)
+
             if result.get("success"):
+                # Success: update health and return audio
+                self.update_health(success=True)
                 return bytes(result["audio"])
 
-            # Handle errors
+            # Handle errors - update health as failure
+            self.update_health(success=False)
             status = result.get("status", "unknown")
 
             # Handle 429 Rate Limit
@@ -233,14 +364,8 @@ class PersistentBrowser:
                 print_colored("❌ 403 Forbidden - CAPTCHA required!", "red")
 
                 if retry_on_captcha:
-                    print_colored("\n" + "=" * 60, "yellow")
-                    print_colored("⚠️  CAPTCHA DETECTED", "yellow")
-                    print_colored("=" * 60, "yellow")
-                    print_colored("Please solve the CAPTCHA in the browser window", "yellow")
-                    print_colored("Then press Enter to retry...", "yellow")
-                    print_colored("=" * 60, "yellow")
+                    await self.display_captcha_notification()
                     input()
-
                     # Retry once after user solves CAPTCHA
                     return await self.request_audio(text, voice_id, retry_on_captcha=False)
 
@@ -253,8 +378,32 @@ class PersistentBrowser:
             return None
 
         except Exception as e:
+            # Exception: update health as failure
+            self.update_health(success=False)
             print_colored(f"❌ Error: {e}", "red")
             return None
+
+    async def check_session_health(self) -> bool:
+        """
+        Check session health and suggest restart if needed
+        Returns True if session is healthy, False if restart recommended
+        """
+        health = self.get_health_score()
+
+        # Warning at 90% health
+        if health < 0.90 and self.request_count >= 10:
+            print_colored(f"\n⚠️  Session Health Warning: {health*100:.1f}%", "yellow")
+            print_colored(f"   Success Rate: {self.success_count}/{self.request_count}", "yellow")
+            print_colored(f"   Current Delay: {self.current_delay:.1f}s", "yellow")
+
+        # Critical at 80% health
+        if health < 0.80 and self.request_count >= 15:
+            print_colored(f"\n🚨 Session Health Critical: {health*100:.1f}%", "red")
+            print_colored(f"   Success Rate: {self.success_count}/{self.request_count}", "red")
+            print_colored("\n   Restarting session is recommended to improve performance", "yellow")
+            return False
+
+        return True
 
     async def restart(self):
         """
@@ -267,6 +416,14 @@ class PersistentBrowser:
         print_colored("   Starting new session...", "cyan")
         await self.initialize()
         print_colored("✅ Session restart complete!", "green")
+
+        # Reset health metrics
+        self.request_count = 0
+        self.success_count = 0
+        self.recent_results = []
+        self.response_times = []
+        self.baseline_response_time = None
+        self.current_delay = self.base_delay
 
     async def cleanup(self):
         """Close browser and cleanup"""
