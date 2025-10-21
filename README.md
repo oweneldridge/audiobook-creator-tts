@@ -143,9 +143,10 @@ audio/
 
 **Key Features:**
 - ✅ One-time CAPTCHA solving for unlimited conversions
-- ✅ Smart text chunking (~1000 chars, sentence-aware)
+- ✅ Smart text chunking (~2000 chars, sentence-aware)
 - ✅ M4B creation with chapter markers and metadata
 - ✅ Progress tracking with live updates
+- ✅ Resume capability for interrupted conversions
 - ✅ Named output files based on document name
 
 [📖 **Full Document Mode Guide →**](README_DOCUMENT_MODE.md)
@@ -326,13 +327,13 @@ $ python3.11 main_document_mode.py ~/Documents/report.pdf
 
 ### Chunk Size
 
-Adjust text splitting for different content types (default: 1000 characters):
+Adjust text splitting for different content types (default: 2000 characters):
 
 | Size | Best For |
 |------|----------|
-| **500-800** | Poetry, short sentences, dramatic pauses |
-| **1000** | General books and articles _(recommended)_ |
-| **1500-2000** | Technical documents, long passages |
+| **500-1000** | Poetry, short sentences, dramatic pauses |
+| **1500-2000** | General books and articles _(default, recommended)_ |
+| **2000** | Technical documents, long passages, optimal performance |
 
 ### Voice Selection
 
@@ -348,11 +349,13 @@ Adjust text splitting for different content types (default: 1000 characters):
 
 | Metric | Value |
 |--------|-------|
-| **Processing Speed** | ~1-2 seconds per chunk |
-| **Throughput** | ~50-100 chunks per hour |
+| **API Response Time** | ~1-2 seconds per chunk |
+| **Actual Throughput** | ~50-100 chunks per hour* |
 | **Large Book (500 pages)** | 30-60 minutes |
 | **Audio Format** | MP3 (streaming quality) |
 | **File Size** | ~30-50 KB per chunk |
+
+*Throughput includes network latency, rate limiting, and CAPTCHA overhead
 
 ---
 
@@ -609,10 +612,10 @@ audio/
 - ✅ Persistent browser sessions
 - ✅ Smart text chunking
 - ✅ Progress tracking
+- ✅ Resume interrupted conversions
 
 ### Roadmap
 - [ ] Batch processing multiple files
-- [ ] Resume interrupted conversions
 - [ ] Audio merging and splitting tools
 - [ ] ODT and RTF support
 - [ ] Custom voice speed and pitch control
