@@ -639,7 +639,9 @@ This project is built upon [Speechma-API](https://github.com/fairy-root/Speechma
 
 ## 📄 License
 
-This project is for personal and educational use. Please respect speechma.com's terms of service.
+MIT License - see [LICENSE](LICENSE) file for details.
+
+**Important**: This software interacts with speechma.com's API. Users must respect speechma.com's terms of service. This project is recommended for personal and educational use.
 
 ---
 
