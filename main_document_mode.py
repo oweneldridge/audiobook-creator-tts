@@ -2228,7 +2228,9 @@ async def main():
 
             # Process document (chapter-based or text-based)
             if chapters:
-                await process_chapters_to_speech(browser, voice_id, chapters, output_name, chunk_size, author, cover_image_path)
+                await process_chapters_to_speech(
+                    browser, voice_id, chapters, output_name, chunk_size, author, cover_image_path
+                )
             else:
                 await process_document_to_speech(browser, voice_id, text, output_name, chunk_size)
 

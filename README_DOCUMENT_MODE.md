@@ -78,10 +78,10 @@ Voice number (1-583): 12
 
 🎵 Output files will be named: othello-1.mp3, othello-2.mp3, etc.
 
-Chunk size in characters (default: 1000, max: 2000): 1000
-✅ Using chunk size: 1000 characters
+Chunk size in characters (default: 2000, max: 2000): 2000
+✅ Using chunk size: 2000 characters (optimal for performance)
 
-✂️  Splitting text into chunks (max 1000 chars)...
+✂️  Splitting text into chunks (max 2000 chars)...
 ✅ Created 147 chunks
 📊 Average chunk size: 988 characters
 
@@ -177,9 +177,9 @@ The system intelligently splits text to preserve natural reading flow:
 
 | Chunk Size | Use Case | Audio Length |
 |------------|----------|--------------|
-| 500-800 | Short sentences, poetry | ~30-45 seconds |
-| 1000 (default) | General books, articles | ~50-60 seconds |
-| 1500-2000 | Long passages, technical docs | ~75-90 seconds |
+| 500-1000 | Short sentences, poetry | ~30-60 seconds |
+| 1500-2000 (default) | General books, articles, optimal performance | ~75-120 seconds |
+| 2000 | Long passages, technical docs, maximum efficiency | ~120 seconds |
 
 ## Installation
 
