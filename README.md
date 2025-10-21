@@ -599,7 +599,7 @@ audio/
 ## 📚 Documentation
 
 - [📖 Document Mode Full Guide](README_DOCUMENT_MODE.md) - Comprehensive PDF/EPUB conversion guide
-- [🎯 Project Overview](CLAUDE.md) - Technical architecture and development notes
+- [🛠️ Development Guide](DEVELOPMENT.md) - Technical architecture and development workflow
 
 ---
 
