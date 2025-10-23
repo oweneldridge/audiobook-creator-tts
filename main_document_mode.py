@@ -1148,7 +1148,7 @@ class DocumentParser:
                     # Get text after this heading (until next heading or end)
                     text_parts = []
                     for sibling in heading.find_all_next():
-                        if hasattr(sibling, 'name') and sibling.name in ["h1", "h2"]:
+                        if hasattr(sibling, "name") and sibling.name in ["h1", "h2"]:
                             break
                         if sibling.get_text().strip():
                             text_parts.append(sibling.get_text())
