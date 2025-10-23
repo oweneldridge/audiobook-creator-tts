@@ -111,12 +111,7 @@ class TestWorkerProgressTracking:
 
         coordinator = ParallelCoordinator(total_chunks=10, num_workers=2)
 
-        coordinator.update_worker_progress(
-            worker_id=1,
-            completed=5,
-            failed=1,
-            status="working"
-        )
+        coordinator.update_worker_progress(worker_id=1, completed=5, failed=1, status="working")
 
         progress = coordinator.worker_progress[1]
         assert progress.completed_chunks == 5

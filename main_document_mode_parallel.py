@@ -50,11 +50,7 @@ def load_config() -> dict:
     }
 
 
-async def run_safety_test(
-    chapters: List[Chapter],
-    voice_id: str,
-    output_dir: str
-) -> Tuple[bool, str]:
+async def run_safety_test(chapters: List[Chapter], voice_id: str, output_dir: str) -> Tuple[bool, str]:
     """
     Run safety test with 2 workers to check for IP-level rate limiting
 
@@ -124,7 +120,7 @@ async def run_safety_test(
                         worker_id,
                         completed=len(worker.completed_chunks) + 1,
                         failed=len(worker.failed_chunks),
-                        status="working"
+                        status="working",
                     )
                 else:
                     break
@@ -139,10 +135,7 @@ async def run_safety_test(
             await worker.cleanup()
 
     # Run both workers concurrently
-    await asyncio.gather(
-        run_test_worker(1),
-        run_test_worker(2)
-    )
+    await asyncio.gather(run_test_worker(1), run_test_worker(2))
 
     # Evaluate results
     if rate_limit_detected:
@@ -205,11 +198,7 @@ def prompt_captcha_strategy() -> str:
 
 
 async def worker_process_wrapper(
-    worker_id: int,
-    voice_id: str,
-    output_dir: str,
-    chapter_chunks: List[Tuple[int, str, Chapter]],
-    start_delay: int = 0
+    worker_id: int, voice_id: str, output_dir: str, chapter_chunks: List[Tuple[int, str, Chapter]], start_delay: int = 0
 ):
     """
     Wrapper for worker process execution
@@ -243,37 +232,21 @@ async def worker_process_wrapper(
         for (chapter_num, chapter_dir), chunks in chunks_by_chapter.items():
             worker.assign_chunks(chunks)
             result = await worker.process_assigned_chunks(
-                voice_id=voice_id,
-                output_dir=output_dir,
-                chapter_dir_name=chapter_dir,
-                chapter_number=chapter_num
+                voice_id=voice_id, output_dir=output_dir, chapter_dir_name=chapter_dir, chapter_number=chapter_num
             )
             results.append(result)
 
-        return {
-            "worker_id": worker_id,
-            "status": "success",
-            "results": results
-        }
+        return {"worker_id": worker_id, "status": "success", "results": results}
 
     except Exception as e:
         print_colored(f"❌ [Worker #{worker_id}] Error: {e}", "red")
-        return {
-            "worker_id": worker_id,
-            "status": "failed",
-            "error": str(e)
-        }
+        return {"worker_id": worker_id, "status": "failed", "error": str(e)}
     finally:
         await worker.cleanup()
 
 
 async def run_parallel_processing(
-    chapters: List[Chapter],
-    voice_id: str,
-    output_dir: str,
-    num_workers: int,
-    strategy: str,
-    config: dict
+    chapters: List[Chapter], voice_id: str, output_dir: str, num_workers: int, strategy: str, config: dict
 ):
     """
     Run parallel processing with multiple workers
@@ -311,6 +284,7 @@ async def run_parallel_processing(
 
     # Start timing
     import time
+
     coordinator.start_time = time.time()
 
     # Prepare worker tasks based on strategy
@@ -324,9 +298,7 @@ async def run_parallel_processing(
             assignment = coordinator.get_worker_assignment(worker_id)
             # Assignment now contains full (idx, text, chapter) tuples
             worker_chunks = assignment
-            tasks.append(
-                worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=0)
-            )
+            tasks.append(worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=0))
 
         # Run all workers concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -338,9 +310,7 @@ async def run_parallel_processing(
             # Assignment now contains full (idx, text, chapter) tuples
             worker_chunks = assignment
             delay = (worker_id - 1) * stagger_delay
-            tasks.append(
-                worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=delay)
-            )
+            tasks.append(worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=delay))
 
         # Run all workers with staggered starts
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -399,6 +369,7 @@ async def run_parallel_processing(
     # Mark processing as complete
     if coordinator.start_time and not coordinator.end_time:
         import time
+
         coordinator.end_time = time.time()
 
     print_timestamped(f"📊 Generating final summary...", "cyan")

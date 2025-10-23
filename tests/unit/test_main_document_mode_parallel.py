@@ -23,11 +23,7 @@ class TestConfigLoading:
         config_dir.mkdir()
         config_file = config_dir / "parallel_settings.json"
 
-        config_data = {
-            "max_workers": 10,
-            "enable_parallel_mode": True,
-            "chunks_per_worker_target": 60
-        }
+        config_data = {"max_workers": 10, "enable_parallel_mode": True, "chunks_per_worker_target": 60}
 
         config_file.write_text(json.dumps(config_data))
 
@@ -63,11 +59,7 @@ class TestWorkerCalculation:
         """Test automatic worker calculation"""
         from main_document_mode_parallel import calculate_optimal_workers
 
-        config = {
-            "auto_calculate_workers": True,
-            "chunks_per_worker_target": 55,
-            "max_workers": 15
-        }
+        config = {"auto_calculate_workers": True, "chunks_per_worker_target": 55, "max_workers": 15}
 
         # 636 chunks / 55 = 11.56, rounded up = 12
         workers = calculate_optimal_workers(total_chunks=636, config=config)
@@ -78,11 +70,7 @@ class TestWorkerCalculation:
         """Test worker calculation capped at max_workers"""
         from main_document_mode_parallel import calculate_optimal_workers
 
-        config = {
-            "auto_calculate_workers": True,
-            "chunks_per_worker_target": 55,
-            "max_workers": 10
-        }
+        config = {"auto_calculate_workers": True, "chunks_per_worker_target": 55, "max_workers": 10}
 
         # Would calculate 12 but capped at 10
         workers = calculate_optimal_workers(total_chunks=636, config=config)
@@ -93,10 +81,7 @@ class TestWorkerCalculation:
         """Test manual worker count"""
         from main_document_mode_parallel import calculate_optimal_workers
 
-        config = {
-            "auto_calculate_workers": False,
-            "default_workers": 5
-        }
+        config = {"auto_calculate_workers": False, "default_workers": 5}
 
         workers = calculate_optimal_workers(total_chunks=636, config=config)
 
@@ -106,11 +91,7 @@ class TestWorkerCalculation:
         """Test calculation for small number of chunks"""
         from main_document_mode_parallel import calculate_optimal_workers
 
-        config = {
-            "auto_calculate_workers": True,
-            "chunks_per_worker_target": 55,
-            "max_workers": 15
-        }
+        config = {"auto_calculate_workers": True, "chunks_per_worker_target": 55, "max_workers": 15}
 
         # 50 chunks / 55 = 0.9, rounded up = 1
         workers = calculate_optimal_workers(total_chunks=50, config=config)
@@ -203,13 +184,15 @@ class TestSafetyTest:
         monkeypatch.setattr("main_document_mode_parallel.print_colored", lambda text, color: None)
 
         # Create chapter with only 5 chunks
-        chapter = Chapter(number=1, title="Test", dir_name="01-test", text="test", chunks=["chunk1", "chunk2", "chunk3", "chunk4", "chunk5"])
-
-        success, message = await run_safety_test(
-            chapters=[chapter],
-            voice_id="voice-1",
-            output_dir="/tmp"
+        chapter = Chapter(
+            number=1,
+            title="Test",
+            dir_name="01-test",
+            text="test",
+            chunks=["chunk1", "chunk2", "chunk3", "chunk4", "chunk5"],
         )
+
+        success, message = await run_safety_test(chapters=[chapter], voice_id="voice-1", output_dir="/tmp")
 
         assert success is False
         assert "Not enough chunks" in message
@@ -223,7 +206,7 @@ class TestSafetyTest:
 
         # Create chapter with enough chunks
         chunks = [f"chunk_{i}" for i in range(100)]
-        chapter = Chapter(number=1, title="Test", dir_name="01-test", text="test"*100, chunks=chunks)
+        chapter = Chapter(number=1, title="Test", dir_name="01-test", text="test" * 100, chunks=chunks)
 
         # Mock WorkerBrowser
         mock_worker_class = MagicMock()
@@ -238,11 +221,7 @@ class TestSafetyTest:
 
         monkeypatch.setattr("main_document_mode_parallel.WorkerBrowser", mock_worker_class)
 
-        success, message = await run_safety_test(
-            chapters=[chapter],
-            voice_id="voice-1",
-            output_dir="/tmp"
-        )
+        success, message = await run_safety_test(chapters=[chapter], voice_id="voice-1", output_dir="/tmp")
 
         assert success is True
         assert "Safety test passed" in message
@@ -264,13 +243,9 @@ class TestWorkerProcessWrapper:
         mock_worker_instance = AsyncMock()
         mock_worker_instance.initialize = AsyncMock()
         mock_worker_instance.assign_chunks = MagicMock()
-        mock_worker_instance.process_assigned_chunks = AsyncMock(return_value={
-            "worker_id": 1,
-            "completed": [1, 2],
-            "failed": [],
-            "success_count": 2,
-            "failure_count": 0
-        })
+        mock_worker_instance.process_assigned_chunks = AsyncMock(
+            return_value={"worker_id": 1, "completed": [1, 2], "failed": [], "success_count": 2, "failure_count": 0}
+        )
         mock_worker_instance.cleanup = AsyncMock()
         mock_worker_class.return_value = mock_worker_instance
 
@@ -280,11 +255,7 @@ class TestWorkerProcessWrapper:
         chapter_chunks = [(1, "chunk1", chapter), (2, "chunk2", chapter)]
 
         result = await worker_process_wrapper(
-            worker_id=1,
-            voice_id="voice-1",
-            output_dir=str(tmp_path),
-            chapter_chunks=chapter_chunks,
-            start_delay=0
+            worker_id=1, voice_id="voice-1", output_dir=str(tmp_path), chapter_chunks=chapter_chunks, start_delay=0
         )
 
         assert result["worker_id"] == 1
@@ -302,13 +273,9 @@ class TestWorkerProcessWrapper:
         mock_worker_instance = AsyncMock()
         mock_worker_instance.initialize = AsyncMock()
         mock_worker_instance.assign_chunks = MagicMock()
-        mock_worker_instance.process_assigned_chunks = AsyncMock(return_value={
-            "worker_id": 2,
-            "completed": [],
-            "failed": [],
-            "success_count": 0,
-            "failure_count": 0
-        })
+        mock_worker_instance.process_assigned_chunks = AsyncMock(
+            return_value={"worker_id": 2, "completed": [], "failed": [], "success_count": 0, "failure_count": 0}
+        )
         mock_worker_instance.cleanup = AsyncMock()
         mock_worker_class.return_value = mock_worker_instance
 
@@ -318,6 +285,7 @@ class TestWorkerProcessWrapper:
         chapter_chunks = [(1, "chunk1", chapter)]
 
         import time
+
         start_time = time.time()
 
         result = await worker_process_wrapper(
@@ -325,7 +293,7 @@ class TestWorkerProcessWrapper:
             voice_id="voice-1",
             output_dir=str(tmp_path),
             chapter_chunks=chapter_chunks,
-            start_delay=1  # 1 second delay
+            start_delay=1,  # 1 second delay
         )
 
         elapsed = time.time() - start_time
@@ -353,11 +321,7 @@ class TestWorkerProcessWrapper:
         chapter_chunks = [(1, "chunk1", chapter)]
 
         result = await worker_process_wrapper(
-            worker_id=3,
-            voice_id="voice-1",
-            output_dir=str(tmp_path),
-            chapter_chunks=chapter_chunks,
-            start_delay=0
+            worker_id=3, voice_id="voice-1", output_dir=str(tmp_path), chapter_chunks=chapter_chunks, start_delay=0
         )
 
         assert result["worker_id"] == 3
@@ -378,9 +342,7 @@ class TestMain:
         monkeypatch.setattr("main_document_mode_parallel.print_colored", lambda text, color: printed.append(text))
 
         # Mock load_config to return disabled parallel mode
-        monkeypatch.setattr("main_document_mode_parallel.load_config", lambda: {
-            "enable_parallel_mode": False
-        })
+        monkeypatch.setattr("main_document_mode_parallel.load_config", lambda: {"enable_parallel_mode": False})
 
         await main()
 
@@ -393,9 +355,7 @@ class TestMain:
         printed = []
         monkeypatch.setattr("main_document_mode_parallel.print_colored", lambda text, color: printed.append(text))
 
-        monkeypatch.setattr("main_document_mode_parallel.load_config", lambda: {
-            "enable_parallel_mode": True
-        })
+        monkeypatch.setattr("main_document_mode_parallel.load_config", lambda: {"enable_parallel_mode": True})
 
         await main()
 

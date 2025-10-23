@@ -158,10 +158,7 @@ class TestChunkProcessing:
 
         output_dir = str(tmp_path)
         result = await worker.process_assigned_chunks(
-            voice_id="voice-1",
-            output_dir=output_dir,
-            chapter_dir_name="01-chapter",
-            chapter_number=1
+            voice_id="voice-1", output_dir=output_dir, chapter_dir_name="01-chapter", chapter_number=1
         )
 
         assert result["worker_id"] == 1
@@ -191,10 +188,7 @@ class TestChunkProcessing:
         worker.assign_chunks([(1, "test chunk 1"), (2, "test chunk 2"), (3, "test chunk 3")])
 
         result = await worker.process_assigned_chunks(
-            voice_id="voice-1",
-            output_dir=str(tmp_path),
-            chapter_dir_name="01-chapter",
-            chapter_number=1
+            voice_id="voice-1", output_dir=str(tmp_path), chapter_dir_name="01-chapter", chapter_number=1
         )
 
         assert result["worker_id"] == 1
@@ -225,10 +219,7 @@ class TestChunkProcessing:
         worker.assign_chunks([(1, "test chunk 1")])
 
         result = await worker.process_assigned_chunks(
-            voice_id="voice-1",
-            output_dir=str(tmp_path),
-            chapter_dir_name="01-chapter",
-            chapter_number=1
+            voice_id="voice-1", output_dir=str(tmp_path), chapter_dir_name="01-chapter", chapter_number=1
         )
 
         assert restart_called[0] is True

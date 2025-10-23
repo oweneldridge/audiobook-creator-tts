@@ -155,7 +155,9 @@ class WorkerBrowser(PersistentBrowser):
             print_colored(f"{'='*60}", "yellow")
             input()
         else:
-            print_colored(f"⏩ [Worker #{self.worker_id}] Skipping initial CAPTCHA prompt (will prompt when needed)", "cyan")
+            print_colored(
+                f"⏩ [Worker #{self.worker_id}] Skipping initial CAPTCHA prompt (will prompt when needed)", "cyan"
+            )
 
         self.captcha_solved = True
         self.requests_since_captcha = 0
@@ -225,10 +227,7 @@ class WorkerBrowser(PersistentBrowser):
             chunks: List of (chunk_index, chunk_text) tuples
         """
         self.assigned_chunks = chunks
-        print_colored(
-            f"📋 [Worker #{self.worker_id}] Assigned {len(chunks)} chunks",
-            "cyan"
-        )
+        print_colored(f"📋 [Worker #{self.worker_id}] Assigned {len(chunks)} chunks", "cyan")
 
     async def process_assigned_chunks(
         self,
@@ -256,10 +255,7 @@ class WorkerBrowser(PersistentBrowser):
                 "failure_count": int
             }
         """
-        print_timestamped(
-            f"🎬 [Worker #{self.worker_id}] Starting chunk processing...",
-            "green"
-        )
+        print_timestamped(f"🎬 [Worker #{self.worker_id}] Starting chunk processing...", "green")
 
         for chunk_idx, chunk_text in self.assigned_chunks:
             # Progress indicator
@@ -268,7 +264,7 @@ class WorkerBrowser(PersistentBrowser):
 
             print_timestamped(
                 f"[Worker #{self.worker_id}] [{progress_num}/{progress_total}] Processing chunk {chunk_idx}...",
-                "yellow"
+                "yellow",
             )
             print_colored(f"   Preview: {chunk_text[:60]}...", "cyan")
 
@@ -281,10 +277,7 @@ class WorkerBrowser(PersistentBrowser):
 
                 if audio_data == "RATE_LIMIT":
                     # Handle rate limit (shouldn't happen with proactive CAPTCHA)
-                    print_colored(
-                        f"⚠️  [Worker #{self.worker_id}] Rate limit hit (unexpected)",
-                        "yellow"
-                    )
+                    print_colored(f"⚠️  [Worker #{self.worker_id}] Rate limit hit (unexpected)", "yellow")
                     await self.restart()
                     continue
 
@@ -306,10 +299,7 @@ class WorkerBrowser(PersistentBrowser):
                         f.write(audio_data)
 
                     size_kb = len(audio_data) / 1024
-                    print_timestamped(
-                        f"   ✅ [Worker #{self.worker_id}] Saved {file_name} ({size_kb:.1f} KB)",
-                        "green"
-                    )
+                    print_timestamped(f"   ✅ [Worker #{self.worker_id}] Saved {file_name} ({size_kb:.1f} KB)", "green")
 
                     self.completed_chunks.append(chunk_idx)
                     self.worker_success_count += 1
@@ -318,17 +308,13 @@ class WorkerBrowser(PersistentBrowser):
                     # Retry on failure
                     if attempt < max_retries - 1:
                         print_colored(
-                            f"   ⚠️  [Worker #{self.worker_id}] Retry {attempt + 1}/{max_retries}...",
-                            "yellow"
+                            f"   ⚠️  [Worker #{self.worker_id}] Retry {attempt + 1}/{max_retries}...", "yellow"
                         )
                         await asyncio.sleep(2)
 
             # Mark as failed if all retries exhausted
             if not audio_data:
-                print_colored(
-                    f"   ❌ [Worker #{self.worker_id}] Failed chunk {chunk_idx}",
-                    "red"
-                )
+                print_colored(f"   ❌ [Worker #{self.worker_id}] Failed chunk {chunk_idx}", "red")
                 self.failed_chunks.append(chunk_idx)
 
         # Return results

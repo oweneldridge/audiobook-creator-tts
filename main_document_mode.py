@@ -689,8 +689,11 @@ async def create_m4b_audiobook(
             # Concatenate chunk files into single chapter MP3
             if len(chunk_files) > 1:
                 from datetime import datetime
+
                 timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                print_colored(f"[{timestamp}] 🔗 Concatenating {len(chunk_files)} chunks for {chapter.title}...", "cyan")
+                print_colored(
+                    f"[{timestamp}] 🔗 Concatenating {len(chunk_files)} chunks for {chapter.title}...", "cyan"
+                )
 
                 # Create concat list for this chapter
                 chapter_concat_list = os.path.join(chapter_dir, "chapter_concat.txt")
@@ -701,8 +704,19 @@ async def create_m4b_audiobook(
 
                 # Concatenate chunks
                 concat_cmd = [
-                    "ffmpeg", "-f", "concat", "-safe", "0", "-i", chapter_concat_list,
-                    "-c", "copy", mp3_file, "-y", "-loglevel", "error"
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    chapter_concat_list,
+                    "-c",
+                    "copy",
+                    mp3_file,
+                    "-y",
+                    "-loglevel",
+                    "error",
                 ]
 
                 result = subprocess.run(concat_cmd, capture_output=True, text=True, timeout=120)
@@ -796,6 +810,7 @@ async def create_m4b_audiobook(
                 f.write(f"title={chapter['title']}\n\n")
 
         from datetime import datetime
+
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
         print_colored(f"[{timestamp}] 🎬 Converting to M4B with chapter markers...", "cyan")
 
@@ -861,7 +876,9 @@ async def create_m4b_audiobook(
         if result.returncode == 0 and os.path.exists(output_m4b):
             size_mb = os.path.getsize(output_m4b) / 1024 / 1024
             timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            print_colored(f"[{timestamp}] ✅ Created M4B audiobook: {os.path.basename(output_m4b)} ({size_mb:.1f} MB)", "green")
+            print_colored(
+                f"[{timestamp}] ✅ Created M4B audiobook: {os.path.basename(output_m4b)} ({size_mb:.1f} MB)", "green"
+            )
             print_colored(f"   📚 {len(chapter_markers)} chapters with navigation", "yellow")
 
             # Embed cover art if provided
@@ -2363,7 +2380,9 @@ async def main():
                 for chapter in chapters:
                     chunk_chapter_text(chapter, chunk_size=chunk_size)
                     total_chunks_actual += len(chapter.chunks)
-                    print_colored(f"   📖 Chapter {chapter.number} '{chapter.title}': {len(chapter.chunks)} chunks", "yellow")
+                    print_colored(
+                        f"   📖 Chapter {chapter.number} '{chapter.title}': {len(chapter.chunks)} chunks", "yellow"
+                    )
                 print_colored(f"\n✅ Total chunks across all chapters: {total_chunks_actual}", "green")
 
             # Mode selection (simple vs parallel) - only for chapter-based processing
@@ -2386,7 +2405,9 @@ async def main():
                     # Emoji takes 2 display columns but len() counts it as 1, so add 1 to length
                     title_display_width = len(title) + 1
                     padding = (box_width - title_display_width) // 2
-                    print_colored("║" + " " * padding + title + " " * (box_width - padding - title_display_width) + "║", "cyan")
+                    print_colored(
+                        "║" + " " * padding + title + " " * (box_width - padding - title_display_width) + "║", "cyan"
+                    )
 
                     print_colored("╠" + "=" * box_width + "╣", "cyan")
 
@@ -2507,7 +2528,7 @@ async def main():
                         output_dir=os.path.join("audio", output_name),
                         num_workers=num_workers,
                         strategy=strategy,
-                        config=parallel_config
+                        config=parallel_config,
                     )
 
                     print_colored(f"\n✅ Parallel processing complete!", "green")
@@ -2573,12 +2594,9 @@ if __name__ == "__main__":
     finally:
         # Force cleanup of any lingering Playwright/Chromium processes
         import sys
+
         try:
-            subprocess.run(
-                ["pkill", "-f", "playwright.*chromium"],
-                capture_output=True,
-                timeout=2
-            )
+            subprocess.run(["pkill", "-f", "playwright.*chromium"], capture_output=True, timeout=2)
         except Exception:
             pass
         # Ensure Python.app GUI context releases
