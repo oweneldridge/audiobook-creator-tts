@@ -14,7 +14,7 @@ import subprocess
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Any, Union
 from dataclasses import dataclass
 
 # Suppress ebooklib warnings (library-level, not our code)
@@ -759,7 +759,7 @@ async def create_m4b_audiobook(
         # Calculate cumulative durations for chapter markers
         print_colored("⏱️  Calculating chapter durations...", "cyan")
 
-        chapter_markers = []
+        chapter_markers: List[Dict[str, Union[str, int]]] = []
         cumulative_ms = 0
 
         for idx, meta in enumerate(chapter_metadata):
@@ -802,12 +802,12 @@ async def create_m4b_audiobook(
             f.write(f"album={display_title}\n")
             f.write("genre=Audiobook\n\n")
 
-            for chapter in chapter_markers:
+            for chapter_marker in chapter_markers:
                 f.write("[CHAPTER]\n")
                 f.write("TIMEBASE=1/1000\n")
-                f.write(f"START={chapter['start_ms']}\n")
-                f.write(f"END={chapter['end_ms']}\n")
-                f.write(f"title={chapter['title']}\n\n")
+                f.write(f"START={chapter_marker['start_ms']}\n")
+                f.write(f"END={chapter_marker['end_ms']}\n")
+                f.write(f"title={chapter_marker['title']}\n\n")
 
         from datetime import datetime
 
@@ -964,7 +964,7 @@ class DocumentParser:
 
             if author and len(author) > 0:
                 # author is a list of tuples: [(author_name, metadata_dict)]
-                author_name = author[0][0]
+                author_name = str(author[0][0])
                 if author_name and author_name.strip():
                     return author_name.strip()
 
@@ -1148,7 +1148,7 @@ class DocumentParser:
                     # Get text after this heading (until next heading or end)
                     text_parts = []
                     for sibling in heading.find_all_next():
-                        if sibling.name in ["h1", "h2"]:
+                        if hasattr(sibling, 'name') and sibling.name in ["h1", "h2"]:
                             break
                         if sibling.get_text().strip():
                             text_parts.append(sibling.get_text())
@@ -1260,7 +1260,7 @@ class DocumentParser:
         # Split into lines
         lines = text.split("\n")
         current_chapter = None
-        current_text = []
+        current_text: List[str] = []
         chapter_num = 0
 
         for i, line in enumerate(lines):
@@ -1481,7 +1481,9 @@ class DocumentParser:
             if MISTUNE_AVAILABLE:
                 # Parse markdown to HTML then extract text
                 markdown = mistune.create_markdown()
-                html = markdown(markdown_content)
+                html_result = markdown(markdown_content)
+                # Ensure html is a string (mistune can return different types)
+                html = str(html_result) if not isinstance(html_result, str) else html_result
                 soup = BeautifulSoup(html, "html.parser")
                 text = soup.get_text()
             else:
@@ -1509,13 +1511,13 @@ class DocumentParser:
     @staticmethod
     def parse_document(file_path: str) -> str:
         """Automatically detect file type and extract text"""
-        file_path = Path(file_path)
+        path = Path(file_path)
 
-        if not file_path.exists():
-            print_colored(f"❌ File not found: {file_path}", "red")
+        if not path.exists():
+            print_colored(f"❌ File not found: {path}", "red")
             return ""
 
-        suffix = file_path.suffix.lower()
+        suffix = path.suffix.lower()
 
         if suffix == ".pdf":
             return DocumentParser.extract_text_from_pdf(str(file_path))
@@ -1946,7 +1948,7 @@ async def process_chapters_to_speech(
                     # Continue to next retry attempt
                     continue
 
-                if audio_data:
+                if audio_data and isinstance(audio_data, bytes):
                     # Extract numeric prefix from directory name for consistent naming
                     # e.g., "01-prologue" -> "01", "00-02-copyright" -> "00-02"
                     dir_prefix = chapter.dir_name.split("-")[0]
@@ -2117,7 +2119,7 @@ async def process_document_to_speech(
                 # Continue to next retry attempt
                 continue
 
-            if audio_data:
+            if audio_data and isinstance(audio_data, bytes):
                 # Save with document name prefix
                 file_name = f"{output_name}-{i}.mp3"
                 file_path = os.path.join(directory, file_name)

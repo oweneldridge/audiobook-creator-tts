@@ -39,7 +39,7 @@ jobs:
 
     - name: Install Playwright browsers
       run: |
-        playwright install chromium
+        playwright install --with-deps chromium
 
     - name: Run code formatting check (Black)
       run: |
@@ -52,7 +52,7 @@ jobs:
 
     - name: Run unit tests
       run: |
-        pytest tests/unit/ -v --cov=. --cov-report=xml --cov-report=term-missing
+        pytest tests/unit/ -v --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=50
 
     - name: Run integration tests
       run: |

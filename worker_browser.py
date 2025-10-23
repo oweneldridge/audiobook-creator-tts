@@ -281,7 +281,7 @@ class WorkerBrowser(PersistentBrowser):
                     await self.restart()
                     continue
 
-                if audio_data:
+                if audio_data and isinstance(audio_data, bytes):
                     # Success - save file
                     chapter_dir = os.path.join(output_dir, chapter_dir_name)
                     os.makedirs(chapter_dir, exist_ok=True)

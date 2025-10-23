@@ -10,7 +10,7 @@ import os
 import sys
 from datetime import datetime
 import time
-from typing import Optional
+from typing import Optional, Union
 from playwright.async_api import async_playwright, Browser, Page
 
 # Import functions from main.py to avoid duplication
@@ -236,7 +236,7 @@ class PersistentBrowser:
             self.requests_since_captcha = 0
             print_colored("✅ CAPTCHA solved! Continuing...\n", "green")
 
-    async def request_audio(self, text: str, voice_id: str, retry_on_captcha: bool = True) -> Optional[bytes]:
+    async def request_audio(self, text: str, voice_id: str, retry_on_captcha: bool = True) -> Union[bytes, str, None]:
         """
         Make API request using browser context with health monitoring
         Returns audio bytes or None on failure, or "RATE_LIMIT" string
@@ -410,7 +410,13 @@ async def process_text_to_speech(browser: PersistentBrowser, voice_id: str, text
         for attempt in range(max_retries):
             audio_data = await browser.request_audio(chunk, voice_id)
 
-            if audio_data:
+            if audio_data == "RATE_LIMIT":
+                # Handle rate limit by restarting browser session
+                print_colored("⚠️  Rate limit reached, restarting browser session...", "yellow")
+                await browser.restart()
+                continue
+
+            if audio_data and isinstance(audio_data, bytes):
                 # Save audio file
                 file_path = os.path.join(directory, f"audio_chunk_{i}.mp3")
                 with open(file_path, "wb") as f:
