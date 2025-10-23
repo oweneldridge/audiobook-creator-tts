@@ -316,9 +316,9 @@ class ParallelCoordinator:
             - workers_succeeded: int
             - workers_failed: int
         """
-        duration = 0
+        duration: float = 0.0
         if self.start_time and self.end_time:
-            duration = self.end_time - self.start_time
+            duration = float(self.end_time - self.start_time)
 
         workers_succeeded = sum(1 for p in self.worker_progress.values() if p.status == "completed")
         workers_failed = sum(1 for p in self.worker_progress.values() if p.status == "failed")
@@ -371,12 +371,12 @@ class ParallelCoordinator:
         Returns:
             List of failed chunk indices
         """
-        failed_chunks = []
+        failed_chunks: List[int] = []
         for worker_id, assigned_chunks in self.chunk_assignments.items():
             progress = self.worker_progress[worker_id]
             # Get indices of chunks that were assigned but not completed
             assigned_indices = set(chunk[0] for chunk in assigned_chunks)
-            completed_indices = set()  # Would need to track this during processing
+            completed_indices: set[int] = set()  # Would need to track this during processing
             # For now, rely on worker progress tracking
             if progress.failed_chunks > 0:
                 # This is a count, not indices - would need to enhance tracking

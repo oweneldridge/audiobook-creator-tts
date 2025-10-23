@@ -12,7 +12,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 
 sys.path.insert(0, os.path.dirname(__file__))
 from main import print_colored, input_colored
@@ -27,13 +27,14 @@ def print_timestamped(message: str, color: str = "cyan"):
     print_colored(f"[{timestamp}] {message}", color)
 
 
-def load_config() -> dict:
+def load_config() -> Dict[str, Any]:
     """Load parallel processing configuration"""
     config_path = Path(__file__).parent / "config" / "parallel_settings.json"
 
     if config_path.exists():
         with open(config_path, "r") as f:
-            return json.load(f)
+            config_data: Dict[str, Any] = json.load(f)
+            return config_data
 
     # Default configuration
     return {
@@ -70,7 +71,7 @@ async def run_safety_test(chapters: List[Chapter], voice_id: str, output_dir: st
     print_colored("=" * 60, "yellow")
 
     # Get first 100 chunks across all chapters
-    test_chunks = []
+    test_chunks: List[Tuple[int, str, Chapter]] = []
     for chapter in chapters:
         for chunk_idx, chunk_text in enumerate(chapter.chunks, 1):
             if len(test_chunks) >= 100:
@@ -147,7 +148,7 @@ async def run_safety_test(chapters: List[Chapter], voice_id: str, output_dir: st
     return True, "Safety test passed - no IP-level rate limits detected"
 
 
-def calculate_optimal_workers(total_chunks: int, config: dict) -> int:
+def calculate_optimal_workers(total_chunks: int, config: Dict[str, Any]) -> int:
     """
     Calculate optimal number of workers
 
@@ -159,14 +160,15 @@ def calculate_optimal_workers(total_chunks: int, config: dict) -> int:
         Optimal number of workers (capped at max_workers)
     """
     if not config.get("auto_calculate_workers", True):
-        return config.get("default_workers", 5)
+        default_workers: int = config.get("default_workers", 5)
+        return int(default_workers)
 
-    chunks_per_worker = config.get("chunks_per_worker_target", 55)
+    chunks_per_worker: int = config.get("chunks_per_worker_target", 55)
     optimal = math.ceil(total_chunks / chunks_per_worker)
 
     # Cap at max_workers
-    max_workers = config.get("max_workers", 15)
-    return min(optimal, max_workers)
+    max_workers: int = config.get("max_workers", 15)
+    return int(min(optimal, max_workers))
 
 
 def prompt_captcha_strategy() -> str:
@@ -221,7 +223,7 @@ async def worker_process_wrapper(
         await worker.initialize()
 
         # Group chunks by chapter
-        chunks_by_chapter = {}
+        chunks_by_chapter: Dict[Tuple[int, str], List[Tuple[int, str]]] = {}
         for chunk_idx, chunk_text, chapter in chapter_chunks:
             chapter_key = (chapter.number, chapter.dir_name)
             if chapter_key not in chunks_by_chapter:
@@ -279,8 +281,12 @@ async def run_parallel_processing(
 
     # Create coordinator
     coordinator = ParallelCoordinator(total_chunks=total_chunks, num_workers=num_workers)
-    # Pass full chunk data (idx, text, chapter) to coordinator
-    coordinator.distribute_chunks(all_chunks)
+    # Convert to simple (idx, text) format for coordinator
+    simple_chunks = [(idx, text) for idx, text, _ in all_chunks]
+    coordinator.distribute_chunks(simple_chunks)
+
+    # Create mapping from chunk_idx to full chunk data for workers
+    chunk_map: Dict[int, Tuple[int, str, Chapter]] = {idx: (idx, text, chapter) for idx, text, chapter in all_chunks}
 
     # Start timing
     import time
@@ -296,8 +302,8 @@ async def run_parallel_processing(
         # All workers start together
         for worker_id in range(1, num_workers + 1):
             assignment = coordinator.get_worker_assignment(worker_id)
-            # Assignment now contains full (idx, text, chapter) tuples
-            worker_chunks = assignment
+            # Convert assignment to full chunk data with chapters
+            worker_chunks = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
             tasks.append(worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=0))
 
         # Run all workers concurrently
@@ -307,8 +313,8 @@ async def run_parallel_processing(
         # Workers start with delays
         for worker_id in range(1, num_workers + 1):
             assignment = coordinator.get_worker_assignment(worker_id)
-            # Assignment now contains full (idx, text, chapter) tuples
-            worker_chunks = assignment
+            # Convert assignment to full chunk data with chapters
+            worker_chunks = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
             delay = (worker_id - 1) * stagger_delay
             tasks.append(worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=delay))
 
@@ -324,8 +330,8 @@ async def run_parallel_processing(
 
             for worker_id in range(batch_start + 1, batch_end + 1):
                 assignment = coordinator.get_worker_assignment(worker_id)
-                # Assignment now contains full (idx, text, chapter) tuples
-                worker_chunks = assignment
+                # Convert assignment to full chunk data with chapters
+                worker_chunks = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
                 batch_tasks.append(
                     worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=0)
                 )
