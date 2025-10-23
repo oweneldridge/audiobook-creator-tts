@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Audiobook Creator TTS - Complete Installation Script
-# Installs all Python packages and system dependencies
+# Automatically installs Homebrew, Python 3.11, and all dependencies
 
 set -e  # Exit on error
 
@@ -10,10 +10,12 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║  Audiobook Creator TTS - Installation Script                    ║${NC}"
+echo -e "${BLUE}║  Audiobook Creator TTS - Automated Installation Script          ║${NC}"
+echo -e "${BLUE}║  This will install all prerequisites and dependencies           ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -31,19 +33,76 @@ else
 fi
 
 echo ""
-echo -e "${YELLOW}Installing system packages...${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Step 1: Prerequisites Check${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
 # Install system packages based on platform
 if [[ "$PLATFORM" == "macos" ]]; then
     # Check if Homebrew is installed
     if ! command -v brew &> /dev/null; then
-        echo -e "${RED}✗${NC} Homebrew not found. Please install Homebrew first:"
-        echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
-        exit 1
+        echo -e "${YELLOW}⚠${NC} Homebrew not found"
+        echo ""
+        echo -e "${BLUE}Homebrew is required to install system dependencies.${NC}"
+        echo -e "${BLUE}This script can install it automatically.${NC}"
+        echo ""
+        read -p "Install Homebrew now? (y/n): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${YELLOW}→${NC} Installing Homebrew..."
+            echo -e "${BLUE}You may be prompted for your password.${NC}"
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+            # Add Homebrew to PATH for Apple Silicon Macs
+            if [[ $(uname -m) == "arm64" ]]; then
+                echo ""
+                echo -e "${YELLOW}→${NC} Adding Homebrew to PATH (Apple Silicon)..."
+                echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+                eval "$(/opt/homebrew/bin/brew shellenv)"
+            fi
+
+            echo -e "${GREEN}✓${NC} Homebrew installed successfully"
+        else
+            echo -e "${RED}✗${NC} Installation cancelled. Homebrew is required."
+            echo "  Please install manually: https://brew.sh"
+            exit 1
+        fi
+    else
+        echo -e "${GREEN}✓${NC} Homebrew is installed"
     fi
 
-    echo -e "${BLUE}Installing Homebrew packages...${NC}"
+    # Check for Python 3.11
+    echo ""
+    if command -v python3.11 &> /dev/null; then
+        PYTHON_VERSION=$(python3.11 --version | cut -d' ' -f2)
+        echo -e "${GREEN}✓${NC} Python 3.11 is installed (version $PYTHON_VERSION)"
+    else
+        echo -e "${YELLOW}⚠${NC} Python 3.11 not found"
+        echo ""
+        echo -e "${BLUE}Python 3.11 is required for this application.${NC}"
+        echo ""
+        read -p "Install Python 3.11 via Homebrew? (y/n): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${YELLOW}→${NC} Installing Python 3.11..."
+            brew install python@3.11
+            echo -e "${GREEN}✓${NC} Python 3.11 installed successfully"
+        else
+            echo -e "${RED}✗${NC} Installation cancelled. Python 3.11 is required."
+            echo "  Please install manually: brew install python@3.11"
+            exit 1
+        fi
+    fi
+
+    echo ""
+    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}  Step 2: System Dependencies${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${BLUE}Installing system packages via Homebrew...${NC}"
 
     # Install python-tk@3.11 (for file browser)
     if brew list python-tk@3.11 &> /dev/null; then
@@ -73,6 +132,41 @@ if [[ "$PLATFORM" == "macos" ]]; then
     fi
 
 elif [[ "$PLATFORM" == "linux" ]]; then
+    # Check for Python 3.11
+    echo ""
+    if command -v python3.11 &> /dev/null; then
+        PYTHON_VERSION=$(python3.11 --version | cut -d' ' -f2)
+        echo -e "${GREEN}✓${NC} Python 3.11 is installed (version $PYTHON_VERSION)"
+    else
+        echo -e "${YELLOW}⚠${NC} Python 3.11 not found"
+        echo ""
+        echo -e "${BLUE}Python 3.11 is required for this application.${NC}"
+        echo -e "${BLUE}This will install Python 3.11 and its dependencies.${NC}"
+        echo ""
+        read -p "Install Python 3.11 via apt? (y/n): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${YELLOW}→${NC} Updating package list..."
+            sudo apt-get update -qq
+
+            echo -e "${YELLOW}→${NC} Installing Python 3.11..."
+            sudo apt-get install -y software-properties-common
+            sudo add-apt-repository -y ppa:deadsnakes/ppa
+            sudo apt-get update -qq
+            sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
+            echo -e "${GREEN}✓${NC} Python 3.11 installed successfully"
+        else
+            echo -e "${RED}✗${NC} Installation cancelled. Python 3.11 is required."
+            exit 1
+        fi
+    fi
+
+    echo ""
+    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}  Step 2: System Dependencies${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo ""
     echo -e "${BLUE}Installing Linux packages (requires sudo)...${NC}"
 
     # Update package list
@@ -85,21 +179,76 @@ elif [[ "$PLATFORM" == "linux" ]]; then
 fi
 
 echo ""
-echo -e "${YELLOW}Installing Python packages...${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Step 3: Virtual Environment Setup${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Check if pip is available
-if ! command -v pip &> /dev/null; then
-    echo -e "${RED}✗${NC} pip not found. Please install pip first."
-    exit 1
+# Check if already in a virtual environment
+if [[ -n "$VIRTUAL_ENV" ]]; then
+    echo -e "${GREEN}✓${NC} Already running in virtual environment: $VIRTUAL_ENV"
+    VENV_ACTIVE=true
+else
+    echo -e "${YELLOW}⚠${NC} Not running in a virtual environment"
+    echo ""
+    echo -e "${BLUE}A virtual environment keeps dependencies isolated.${NC}"
+    echo -e "${BLUE}Recommended location: ./venv${NC}"
+    echo ""
+
+    # Check if venv already exists
+    if [[ -d "venv" ]]; then
+        echo -e "${GREEN}✓${NC} Virtual environment already exists at ./venv"
+        echo ""
+        echo -e "${YELLOW}Activating virtual environment...${NC}"
+        source venv/bin/activate
+        echo -e "${GREEN}✓${NC} Virtual environment activated"
+        VENV_ACTIVE=true
+    else
+        read -p "Create virtual environment at ./venv? (y/n): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${YELLOW}→${NC} Creating virtual environment..."
+            python3.11 -m venv venv
+            echo -e "${GREEN}✓${NC} Virtual environment created"
+
+            echo ""
+            echo -e "${YELLOW}Activating virtual environment...${NC}"
+            source venv/bin/activate
+            echo -e "${GREEN}✓${NC} Virtual environment activated"
+            VENV_ACTIVE=true
+        else
+            echo -e "${YELLOW}⚠${NC} Proceeding without virtual environment (not recommended)"
+            echo -e "${BLUE}Dependencies will be installed globally.${NC}"
+            VENV_ACTIVE=false
+        fi
+    fi
 fi
+
+echo ""
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Step 4: Python Package Installation${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+echo ""
+
+# Ensure pip is available
+if ! command -v pip &> /dev/null; then
+    echo -e "${YELLOW}→${NC} pip not found, installing..."
+    python3.11 -m ensurepip --upgrade
+fi
+
+# Upgrade pip
+echo -e "${YELLOW}→${NC} Upgrading pip..."
+python3.11 -m pip install --upgrade pip
 
 # Install Python packages from requirements.txt
 echo -e "${BLUE}Installing packages from requirements.txt...${NC}"
 pip install -r requirements.txt
 
 echo ""
-echo -e "${YELLOW}Installing Playwright browsers...${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Step 5: Playwright Browser Installation${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
 # Install Playwright browsers (required for browser automation)
@@ -107,9 +256,9 @@ echo -e "${BLUE}Installing Chromium browser for Playwright...${NC}"
 playwright install chromium
 
 echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  Installation Verification                                       ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Step 6: Installation Verification${NC}"
+echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
 # Verify installations
@@ -176,9 +325,24 @@ if [[ $VERIFICATION_FAILED -eq 0 ]]; then
     echo -e "${GREEN}║  ✓ Installation Complete!                                       ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${BLUE}You can now run:${NC}"
-    echo -e "  ${YELLOW}python3 main_document_mode.py${NC}  - Convert documents to audiobooks"
-    echo -e "  ${YELLOW}python3 main.py${NC}                - Convert text to audio"
+
+    if [[ "$VENV_ACTIVE" == true ]]; then
+        echo -e "${BLUE}Your virtual environment is active and ready to use.${NC}"
+        echo ""
+        echo -e "${YELLOW}To run the application:${NC}"
+        echo -e "  ${CYAN}python3.11 main_document_mode.py${NC}  - Convert documents to audiobooks"
+        echo -e "  ${CYAN}python3.11 main_playwright_persistent.py${NC}  - Convert text to audio"
+        echo ""
+        echo -e "${YELLOW}In future sessions, activate the virtual environment first:${NC}"
+        echo -e "  ${CYAN}source venv/bin/activate${NC}"
+    else
+        echo -e "${YELLOW}No virtual environment was created.${NC}"
+        echo -e "${BLUE}Dependencies were installed globally.${NC}"
+        echo ""
+        echo -e "${YELLOW}To run the application:${NC}"
+        echo -e "  ${CYAN}python3.11 main_document_mode.py${NC}  - Convert documents to audiobooks"
+        echo -e "  ${CYAN}python3.11 main_playwright_persistent.py${NC}  - Convert text to audio"
+    fi
     echo ""
 else
     echo -e "${RED}╔══════════════════════════════════════════════════════════════════╗${NC}"

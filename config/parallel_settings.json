@@ -1,0 +1,17 @@
+{
+  "description": "Configuration for parallel processing mode",
+  "max_workers": 15,
+  "enable_parallel_mode": true,
+  "default_captcha_strategy": "simultaneous",
+  "safety_test_enabled": false,
+  "safety_test_chunks": 100,
+  "safety_test_workers": 2,
+  "ram_per_worker_mb": 500,
+  "stagger_interval_seconds": 10,
+  "sequential_batch_size": 3,
+  "progress_update_interval_seconds": 2,
+  "auto_calculate_workers": true,
+  "chunks_per_worker_target": 55,
+  "enable_progress_dashboard": true,
+  "captcha_notification_sound": true
+}

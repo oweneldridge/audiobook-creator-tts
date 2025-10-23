@@ -6,6 +6,7 @@ Supports chapter-based organization with nested directory structure
 """
 import asyncio
 import json
+import math
 import os
 import re
 import sys
@@ -77,6 +78,8 @@ from main import (
 
 # Import Playwright browser
 from main_playwright_persistent import PersistentBrowser
+
+# Note: Parallel processing imports are done lazily inside functions to avoid circular imports
 
 
 def select_file_with_dialog() -> Optional[str]:
@@ -574,6 +577,32 @@ async def concatenate_chapter_mp3s(chapter_dir: str, chapter_name: str, chunk_fi
         return None
 
 
+def prompt_for_title(default_title: str) -> str:
+    """
+    Prompt user to verify or customize the title
+
+    Args:
+        default_title: Default title (from filename or EPUB metadata)
+
+    Returns:
+        Title name (user-entered or default)
+    """
+    print_colored(f"\n📚 Title Metadata", "cyan")
+    print_colored(f"   Detected: {default_title}", "yellow")
+
+    response = input_colored("\nUse this title? (y/enter custom): ", "blue").strip().lower()
+
+    if response == "y" or response == "":
+        return default_title
+    else:
+        # User wants to enter custom title
+        custom_title = input_colored("Enter title: ", "cyan").strip()
+        if custom_title:
+            # Convert to kebab-case for consistency with output_name format
+            return re.sub(r"[^a-z0-9]+", "-", custom_title.lower()).strip("-")
+        return default_title
+
+
 def prompt_for_author(default_author: Optional[str] = None) -> str:
     """
     Prompt user to enter author name with optional default
@@ -644,11 +673,11 @@ async def create_m4b_audiobook(
     for chapter in chapters:
         chapter_dir = os.path.join(base_directory, chapter.dir_name)
 
-        # Look for concatenated MP3 or first chunk
+        # Look for concatenated MP3 or concatenate chunk files
         mp3_file = os.path.join(chapter_dir, f"{chapter.dir_name}.mp3")
 
         if not os.path.exists(mp3_file):
-            # No concatenated file, look for chunk files
+            # No concatenated file, look for chunk files and concatenate them
             chunk_pattern = os.path.join(chapter_dir, "*-chunk-*.mp3")
             import glob
 
@@ -656,8 +685,41 @@ async def create_m4b_audiobook(
             if not chunk_files:
                 print_colored(f"⚠️  No audio files found for {chapter.title}, skipping", "yellow")
                 continue
-            # Use first chunk as placeholder (should have been concatenated)
-            mp3_file = chunk_files[0]
+
+            # Concatenate chunk files into single chapter MP3
+            if len(chunk_files) > 1:
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                print_colored(f"[{timestamp}] 🔗 Concatenating {len(chunk_files)} chunks for {chapter.title}...", "cyan")
+
+                # Create concat list for this chapter
+                chapter_concat_list = os.path.join(chapter_dir, "chapter_concat.txt")
+                with open(chapter_concat_list, "w") as f:
+                    for chunk_file in chunk_files:
+                        rel_path = os.path.relpath(chunk_file, chapter_dir)
+                        f.write(f"file '{rel_path}'\n")
+
+                # Concatenate chunks
+                concat_cmd = [
+                    "ffmpeg", "-f", "concat", "-safe", "0", "-i", chapter_concat_list,
+                    "-c", "copy", mp3_file, "-y", "-loglevel", "error"
+                ]
+
+                result = subprocess.run(concat_cmd, capture_output=True, text=True, timeout=120)
+
+                # Clean up concat list
+                if os.path.exists(chapter_concat_list):
+                    os.remove(chapter_concat_list)
+
+                if result.returncode == 0:
+                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                    print_colored(f"[{timestamp}]    ✅ Concatenated into {os.path.basename(mp3_file)}", "green")
+                else:
+                    print_colored(f"   ⚠️  Concatenation failed: {result.stderr}", "yellow")
+                    mp3_file = chunk_files[0]  # Fallback to first chunk
+            else:
+                # Only one chunk, use it directly
+                mp3_file = chunk_files[0]
 
         chapter_files.append(mp3_file)
         chapter_metadata.append({"title": chapter.title, "file": mp3_file})
@@ -733,7 +795,9 @@ async def create_m4b_audiobook(
                 f.write(f"END={chapter['end_ms']}\n")
                 f.write(f"title={chapter['title']}\n\n")
 
-        print_colored("🎬 Converting to M4B with chapter markers...", "cyan")
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        print_colored(f"[{timestamp}] 🎬 Converting to M4B with chapter markers...", "cyan")
 
         # Run ffmpeg to create M4B with chapters
         # First concat MP3s, then convert to M4B with metadata
@@ -796,7 +860,8 @@ async def create_m4b_audiobook(
 
         if result.returncode == 0 and os.path.exists(output_m4b):
             size_mb = os.path.getsize(output_m4b) / 1024 / 1024
-            print_colored(f"✅ Created M4B audiobook: {os.path.basename(output_m4b)} ({size_mb:.1f} MB)", "green")
+            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            print_colored(f"[{timestamp}] ✅ Created M4B audiobook: {os.path.basename(output_m4b)} ({size_mb:.1f} MB)", "green")
             print_colored(f"   📚 {len(chapter_markers)} chapters with navigation", "yellow")
 
             # Embed cover art if provided
@@ -1647,16 +1712,20 @@ async def process_chapters_to_speech(
         print_colored("❌ No chapters to process", "red")
         return
 
-    # Chunk all chapters
-    print_colored(f"\n✂️  Chunking {len(chapters)} chapters (max {chunk_size} chars per chunk)...", "cyan")
+    # Chunk all chapters (if not already chunked)
     total_chunks = 0
+    already_chunked = all(len(chapter.chunks) > 0 for chapter in chapters)
 
-    for chapter in chapters:
-        chunk_chapter_text(chapter, chunk_size=chunk_size)
-        total_chunks += len(chapter.chunks)
-        print_colored(f"   📖 Chapter {chapter.number} '{chapter.title}': {len(chapter.chunks)} chunks", "yellow")
-
-    print_colored(f"\n✅ Total chunks across all chapters: {total_chunks}", "green")
+    if not already_chunked:
+        print_colored(f"\n✂️  Chunking {len(chapters)} chapters (max {chunk_size} chars per chunk)...", "cyan")
+        for chapter in chapters:
+            chunk_chapter_text(chapter, chunk_size=chunk_size)
+            total_chunks += len(chapter.chunks)
+            print_colored(f"   📖 Chapter {chapter.number} '{chapter.title}': {len(chapter.chunks)} chunks", "yellow")
+        print_colored(f"\n✅ Total chunks across all chapters: {total_chunks}", "green")
+    else:
+        # Chapters already chunked
+        total_chunks = sum(len(chapter.chunks) for chapter in chapters)
 
     # Check for existing progress
     existing_dir = find_existing_audio_directory(output_name)
@@ -2285,6 +2354,89 @@ async def main():
                 print_colored("Voice selection cancelled.", "yellow")
                 continue
 
+            # Chunk chapters BEFORE mode selection (needed for parallel mode safety test)
+            chunk_size = 2000  # Optimal chunk size
+            total_chunks_actual = 0
+
+            if chapters:
+                print_colored(f"\n✂️  Chunking {len(chapters)} chapters (max {chunk_size} chars per chunk)...", "cyan")
+                for chapter in chapters:
+                    chunk_chapter_text(chapter, chunk_size=chunk_size)
+                    total_chunks_actual += len(chapter.chunks)
+                    print_colored(f"   📖 Chapter {chapter.number} '{chapter.title}': {len(chapter.chunks)} chunks", "yellow")
+                print_colored(f"\n✅ Total chunks across all chapters: {total_chunks_actual}", "green")
+
+            # Mode selection (simple vs parallel) - only for chapter-based processing
+            use_parallel = False
+            if chapters and len(chapters) > 1:
+                total_chunks_estimate = total_chunks_actual  # Use actual chunked count
+
+                if total_chunks_estimate >= 100:  # Only offer parallel for large conversions
+                    # Calculate time estimates
+                    simple_time = math.ceil(total_chunks_estimate * 2 / 60)
+                    parallel_workers = min(math.ceil(total_chunks_estimate / 55), 12)
+                    parallel_time = math.ceil(total_chunks_estimate * 2 / parallel_workers / 60)
+
+                    # Box width: 60 characters for content
+                    box_width = 60
+
+                    print_colored("\n╔" + "=" * box_width + "╗", "cyan")
+
+                    title = "🚀 CONVERSION MODE"
+                    # Emoji takes 2 display columns but len() counts it as 1, so add 1 to length
+                    title_display_width = len(title) + 1
+                    padding = (box_width - title_display_width) // 2
+                    print_colored("║" + " " * padding + title + " " * (box_width - padding - title_display_width) + "║", "cyan")
+
+                    print_colored("╠" + "=" * box_width + "╣", "cyan")
+
+                    # Estimated chunks line
+                    chunks_line = f"  Estimated chunks: ~{total_chunks_estimate}"
+                    print_colored("║" + chunks_line + " " * (box_width - len(chunks_line)) + "║", "yellow")
+
+                    print_colored("║" + " " * box_width + "║", "cyan")
+
+                    # Simple mode section
+                    simple_title = "  1. Simple Mode (current, reliable)"
+                    print_colored("║" + simple_title + " " * (box_width - len(simple_title)) + "║", "green")
+
+                    simple_line1 = "     • Single browser session"
+                    print_colored("║" + simple_line1 + " " * (box_width - len(simple_line1)) + "║", "yellow")
+
+                    simple_line2 = f"     • Est. time: ~{simple_time} min"
+                    print_colored("║" + simple_line2 + " " * (box_width - len(simple_line2)) + "║", "yellow")
+
+                    print_colored("║" + " " * box_width + "║", "cyan")
+
+                    # Parallel mode section
+                    parallel_title = "  2. Parallel Mode (NEW, 7x faster)"
+                    print_colored("║" + parallel_title + " " * (box_width - len(parallel_title)) + "║", "magenta")
+
+                    parallel_line1 = f"     • {parallel_workers} workers processing simultaneously"
+                    print_colored("║" + parallel_line1 + " " * (box_width - len(parallel_line1)) + "║", "yellow")
+
+                    parallel_line2 = f"     • Est. time: ~{parallel_time} min"
+                    print_colored("║" + parallel_line2 + " " * (box_width - len(parallel_line2)) + "║", "yellow")
+
+                    parallel_line3 = f"     • Requires managing {parallel_workers} CAPTCHA windows"
+                    print_colored("║" + parallel_line3 + " " * (box_width - len(parallel_line3)) + "║", "yellow")
+
+                    print_colored("║" + " " * box_width + "║", "cyan")
+                    print_colored("╚" + "=" * box_width + "╝", "cyan")
+
+                    while True:
+                        mode_choice = input_colored("\nChoice (1 or 2): ", "blue").strip()
+                        if mode_choice == "1":
+                            use_parallel = False
+                            print_colored("✅ Using Simple Mode", "green")
+                            break
+                        elif mode_choice == "2":
+                            use_parallel = True
+                            print_colored("✅ Using Parallel Mode", "magenta")
+                            break
+                        else:
+                            print_colored("Please enter 1 or 2", "red")
+
             if chapters:
                 print_colored(f"\n🎵 Chapter-based output with nested directories", "cyan")
                 print_colored(f"   Each chapter will have its own subdirectory", "yellow")
@@ -2292,14 +2444,17 @@ async def main():
                 print_colored(
                     f"\n🎵 Output files will be named: {output_name}-1.mp3, {output_name}-2.mp3, etc.", "cyan"
                 )
+                # Set chunk size for text mode (already set for chapters above)
+                chunk_size = 2000
+                print_colored(f"✅ Using chunk size: {chunk_size} characters (optimal for performance)", "green")
 
-            # Use optimal chunk size for API efficiency and natural speech flow
-            chunk_size = 2000
-            print_colored(f"✅ Using chunk size: {chunk_size} characters (optimal for performance)", "green")
-
-            # Prompt for author if processing chapters (for M4B metadata)
+            # Prompt for title and author if processing chapters (for M4B metadata)
             cover_image_path = None
             if chapters:
+                # Prompt for title verification
+                output_name = prompt_for_title(kebab_to_title_case(output_name))
+
+                # Prompt for author
                 author = prompt_for_author(author)
 
                 # Prompt for cover art before processing (so user doesn't have to wait)
@@ -2309,11 +2464,85 @@ async def main():
                 cover_image_path = prompt_for_cover_art(os.path.join("audio", output_name))
 
             # Process document (chapter-based or text-based)
-            if chapters:
+            if chapters and use_parallel:
+                # Parallel mode processing
+                print_colored("\n🚀 Starting Parallel Mode Processing", "magenta")
+
+                # Lazy import to avoid circular dependency
+                from main_document_mode_parallel import (
+                    load_config as load_parallel_config,
+                    run_safety_test,
+                    calculate_optimal_workers,
+                    prompt_captcha_strategy,
+                    run_parallel_processing,
+                )
+
+                # Load parallel configuration
+                parallel_config = load_parallel_config()
+
+                # Run safety test first
+                if parallel_config.get("safety_test_enabled", True):
+                    print_colored("\n🔬 Running safety test...", "cyan")
+                    safety_passed, safety_message = await run_safety_test(
+                        chapters, voice_id, os.path.join("audio", output_name)
+                    )
+
+                    if not safety_passed:
+                        print_colored(f"\n❌ Safety test failed: {safety_message}", "red")
+                        print_colored("Falling back to Simple Mode for safety", "yellow")
+                        use_parallel = False
+
+                if use_parallel:
+                    # Calculate optimal workers
+                    total_chunks = sum(len(chapter.chunks) for chapter in chapters)
+                    num_workers = calculate_optimal_workers(total_chunks, parallel_config)
+
+                    # Prompt for CAPTCHA strategy
+                    strategy = prompt_captcha_strategy()
+
+                    # Run parallel processing
+                    completed, failed = await run_parallel_processing(
+                        chapters=chapters,
+                        voice_id=voice_id,
+                        output_dir=os.path.join("audio", output_name),
+                        num_workers=num_workers,
+                        strategy=strategy,
+                        config=parallel_config
+                    )
+
+                    print_colored(f"\n✅ Parallel processing complete!", "green")
+                    print_colored(f"   Completed: {completed} chunks", "green")
+                    if failed > 0:
+                        print_colored(f"   Failed: {failed} chunks", "red")
+
+                    # Create M4B audiobook if all chunks completed successfully
+                    if failed == 0:
+                        print_colored("\n🎧 All chapters completed successfully!", "green")
+                        print_colored("📖 Creating M4B audiobook with chapter navigation...", "cyan")
+
+                        m4b_file = await create_m4b_audiobook(
+                            os.path.join("audio", output_name),
+                            chapters,
+                            output_name,
+                            author,
+                            cover_image_path,
+                        )
+
+                        if m4b_file:
+                            print_colored(f"\n✅ M4B AUDIOBOOK READY", "green")
+                            print_colored(f"📖 File: {os.path.basename(m4b_file)}", "cyan")
+                            print_colored(f"📂 Location: {os.path.join('audio', output_name)}", "yellow")
+                        else:
+                            print_colored(f"\n⚠️  M4B creation failed, but MP3s are available", "yellow")
+                    else:
+                        print_colored(f"\n⚠️  Skipping M4B creation due to failed chunks", "yellow")
+
+            # Simple mode processing (or fallback from failed safety test)
+            if chapters and not use_parallel:
                 await process_chapters_to_speech(
                     browser, voice_id, chapters, output_name, chunk_size, author, cover_image_path
                 )
-            else:
+            elif not chapters:
                 await process_document_to_speech(browser, voice_id, text, output_name, chunk_size)
 
             # Continue?
@@ -2329,11 +2558,28 @@ async def main():
 
     finally:
         print_colored("\n🔒 Closing browser...", "cyan")
-        await browser.cleanup()
+        try:
+            await browser.cleanup()
+        except Exception as e:
+            # Suppress cleanup errors (common when interrupted)
+            pass
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print_colored("\n\n👋 Exiting...", "yellow")
+        print_colored("\n\n👋 Exiting gracefully...", "yellow")
+    finally:
+        # Force cleanup of any lingering Playwright/Chromium processes
+        import sys
+        try:
+            subprocess.run(
+                ["pkill", "-f", "playwright.*chromium"],
+                capture_output=True,
+                timeout=2
+            )
+        except Exception:
+            pass
+        # Ensure Python.app GUI context releases
+        sys.exit(0)
