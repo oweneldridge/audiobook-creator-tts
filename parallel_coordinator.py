@@ -108,11 +108,12 @@ class ParallelCoordinator:
             # Handle both (idx, text) and (idx, text, chapter) tuple formats
             first_chunks = self.chunk_assignments[worker_id][:3]
             chunk_indices = [c[0] for c in first_chunks]
-            preview = f"{chunk_indices[0]}, {chunk_indices[1]}, {chunk_indices[2]}, ..." if len(chunk_indices) >= 3 else str(chunk_indices)
-            print_colored(
-                f"   Worker #{worker_id}: {chunk_count} chunks (starting with: {preview})",
-                "yellow"
+            preview = (
+                f"{chunk_indices[0]}, {chunk_indices[1]}, {chunk_indices[2]}, ..."
+                if len(chunk_indices) >= 3
+                else str(chunk_indices)
             )
+            print_colored(f"   Worker #{worker_id}: {chunk_count} chunks (starting with: {preview})", "yellow")
 
     def get_worker_assignment(self, worker_id: int) -> List[Tuple[int, str]]:
         """
@@ -126,13 +127,7 @@ class ParallelCoordinator:
         """
         return self.chunk_assignments.get(worker_id, [])
 
-    def update_worker_progress(
-        self,
-        worker_id: int,
-        completed: int,
-        failed: int,
-        status: str
-    ):
+    def update_worker_progress(self, worker_id: int, completed: int, failed: int, status: str):
         """
         Update progress for a specific worker
 
@@ -154,12 +149,8 @@ class ParallelCoordinator:
 
     def _update_overall_stats(self):
         """Recalculate overall statistics from all workers"""
-        self.overall_completed = sum(
-            p.completed_chunks for p in self.worker_progress.values()
-        )
-        self.overall_failed = sum(
-            p.failed_chunks for p in self.worker_progress.values()
-        )
+        self.overall_completed = sum(p.completed_chunks for p in self.worker_progress.values())
+        self.overall_failed = sum(p.failed_chunks for p in self.worker_progress.values())
 
     def mark_worker_started(self, worker_id: int):
         """Mark worker as started and begin timing"""
@@ -209,13 +200,7 @@ class ParallelCoordinator:
 
     def get_status_emoji(self, status: str) -> str:
         """Get emoji for worker status"""
-        status_emojis = {
-            "initializing": "🔄",
-            "working": "✅",
-            "captcha": "⏸️",
-            "failed": "❌",
-            "completed": "🎉"
-        }
+        status_emojis = {"initializing": "🔄", "working": "✅", "captcha": "⏸️", "failed": "❌", "completed": "🎉"}
         return status_emojis.get(status, "❓")
 
     def render_progress_dashboard(self):
@@ -282,10 +267,7 @@ class ParallelCoordinator:
         print_colored("╚" + "═" * 60 + "╝", "cyan")
 
         # CAPTCHA alerts
-        captcha_workers = [
-            worker_id for worker_id, p in self.worker_progress.items()
-            if p.status == "captcha"
-        ]
+        captcha_workers = [worker_id for worker_id, p in self.worker_progress.items() if p.status == "captcha"]
         if captcha_workers:
             print_colored(f"\n🔔 Workers need CAPTCHA: {', '.join(f'#{w}' for w in captcha_workers)}", "yellow")
 
@@ -338,14 +320,8 @@ class ParallelCoordinator:
         if self.start_time and self.end_time:
             duration = self.end_time - self.start_time
 
-        workers_succeeded = sum(
-            1 for p in self.worker_progress.values()
-            if p.status == "completed"
-        )
-        workers_failed = sum(
-            1 for p in self.worker_progress.values()
-            if p.status == "failed"
-        )
+        workers_succeeded = sum(1 for p in self.worker_progress.values() if p.status == "completed")
+        workers_failed = sum(1 for p in self.worker_progress.values() if p.status == "failed")
 
         return {
             "total_chunks": self.total_chunks,
@@ -365,8 +341,12 @@ class ParallelCoordinator:
         print_colored("=" * 60, "cyan")
 
         # Overall stats
-        success_rate = int((stats["completed_chunks"] / stats["total_chunks"]) * 100) if stats["total_chunks"] > 0 else 0
-        print_colored(f"✅ Completed: {stats['completed_chunks']}/{stats['total_chunks']} chunks ({success_rate}%)", "green")
+        success_rate = (
+            int((stats["completed_chunks"] / stats["total_chunks"]) * 100) if stats["total_chunks"] > 0 else 0
+        )
+        print_colored(
+            f"✅ Completed: {stats['completed_chunks']}/{stats['total_chunks']} chunks ({success_rate}%)", "green"
+        )
 
         if stats["failed_chunks"] > 0:
             print_colored(f"❌ Failed: {stats['failed_chunks']} chunks", "red")
