@@ -291,15 +291,15 @@ Choice (1, 2, or 3): 1
    Estimated Time: 3 min
 
 ╔════════════════════════════════════════════════════════════╗
-║  📊 PARALLEL CONVERSION PROGRESS                          ║
+║  📊 PARALLEL CONVERSION PROGRESS                           ║
 ╠════════════════════════════════════════════════════════════╣
-║  Total: 636 | Workers: 12 | Completed: 312/636 (49%)     ║
-║  Failed: 0 | ETA: 2 min                                   ║
+║  Total: 636 | Workers: 12 | Completed: 312/636 (49%)       ║
+║  Failed: 0 | ETA: 2 min                                    ║
 ╠════════════════════════════════════════════════════════════╣
-║  Worker #1  [████████████░░░░░░░░] 28/53  ✅ Working     ║
-║  Worker #2  [██████████████░░░░░░] 32/53  ✅ Working     ║
-║  Worker #3  [███████████░░░░░░░░░] 26/53  ⏸️  CAPTCHA    ║
-║  ...                                                      ║
+║  Worker #1  [████████████░░░░░░░░] 28/53  ✅ Working       ║
+║  Worker #2  [██████████████░░░░░░] 32/53  ✅ Working       ║
+║  Worker #3  [███████████░░░░░░░░░] 26/53  ⏸️  CAPTCHA      ║
+║  ...                                                       ║
 ╚════════════════════════════════════════════════════════════╝
 
 ✅ Parallel processing complete!
