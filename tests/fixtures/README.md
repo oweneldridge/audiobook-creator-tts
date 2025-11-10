@@ -1,6 +1,6 @@
 # Test Fixtures
 
-This directory contains test fixtures and sample data for the Audiobook Creator TTS test suite.
+This directory contains test fixtures and sample data for the test suite.
 
 ## Contents
 
@@ -15,7 +15,7 @@ Audio samples are generated during tests and not committed to the repository.
 
 ## Usage
 
-Fixtures are automatically loaded by pytest via the conftest.py configuration. They can be used in tests through fixture injection:
+Fixtures are automatically loaded by pytest via the conftest.py configuration. Use them in tests through fixture injection:
 
 ```python
 def test_something(fixtures_dir):

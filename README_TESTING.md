@@ -1,27 +1,16 @@
 # Audiobook Creator TTS Test Suite Documentation
 
-Comprehensive testing suite for the Audiobook Creator text-to-speech API project.
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Test Architecture](#test-architecture)
-- [Installation](#installation)
-- [Running Tests](#running-tests)
-- [Test Categories](#test-categories)
-- [Coverage](#coverage)
-- [Writing New Tests](#writing-new-tests)
-- [Troubleshooting](#troubleshooting)
+Comprehensive testing suite for the Audiobook Creator text-to-speech project.
 
 ## Overview
 
-The Audiobook Creator TTS test suite provides comprehensive functional testing with mocked external dependencies. The suite is designed to achieve 80%+ code coverage while maintaining fast execution times and deterministic results.
+The test suite provides comprehensive functional testing with mocked external dependencies. Designed to achieve 80%+ code coverage while maintaining fast execution times and deterministic results.
 
-**Test Philosophy:**
-- **No Browser Testing**: All browser-based functionality is mocked
-- **No Real API Calls**: All HTTP requests use mocked responses
-- **Deterministic**: Tests produce consistent results across runs
-- **Fast**: Complete suite runs in under 1 minute
+Test philosophy:
+- No browser testing (all browser functionality is mocked)
+- No real API calls (all HTTP requests use mocked responses)
+- Deterministic (consistent results across runs)
+- Fast (complete suite runs in under 1 minute)
 
 ## Test Architecture
 
@@ -49,16 +38,16 @@ tests/
 
 ### Test Framework Stack
 
-- **pytest** (v7.4+) - Main test framework
-- **pytest-asyncio** - Async/await test support
-- **pytest-cov** - Code coverage reporting
-- **pytest-mock** - Mocking utilities
-- **responses** - HTTP request mocking
-- **faker** - Test data generation
+- pytest (v7.4+) - Main test framework
+- pytest-asyncio - Async/await test support
+- pytest-cov - Code coverage reporting
+- pytest-mock - Mocking utilities
+- responses - HTTP request mocking
+- faker - Test data generation
 
 ## Installation
 
-### 1. Install Test Dependencies
+Install test dependencies:
 
 ```bash
 # Install test requirements
@@ -68,7 +57,7 @@ pip install -r requirements-test.txt
 pip install pytest pytest-asyncio pytest-cov pytest-mock responses faker
 ```
 
-### 2. Verify Installation
+Verify installation:
 
 ```bash
 pytest --version
@@ -166,82 +155,82 @@ pytest -vv
 
 ### Unit Tests (~70% of coverage)
 
-**Fast, isolated tests with no external dependencies**
+Fast, isolated tests with no external dependencies.
 
 #### Text Processing (`test_text_processing.py`)
-- **TestSplitText**: Text chunking at natural boundaries
-- **TestValidateText**: ASCII sanitization and validation
-- **TestSplitTextSmart**: Smart chunking with paragraph/sentence awareness
-- **TestChunkChapterText**: Chapter-specific text chunking
+- TestSplitText: Text chunking at natural boundaries
+- TestValidateText: ASCII sanitization and validation
+- TestSplitTextSmart: Smart chunking with paragraph/sentence awareness
+- TestChunkChapterText: Chapter-specific text chunking
 
-**Example:**
+Example:
 ```bash
 pytest tests/unit/test_text_processing.py -v
 ```
 
 #### Voice Management (`test_voice_management.py`)
-- **TestLoadVoices**: Voice JSON loading and validation
-- **TestDisplayVoices**: Voice enumeration and display
-- **TestGetVoiceId**: Voice selection by index
-- **TestCountVoiceStats**: Voice statistics calculation
-- **TestSelectVoiceInteractive**: Interactive voice selection
+- TestLoadVoices: Voice JSON loading and validation
+- TestDisplayVoices: Voice enumeration and display
+- TestGetVoiceId: Voice selection by index
+- TestCountVoiceStats: Voice statistics calculation
+- TestSelectVoiceInteractive: Interactive voice selection
 
-**Example:**
+Example:
 ```bash
 pytest tests/unit/test_voice_management.py::TestLoadVoices -v
 ```
 
 #### Document Parsing (`test_document_parsing.py`)
-- **TestChapterClass**: Chapter dataclass operations
-- **TestDocumentParserTXT**: Plain text extraction
-- **TestDocumentParserPDF**: PDF text extraction (mocked)
-- **TestDocumentParserEPUB**: EPUB chapter extraction (mocked)
-- **TestDocumentParserDOCX**: DOCX paragraph extraction (mocked)
-- **TestDocumentParserHTML**: HTML text extraction
-- **TestDocumentParserMarkdown**: Markdown to text conversion
+- TestChapterClass: Chapter dataclass operations
+- TestDocumentParserTXT: Plain text extraction
+- TestDocumentParserPDF: PDF text extraction (mocked)
+- TestDocumentParserEPUB: EPUB chapter extraction (mocked)
+- TestDocumentParserDOCX: DOCX paragraph extraction (mocked)
+- TestDocumentParserHTML: HTML text extraction
+- TestDocumentParserMarkdown: Markdown to text conversion
 
-**Example:**
+Example:
 ```bash
 pytest tests/unit/test_document_parsing.py -m document
 ```
 
 #### File Operations (`test_file_operations.py`)
-- **TestSaveAudio**: Audio file saving and directory creation
-- **TestCheckFFmpegInstalled**: FFmpeg availability detection
-- **TestConcatenateChapterMP3s**: MP3 file concatenation
-- **TestCreateM4BAudiobook**: M4B audiobook creation
-- **TestFindExistingAudioDirectory**: Resume functionality
-- **TestAnalyzeProgress**: Progress tracking and analysis
+- TestSaveAudio: Audio file saving and directory creation
+- TestCheckFFmpegInstalled: FFmpeg availability detection
+- TestConcatenateChapterMP3s: MP3 file concatenation
+- TestCreateM4BAudiobook: M4B audiobook creation
+- TestFindExistingAudioDirectory: Resume functionality
+- TestAnalyzeProgress: Progress tracking and analysis
 
-**Example:**
+Example:
 ```bash
 pytest tests/unit/test_file_operations.py -m audio
 ```
 
 ### Integration Tests (~30% of coverage)
 
-**Multi-component tests with mocked external services**
+Multi-component tests with mocked external services.
 
 #### API Interactions (`test_api_interactions.py`)
-- **TestGetAudioIntegration**: Complete API request/response cycles
-- **TestAPIRetryLogic**: Retry behavior on failures
-- **TestAPIDataSanitization**: Text sanitization before API calls
-- **TestAPIHeaderValidation**: Request header validation
-- **TestAPIPerformance**: Response time and concurrent calls
+- TestGetAudioIntegration: Complete API request/response cycles
+- TestAPIRetryLogic: Retry behavior on failures
+- TestAPIDataSanitization: Text sanitization before API calls
+- TestAPIHeaderValidation: Request header validation
+- TestAPIPerformance: Response time and concurrent calls
 
-**Example:**
+Example:
 ```bash
 pytest tests/integration/test_api_interactions.py -m api
 ```
 
 #### Workflows (`test_workflows.py`)
-- **TestTextToSpeechWorkflow**: Complete TTS conversion workflows
-- **TestDocumentConversionWorkflow**: Document-to-audio pipelines
-- **TestErrorRecoveryWorkflows**: Failure recovery and resume
-- **TestDataFlowWorkflows**: Data flow through system components
-- **TestConcurrentWorkflows**: Parallel processing coordination
+- TestTextToSpeechWorkflow: Complete TTS conversion workflows
+- TestDocumentConversionWorkflow: Document-to-audio pipelines
+- TestErrorRecoveryWorkflows: Failure recovery and resume
+- TestDataFlowWorkflows: Data flow through system components
+- TestConcurrentWorkflows: Parallel processing coordination
 
-**Example:**
+Example:
 ```bash
 pytest tests/integration/test_workflows.py -m integration
 ```
@@ -250,10 +239,10 @@ pytest tests/integration/test_workflows.py -m integration
 
 ### Coverage Targets
 
-- **Overall**: 80% minimum (enforced by pytest.ini)
-- **Unit Tests**: 90%+ preferred
-- **Integration Tests**: 70%+ acceptable
-- **Critical Paths**: 100% required
+- Overall: 80% minimum (enforced by pytest.ini)
+- Unit Tests: 90%+ preferred
+- Integration Tests: 70%+ acceptable
+- Critical Paths: 100% required
 
 ### Viewing Coverage
 
@@ -286,10 +275,10 @@ TOTAL                                   810     100   88%
 
 If coverage is below target:
 
-1. **Identify uncovered lines**: `pytest --cov --cov-report=term-missing`
-2. **Prioritize critical code**: Focus on main logic paths first
-3. **Add targeted tests**: Create tests for uncovered branches
-4. **Review edge cases**: Ensure error conditions are tested
+1. Identify uncovered lines: `pytest --cov --cov-report=term-missing`
+2. Prioritize critical code: Focus on main logic paths first
+3. Add targeted tests: Create tests for uncovered branches
+4. Review edge cases: Ensure error conditions are tested
 
 ## Writing New Tests
 
@@ -358,10 +347,10 @@ def my_custom_fixture():
 
 ### Test Naming Conventions
 
-- **Test files**: `test_*.py`
-- **Test classes**: `Test*` (e.g., `TestSplitText`)
-- **Test functions**: `test_*` (e.g., `test_split_text_empty_input`)
-- **Descriptive names**: Clearly describe what is being tested
+- Test files: `test_*.py`
+- Test classes: `Test*` (e.g., `TestSplitText`)
+- Test functions: `test_*` (e.g., `test_split_text_empty_input`)
+- Descriptive names: Clearly describe what is being tested
 
 ### Markers
 
@@ -381,11 +370,9 @@ Use markers to categorize tests:
 
 ### Common Issues
 
-#### 1. Import Errors
+**Import Errors**: `ModuleNotFoundError: No module named 'main'`
 
-**Problem**: `ModuleNotFoundError: No module named 'main'`
-
-**Solution**:
+Solution:
 ```bash
 # Run from project root
 cd /path/to/Audiobook-Creator-TTS
@@ -396,33 +383,26 @@ export PYTHONPATH="${PYTHONPATH}:/path/to/Audiobook-Creator-TTS"
 pytest
 ```
 
-#### 2. Fixture Not Found
+**Fixture Not Found**: `fixture 'sample_voices_data' not found`
 
-**Problem**: `fixture 'sample_voices_data' not found`
-
-**Solution**:
+Solution:
 - Verify fixture is defined in `tests/conftest.py`
 - Check fixture name matches function parameter
 - Ensure conftest.py is in tests/ directory
 
-#### 3. Coverage Below Target
+**Coverage Below Target**: `FAILED: coverage: total of 75 is less than fail-under=80`
 
-**Problem**: `FAILED: coverage: total of 75 is less than fail-under=80`
-
-**Solution**:
+Solution:
 ```bash
 # Identify missing coverage
 pytest --cov --cov-report=term-missing
 
-# Focus on high-value code paths
 # Add tests for uncovered lines
 ```
 
-#### 4. Async Test Failures
+**Async Test Failures**: `RuntimeWarning: coroutine was never awaited`
 
-**Problem**: `RuntimeWarning: coroutine was never awaited`
-
-**Solution**:
+Solution:
 ```python
 # Mark test as async
 @pytest.mark.asyncio
@@ -431,11 +411,9 @@ async def test_async_function():
     assert result is not None
 ```
 
-#### 5. Mock Not Working
+**Mock Not Working**: Mock not being used; real function called
 
-**Problem**: Mock not being used; real function called
-
-**Solution**:
+Solution:
 ```python
 # Use correct import path (where it's used, not where it's defined)
 @patch('main.get_audio')  # Correct: patch where it's used
@@ -616,13 +594,7 @@ When adding new functionality:
 
 For issues with tests:
 
-1. Check [Troubleshooting](#troubleshooting) section
+1. Check Troubleshooting section
 2. Review test output with `-vv` flag
 3. Use `--pdb` to debug failing tests
 4. Check conftest.py for available fixtures
-
----
-
-**Last Updated**: January 2025
-**Test Suite Version**: 1.0.0
-**Python Version**: 3.11+

@@ -1,22 +1,12 @@
 # Audiobook Creator TTS - Distribution Guide
 
-Complete guide for building and distributing the Audiobook Creator TTS macOS app.
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Building the App](#building-the-app)
-3. [Distribution Options](#distribution-options)
-4. [User Installation](#user-installation)
-5. [Troubleshooting](#troubleshooting)
-
----
+Complete guide for building and distributing the macOS app.
 
 ## Prerequisites
 
 ### Development Environment
 
-**Required:**
+Required:
 - macOS 10.13 or later
 - Python 3.11
 - PyInstaller
@@ -29,11 +19,9 @@ pip install pyinstaller
 pyinstaller --version
 ```
 
-**Optional (for code signing):**
+Optional (for code signing):
 - Apple Developer Account ($99/year)
 - Xcode Command Line Tools
-
----
 
 ## Building the App
 
@@ -71,9 +59,8 @@ pyinstaller "Audiobook Creator TTS.spec"
 # Result: dist/Audiobook Creator TTS.app
 ```
 
-**Build time:** 2-5 minutes depending on system
-
-**Output size:** ~450-550 MB (includes Python + all dependencies)
+Build time: 2-5 minutes
+Output size: ~450-550 MB (includes Python + all dependencies)
 
 ### Step 4: Test the App
 
@@ -85,27 +72,19 @@ open "dist/Audiobook Creator TTS.app"
 "dist/Audiobook Creator TTS.app/Contents/MacOS/Audiobook Creator TTS"
 ```
 
-**First-run behavior:**
+First-run behavior:
 - Checks for Playwright browser
 - Auto-downloads Chromium (~200MB) if not present
 - Downloads to: `~/.cache/ms-playwright/chromium-*/`
-
----
 
 ## Distribution Options
 
 ### Option 1: Direct Distribution (Unsigned)
 
-**Pros:**
-- Free
-- Simple
-- Works for personal use
+Pros: Free, simple, works for personal use
+Cons: Gatekeeper warning on first launch, users must right-click → Open
 
-**Cons:**
-- Gatekeeper warning on first launch
-- Users must right-click → Open
-
-**Steps:**
+Steps:
 
 1. Compress the app:
 ```bash
@@ -113,25 +92,16 @@ cd dist
 zip -r "Audiobook-Creator-TTS-v1.0.0.zip" "Audiobook Creator TTS.app"
 ```
 
-2. Distribute the ZIP file via:
-   - Google Drive / Dropbox
-   - GitHub Releases
-   - Direct download link
+2. Distribute the ZIP file via Google Drive, Dropbox, GitHub Releases, or direct download
 
 3. Provide installation instructions (see User Installation section)
 
 ### Option 2: Code Signing (Recommended for Public Distribution)
 
-**Pros:**
-- No Gatekeeper warning
-- Professional appearance
-- Users can double-click to run
+Pros: No Gatekeeper warning, professional appearance, users can double-click to run
+Cons: Requires Apple Developer account ($99/year), more complex setup
 
-**Cons:**
-- Requires Apple Developer account ($99/year)
-- More complex setup
-
-**Steps:**
+Steps:
 
 1. Get Apple Developer account and Developer ID certificate
 
@@ -193,29 +163,26 @@ create-dmg \
   "dist/"
 ```
 
----
-
 ## User Installation
 
 ### For End Users (Unsigned App)
 
-**Download and Install:**
-
+Download and Install:
 1. Download `Audiobook-Creator-TTS-v1.0.0.zip`
 2. Double-click to extract `Audiobook Creator TTS.app`
 3. Drag `Audiobook Creator TTS.app` to `/Applications` folder
 
-**First Launch (Gatekeeper Bypass):**
+First Launch (Gatekeeper Bypass):
 
-When you first open the app, macOS will show: *"Audiobook Creator TTS.app can't be opened because it is from an unidentified developer."*
+When you first open the app, macOS will show: "Audiobook Creator TTS.app can't be opened because it is from an unidentified developer."
 
-**To open:**
-1. **Right-click** (or Control-click) on `Audiobook Creator TTS.app`
-2. Click **"Open"**
-3. Click **"Open"** again in the dialog
+To open:
+1. Right-click (or Control-click) on `Audiobook Creator TTS.app`
+2. Click "Open"
+3. Click "Open" again in the dialog
 4. The app will launch (you only need to do this once)
 
-**Alternative method:**
+Alternative method:
 ```bash
 # Remove quarantine attribute
 xattr -d com.apple.quarantine "/Applications/Audiobook Creator TTS.app"
@@ -231,18 +198,10 @@ xattr -d com.apple.quarantine "/Applications/Audiobook Creator TTS.app"
 
 ### System Requirements
 
-- **macOS:** 10.13 (High Sierra) or later
-- **Disk Space:** 1 GB free (app + browser + audio output)
-- **Internet:** Required for first-run browser download and API access
-- **Optional:** ffmpeg (for M4B audiobook creation)
-
-**To install ffmpeg:**
-```bash
-# Using Homebrew
-brew install ffmpeg
-```
-
----
+- macOS 10.13 (High Sierra) or later
+- 1 GB free disk space (app + browser + audio output)
+- Internet connection (required for first-run browser download and API access)
+- ffmpeg (optional, for M4B audiobook creation): `brew install ffmpeg`
 
 ## File Structure
 
@@ -263,11 +222,9 @@ Audiobook Creator TTS.app/
 
 ### User Data Locations
 
-- **Playwright Browser:** `~/.cache/ms-playwright/chromium-*/`
-- **Audio Output:** `~/Documents/Audiobook-Creator-TTS/audio/` (or CWD/audio/)
-- **No user config files** (all self-contained)
-
----
+- Playwright Browser: `~/.cache/ms-playwright/chromium-*/`
+- Audio Output: `~/Documents/Audiobook-Creator-TTS/audio/` (or CWD/audio/)
+- No user config files (all self-contained)
 
 ## Troubleshooting
 
@@ -358,8 +315,6 @@ This happens when downloading from non-HTTPS sources. Solutions:
 2. Code sign the app
 3. Users can remove quarantine: `xattr -d com.apple.quarantine`
 
----
-
 ## Version Updates
 
 ### Creating a New Release
@@ -390,34 +345,30 @@ zip -r "Audiobook-Creator-TTS-v1.1.0.zip" "Audiobook Creator TTS.app"
 
 5. Upload to GitHub Releases or distribution platform
 
----
-
 ## Best Practices
 
 ### Before Distribution
 
-- [ ] Test on clean macOS system (no development tools)
-- [ ] Verify first-run browser download works
-- [ ] Test with various document formats (PDF, EPUB, TXT)
-- [ ] Check audio output quality
-- [ ] Verify all voice options work
-- [ ] Test M4B audiobook creation (with ffmpeg)
-- [ ] Check app size is reasonable (<600MB)
+- Test on clean macOS system (no development tools)
+- Verify first-run browser download works
+- Test with various document formats (PDF, EPUB, TXT)
+- Check audio output quality
+- Verify all voice options work
+- Test M4B audiobook creation (with ffmpeg)
+- Check app size is reasonable (<600MB)
 
 ### Security
 
-- **Don't bundle secrets** - No API keys in the bundle
-- **Use HTTPS** - Only distribute via secure channels
-- **Code sign** - For public distribution
-- **Keep dependencies updated** - Regularly update PyInstaller and dependencies
+- Don't bundle secrets - No API keys in the bundle
+- Use HTTPS - Only distribute via secure channels
+- Code sign - For public distribution
+- Keep dependencies updated - Regularly update PyInstaller and dependencies
 
 ### Performance
 
-- **Test on older Macs** - Ensure compatibility with macOS 10.13+
-- **Monitor resource usage** - App should use <500MB RAM
-- **Optimize startup time** - Should launch in <5 seconds
-
----
+- Test on older Macs - Ensure compatibility with macOS 10.13+
+- Monitor resource usage - App should use <500MB RAM
+- Optimize startup time - Should launch in <5 seconds
 
 ## Support
 
@@ -432,12 +383,7 @@ zip -r "Audiobook-Creator-TTS-v1.1.0.zip" "Audiobook Creator TTS.app"
 
 - Check [README.md](README.md) for usage instructions
 - Report issues on GitHub
-- Include system info when reporting bugs:
-  - macOS version
-  - App version
-  - Error messages from Terminal
-
----
+- Include system info when reporting bugs (macOS version, app version, error messages from Terminal)
 
 ## License
 
@@ -446,8 +392,3 @@ See LICENSE file for distribution rights.
 ## Credits
 
 Built with PyInstaller, Playwright, and Python 3.11.
-
----
-
-**Last Updated:** 2025-01-15
-**Version:** 1.0.0
