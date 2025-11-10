@@ -3,14 +3,15 @@ Additional comprehensive tests for main.py to increase coverage
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock, mock_open
-import json
+from unittest.mock import Mock, mock_open
+from pathlib import Path
+from typing import Any
 
 
 class TestGetAudio:
     """Tests for get_audio function"""
 
-    def test_get_audio_success(self, monkeypatch):
+    def test_get_audio_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful audio retrieval"""
         import main
 
@@ -32,7 +33,7 @@ class TestGetAudio:
         assert result == b"audio_data"
         assert mock_post.called
 
-    def test_get_audio_wrong_content_type(self, monkeypatch):
+    def test_get_audio_wrong_content_type(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test handling of wrong content type"""
         import main
 
@@ -56,7 +57,7 @@ class TestGetAudio:
         assert result is None
         assert any("Unexpected response format" in p for p in printed)
 
-    def test_get_audio_request_exception_with_response(self, monkeypatch):
+    def test_get_audio_request_exception_with_response(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test handling of request exception with response"""
         import main
         import requests as req
@@ -83,7 +84,7 @@ class TestGetAudio:
         assert any("Server response" in p for p in printed)
         assert any("Request failed" in p for p in printed)
 
-    def test_get_audio_request_exception_without_response(self, monkeypatch):
+    def test_get_audio_request_exception_without_response(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test handling of request exception without response"""
         import main
         import requests as req
@@ -106,7 +107,7 @@ class TestGetAudio:
         assert result is None
         assert any("Request failed" in p for p in printed)
 
-    def test_get_audio_unexpected_exception(self, monkeypatch):
+    def test_get_audio_unexpected_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test handling of unexpected exception"""
         import main
 
@@ -129,7 +130,7 @@ class TestGetAudio:
 class TestSaveAudio:
     """Tests for save_audio function"""
 
-    def test_save_audio_success(self, tmp_path, monkeypatch):
+    def test_save_audio_success(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful audio save"""
         import main
 
@@ -146,7 +147,7 @@ class TestSaveAudio:
         assert (tmp_path / "audio" / "audio_chunk_1.mp3").exists()
         assert any("Audio saved" in p for p in printed)
 
-    def test_save_audio_no_data(self, tmp_path, monkeypatch):
+    def test_save_audio_no_data(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test handling of no audio data"""
         import main
 
@@ -160,7 +161,7 @@ class TestSaveAudio:
 
         assert any("No audio data to save" in p for p in printed)
 
-    def test_save_audio_io_error(self, tmp_path, monkeypatch):
+    def test_save_audio_io_error(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test handling of IO error during save"""
         import main
 
@@ -184,7 +185,7 @@ class TestSaveAudio:
 class TestMultilineInput:
     """Tests for get_multiline_input function"""
 
-    def test_get_multiline_input_single_line(self, monkeypatch):
+    def test_get_multiline_input_single_line(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test single line input"""
         import main
 
@@ -199,7 +200,7 @@ class TestMultilineInput:
 
         assert result == "This is a test"
 
-    def test_get_multiline_input_multiple_lines(self, monkeypatch):
+    def test_get_multiline_input_multiple_lines(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test multiple line input"""
         import main
 
@@ -218,10 +219,9 @@ class TestMultilineInput:
 class TestGracefulExit:
     """Tests for prompt_graceful_exit function"""
 
-    def test_prompt_graceful_exit_yes(self, monkeypatch):
+    def test_prompt_graceful_exit_yes(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test exiting with yes"""
         import main
-        import sys
 
         monkeypatch.setattr("main.input_colored", lambda prompt, color: "y")
 
@@ -234,7 +234,7 @@ class TestGracefulExit:
         assert exc_info.value.code == 0
         assert any("Exiting gracefully" in p for p in printed)
 
-    def test_prompt_graceful_exit_no(self, monkeypatch):
+    def test_prompt_graceful_exit_no(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test continuing with no"""
         import main
 
@@ -243,10 +243,9 @@ class TestGracefulExit:
         # Should return without error
         main.prompt_graceful_exit()
 
-    def test_prompt_graceful_exit_invalid_then_yes(self, monkeypatch):
+    def test_prompt_graceful_exit_invalid_then_yes(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test invalid input then yes"""
         import main
-        import sys
 
         inputs = ["invalid", "y"]
         input_iter = iter(inputs)
@@ -264,10 +263,9 @@ class TestGracefulExit:
 class TestCoverArtFunctions:
     """Tests for cover art related functions"""
 
-    def test_embed_cover_art_success(self, tmp_path, monkeypatch):
+    def test_embed_cover_art_success(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful cover art embedding"""
         import main
-        import subprocess
 
         # Create test files
         m4b_file = tmp_path / "test.m4b"
@@ -283,7 +281,7 @@ class TestCoverArtFunctions:
         atomic_result = Mock()
         atomic_result.returncode = 0
 
-        def mock_run(cmd, **kwargs):
+        def mock_run(cmd: Any, **kwargs: Any) -> Any:
             if cmd[0] == "which":
                 return which_result
             else:
@@ -299,10 +297,9 @@ class TestCoverArtFunctions:
         assert result is True
         assert any("Cover art embedded successfully" in p for p in printed)
 
-    def test_embed_cover_art_atomicparsley_not_installed(self, monkeypatch):
+    def test_embed_cover_art_atomicparsley_not_installed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when AtomicParsley is not installed"""
         import main
-        import subprocess
 
         which_result = Mock()
         which_result.returncode = 1
@@ -317,10 +314,9 @@ class TestCoverArtFunctions:
         assert result is False
         assert any("AtomicParsley is not installed" in p for p in printed)
 
-    def test_embed_cover_art_m4b_not_found(self, monkeypatch):
+    def test_embed_cover_art_m4b_not_found(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when M4B file not found"""
         import main
-        import subprocess
 
         which_result = Mock()
         which_result.returncode = 0
@@ -335,10 +331,9 @@ class TestCoverArtFunctions:
         assert result is False
         assert any("M4B file not found" in p for p in printed)
 
-    def test_embed_cover_art_cover_not_found(self, tmp_path, monkeypatch):
+    def test_embed_cover_art_cover_not_found(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when cover file not found"""
         import main
-        import subprocess
 
         m4b_file = tmp_path / "test.m4b"
         m4b_file.write_bytes(b"test")
@@ -356,10 +351,9 @@ class TestCoverArtFunctions:
         assert result is False
         assert any("Cover image not found" in p for p in printed)
 
-    def test_embed_cover_art_atomic_error(self, tmp_path, monkeypatch):
+    def test_embed_cover_art_atomic_error(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when AtomicParsley returns error"""
         import main
-        import subprocess
 
         m4b_file = tmp_path / "test.m4b"
         m4b_file.write_bytes(b"test")
@@ -373,7 +367,7 @@ class TestCoverArtFunctions:
         atomic_result.returncode = 1
         atomic_result.stderr = "Error message"
 
-        def mock_run(cmd, **kwargs):
+        def mock_run(cmd: Any, **kwargs: Any) -> Any:
             if cmd[0] == "which":
                 return which_result
             else:
@@ -389,7 +383,7 @@ class TestCoverArtFunctions:
         assert result is False
         assert any("Error embedding cover art" in p for p in printed)
 
-    def test_prompt_for_cover_art_decline(self, monkeypatch):
+    def test_prompt_for_cover_art_decline(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test declining cover art"""
         import main
 
@@ -399,7 +393,7 @@ class TestCoverArtFunctions:
 
         assert result is None
 
-    def test_prompt_for_cover_art_use_default(self, tmp_path, monkeypatch):
+    def test_prompt_for_cover_art_use_default(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test using default cover.jpg"""
         import main
 
@@ -414,7 +408,7 @@ class TestCoverArtFunctions:
 
         assert result == str(cover_file)
 
-    def test_prompt_for_cover_art_custom_path(self, tmp_path, monkeypatch):
+    def test_prompt_for_cover_art_custom_path(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test providing custom cover path"""
         import main
 
@@ -429,7 +423,7 @@ class TestCoverArtFunctions:
 
         assert result == str(cover_file)
 
-    def test_prompt_for_cover_art_quoted_path(self, tmp_path, monkeypatch):
+    def test_prompt_for_cover_art_quoted_path(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test handling quoted paths"""
         import main
 
@@ -445,7 +439,7 @@ class TestCoverArtFunctions:
 
         assert result == str(cover_file)
 
-    def test_prompt_for_cover_art_invalid_extension(self, tmp_path, monkeypatch):
+    def test_prompt_for_cover_art_invalid_extension(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test invalid file extension"""
         import main
 
@@ -466,7 +460,9 @@ class TestCoverArtFunctions:
         assert result is None
         assert any("must be an image" in p for p in printed)
 
-    def test_prompt_for_cover_art_file_not_found_retry_no(self, tmp_path, monkeypatch):
+    def test_prompt_for_cover_art_file_not_found_retry_no(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test file not found with no retry"""
         import main
 
@@ -486,7 +482,7 @@ class TestCoverArtFunctions:
 class TestMainAdditional:
     """Test main function execution paths"""
 
-    def test_main_no_voices(self, monkeypatch):
+    def test_main_no_voices(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test main when voices can't be loaded"""
         import main
 
@@ -499,7 +495,7 @@ class TestMainAdditional:
 
         assert any("No voices available" in p for p in printed)
 
-    def test_main_voice_selection_cancelled(self, monkeypatch):
+    def test_main_voice_selection_cancelled(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test main when voice selection is cancelled"""
         import main
 
@@ -514,7 +510,7 @@ class TestMainAdditional:
 
         assert any("Voice selection cancelled" in p for p in printed)
 
-    def test_main_no_text_provided(self, monkeypatch):
+    def test_main_no_text_provided(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test main when no text is provided"""
         import main
 
@@ -530,7 +526,7 @@ class TestMainAdditional:
 
         assert any("No text provided" in p for p in printed)
 
-    def test_main_text_too_short(self, monkeypatch):
+    def test_main_text_too_short(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test main when text is too short"""
         import main
 
@@ -546,7 +542,7 @@ class TestMainAdditional:
 
         assert any("must be more than 9 characters" in p for p in printed)
 
-    def test_main_split_text_fails(self, monkeypatch):
+    def test_main_split_text_fails(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test main when text splitting fails"""
         import main
 
@@ -563,7 +559,7 @@ class TestMainAdditional:
 
         assert any("Could not split text into chunks" in p for p in printed)
 
-    def test_main_successful_processing(self, tmp_path, monkeypatch):
+    def test_main_successful_processing(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test main with successful processing"""
         import main
 
@@ -593,7 +589,7 @@ class TestMainAdditional:
 
         files_written = []
 
-        def mock_file_write(path, mode):
+        def mock_file_write(path: Any, mode: Any) -> Any:
             files_written.append(path)
             return mock_open()(path, mode)
 

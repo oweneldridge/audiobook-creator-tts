@@ -7,6 +7,7 @@ Complete guide for building and distributing the macOS app.
 ### Development Environment
 
 Required:
+
 - macOS 10.13 or later
 - Python 3.11
 - PyInstaller
@@ -20,6 +21,7 @@ pyinstaller --version
 ```
 
 Optional (for code signing):
+
 - Apple Developer Account ($99/year)
 - Xcode Command Line Tools
 
@@ -43,6 +45,7 @@ pip install pyinstaller
 Follow instructions in `icon_instructions.md` to create `icon.icns`.
 
 If you create an icon, update `Audiobook Creator TTS.spec` icon parameter:
+
 ```python
 icon='icon.icns',  # Change from icon=None
 ```
@@ -73,6 +76,7 @@ open "dist/Audiobook Creator TTS.app"
 ```
 
 First-run behavior:
+
 - Checks for Playwright browser
 - Auto-downloads Chromium (~200MB) if not present
 - Downloads to: `~/.cache/ms-playwright/chromium-*/`
@@ -87,6 +91,7 @@ Cons: Gatekeeper warning on first launch, users must right-click → Open
 Steps:
 
 1. Compress the app:
+
 ```bash
 cd dist
 zip -r "Audiobook-Creator-TTS-v1.0.0.zip" "Audiobook Creator TTS.app"
@@ -106,6 +111,7 @@ Steps:
 1. Get Apple Developer account and Developer ID certificate
 
 2. Sign the app:
+
 ```bash
 codesign --deep --force --verify --verbose \
   --sign "Developer ID Application: Your Name (TEAM_ID)" \
@@ -113,12 +119,14 @@ codesign --deep --force --verify --verbose \
 ```
 
 3. Verify signature:
+
 ```bash
 codesign --verify --deep --strict --verbose=2 "dist/Audiobook Creator TTS.app"
 spctl -a -t exec -vv "dist/Audiobook Creator TTS.app"
 ```
 
 4. Notarize with Apple (optional but recommended):
+
 ```bash
 # Create ZIP for notarization
 ditto -c -k --keepParent "dist/Audiobook Creator TTS.app" "audiobook-creator-tts.zip"
@@ -136,6 +144,7 @@ xcrun stapler staple "dist/Audiobook Creator TTS.app"
 ```
 
 5. Create final ZIP:
+
 ```bash
 cd dist
 zip -r "Audiobook-Creator-TTS-v1.0.0-signed.zip" "Audiobook Creator TTS.app"
@@ -168,6 +177,7 @@ create-dmg \
 ### For End Users (Unsigned App)
 
 Download and Install:
+
 1. Download `Audiobook-Creator-TTS-v1.0.0.zip`
 2. Double-click to extract `Audiobook Creator TTS.app`
 3. Drag `Audiobook Creator TTS.app` to `/Applications` folder
@@ -177,12 +187,14 @@ First Launch (Gatekeeper Bypass):
 When you first open the app, macOS will show: "Audiobook Creator TTS.app can't be opened because it is from an unidentified developer."
 
 To open:
+
 1. Right-click (or Control-click) on `Audiobook Creator TTS.app`
 2. Click "Open"
 3. Click "Open" again in the dialog
 4. The app will launch (you only need to do this once)
 
 Alternative method:
+
 ```bash
 # Remove quarantine attribute
 xattr -d com.apple.quarantine "/Applications/Audiobook Creator TTS.app"
@@ -207,7 +219,7 @@ xattr -d com.apple.quarantine "/Applications/Audiobook Creator TTS.app"
 
 ### Inside the .app Bundle
 
-```
+```text
 Audiobook Creator TTS.app/
 ├── Contents/
 │   ├── Info.plist                   # App metadata
@@ -231,6 +243,7 @@ Audiobook Creator TTS.app/
 ### Build Issues
 
 **"ModuleNotFoundError" during build:**
+
 ```bash
 # Ensure all dependencies are installed
 pip install -r requirements.txt
@@ -243,6 +256,7 @@ pyinstaller "Audiobook Creator TTS.spec"
 **"ImportError: No module named 'X'" when running app:**
 
 Add to `Audiobook Creator TTS.spec` hiddenimports:
+
 ```python
 hiddenimports = [
     'X',  # Add missing module
@@ -251,6 +265,7 @@ hiddenimports = [
 ```
 
 **Build fails with "Permission denied":**
+
 ```bash
 # Remove old build artifacts
 sudo rm -rf build dist
@@ -264,11 +279,13 @@ pyinstaller "Audiobook Creator TTS.spec"
 **App won't launch (crashes immediately):**
 
 Run from terminal to see error:
+
 ```bash
 "/Applications/Audiobook Creator TTS.app/Contents/MacOS/Audiobook Creator TTS"
 ```
 
 Common fixes:
+
 - Ensure Python 3.11 was used for build
 - Check all dependencies are bundled
 - Verify no system-specific paths in code
@@ -276,6 +293,7 @@ Common fixes:
 **"Playwright browser not found":**
 
 The app should auto-download on first run. If it fails:
+
 ```bash
 # Manual install
 /Applications/Audiobook\ Creator\ TTS.app/Contents/MacOS/Audiobook\ Creator\ TTS
@@ -285,6 +303,7 @@ playwright install chromium
 ```
 
 **Gatekeeper keeps blocking the app:**
+
 ```bash
 # Remove quarantine
 xattr -d com.apple.quarantine "/Applications/Audiobook Creator TTS.app"
@@ -298,6 +317,7 @@ xattr -d com.apple.quarantine "/Applications/Audiobook Creator TTS.app"
 **File size too large (>1GB):**
 
 Reduce size by excluding unused libraries in `Audiobook Creator TTS.spec`:
+
 ```python
 excludes=[
     'matplotlib',
@@ -311,6 +331,7 @@ excludes=[
 **macOS warns "damaged and can't be opened":**
 
 This happens when downloading from non-HTTPS sources. Solutions:
+
 1. Use HTTPS for distribution
 2. Code sign the app
 3. Users can remove quarantine: `xattr -d com.apple.quarantine`
@@ -320,24 +341,28 @@ This happens when downloading from non-HTTPS sources. Solutions:
 ### Creating a New Release
 
 1. Update version in `Audiobook Creator TTS.spec`:
+
 ```python
 'CFBundleShortVersionString': '1.1.0',
 'CFBundleVersion': '1.1.0',
 ```
 
 2. Tag the release:
+
 ```bash
 git tag -a v1.1.0 -m "Release v1.1.0"
 git push origin v1.1.0
 ```
 
 3. Rebuild:
+
 ```bash
 rm -rf build dist
 pyinstaller "Audiobook Creator TTS.spec"
 ```
 
 4. Create distribution package:
+
 ```bash
 cd dist
 zip -r "Audiobook-Creator-TTS-v1.1.0.zip" "Audiobook Creator TTS.app"

@@ -8,8 +8,8 @@ import os
 import tempfile
 import shutil
 from pathlib import Path
-from typing import Dict, Any
-from unittest.mock import Mock, MagicMock
+from typing import Dict, Any, Generator, List
+from unittest.mock import Mock
 
 
 # ============================================================================
@@ -30,13 +30,13 @@ def tests_dir():
 
 
 @pytest.fixture
-def fixtures_dir(tests_dir):
+def fixtures_dir(tests_dir: Path) -> Path:
     """Return the fixtures directory"""
     return tests_dir / "fixtures"
 
 
 @pytest.fixture
-def temp_audio_dir():
+def temp_audio_dir() -> Generator[str, None, None]:
     """Create a temporary directory for audio output"""
     temp_dir = tempfile.mkdtemp(prefix="speechma_test_audio_")
     yield temp_dir
@@ -68,7 +68,7 @@ def sample_voices_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def voices_json_file(tmp_path, sample_voices_data):
+def voices_json_file(tmp_path: Path, sample_voices_data: Dict[str, Any]) -> Path:
     """Create a temporary voices.json file"""
     voices_file = tmp_path / "voices.json"
     with open(voices_file, "w", encoding="utf-8") as f:
@@ -77,7 +77,9 @@ def voices_json_file(tmp_path, sample_voices_data):
 
 
 @pytest.fixture
-def mock_voices_json(tmp_path, sample_voices_data, monkeypatch):
+def mock_voices_json(
+    tmp_path: Path, sample_voices_data: Dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> Generator[Path, None, None]:
     """Mock voices.json in the current directory"""
     voices_file = tmp_path / "voices.json"
     with open(voices_file, "w", encoding="utf-8") as f:
@@ -172,7 +174,7 @@ def mock_audio_response():
 
 
 @pytest.fixture
-def mock_api_success_response(mock_audio_response):
+def mock_api_success_response(mock_audio_response: Mock) -> Mock:
     """Mock successful API response object"""
     mock_response = Mock()
     mock_response.status_code = 200
@@ -252,9 +254,8 @@ def sample_epub_content():
 
 
 @pytest.fixture
-def mock_datetime(monkeypatch):
+def mock_datetime(monkeypatch: pytest.MonkeyPatch) -> type:
     """Mock datetime for consistent timestamps in tests"""
-    from datetime import datetime
 
     class MockDateTime:
         @staticmethod
@@ -270,11 +271,11 @@ def mock_datetime(monkeypatch):
 
 
 @pytest.fixture
-def capture_print_output(monkeypatch):
+def capture_print_output(monkeypatch: pytest.MonkeyPatch) -> List[str]:
     """Capture print_colored output for testing"""
     printed_messages = []
 
-    def mock_print_colored(text, color):
+    def mock_print_colored(text: str, color: str) -> None:
         printed_messages.append({"text": text, "color": color})
 
     import main
@@ -285,11 +286,11 @@ def capture_print_output(monkeypatch):
 
 
 @pytest.fixture
-def mock_os_makedirs(monkeypatch):
+def mock_os_makedirs(monkeypatch: pytest.MonkeyPatch) -> List[str]:
     """Mock os.makedirs to prevent actual directory creation"""
     created_dirs = []
 
-    def mock_makedirs(path, exist_ok=False):
+    def mock_makedirs(path: str, exist_ok: bool = False) -> None:
         created_dirs.append({"path": path, "exist_ok": exist_ok})
 
     monkeypatch.setattr(os, "makedirs", mock_makedirs)
@@ -297,14 +298,14 @@ def mock_os_makedirs(monkeypatch):
 
 
 @pytest.fixture
-def mock_file_operations(monkeypatch, tmp_path):
+def mock_file_operations(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Dict[str, Dict[str, str]]:
     """Mock file read/write operations"""
     files_written = {}
     files_read = {}
 
     original_open = open
 
-    def mock_open(file, mode="r", *args, **kwargs):
+    def mock_open(file: str, mode: str = "r", *args: Any, **kwargs: Any) -> Any:
         if "w" in mode or "a" in mode:
             # Track writes
             files_written[file] = {"mode": mode}

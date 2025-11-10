@@ -7,6 +7,7 @@ Comprehensive testing suite for the Audiobook Creator text-to-speech project.
 The test suite provides comprehensive functional testing with mocked external dependencies. Designed to achieve 80%+ code coverage while maintaining fast execution times and deterministic results.
 
 Test philosophy:
+
 - No browser testing (all browser functionality is mocked)
 - No real API calls (all HTTP requests use mocked responses)
 - Deterministic (consistent results across runs)
@@ -14,7 +15,7 @@ Test philosophy:
 
 ## Test Architecture
 
-```
+```text
 tests/
 ├── unit/                          # Fast, isolated unit tests
 │   ├── test_text_processing.py   # Text chunking, validation, sanitization
@@ -158,17 +159,20 @@ pytest -vv
 Fast, isolated tests with no external dependencies.
 
 #### Text Processing (`test_text_processing.py`)
+
 - TestSplitText: Text chunking at natural boundaries
 - TestValidateText: ASCII sanitization and validation
 - TestSplitTextSmart: Smart chunking with paragraph/sentence awareness
 - TestChunkChapterText: Chapter-specific text chunking
 
 Example:
+
 ```bash
 pytest tests/unit/test_text_processing.py -v
 ```
 
 #### Voice Management (`test_voice_management.py`)
+
 - TestLoadVoices: Voice JSON loading and validation
 - TestDisplayVoices: Voice enumeration and display
 - TestGetVoiceId: Voice selection by index
@@ -176,11 +180,13 @@ pytest tests/unit/test_text_processing.py -v
 - TestSelectVoiceInteractive: Interactive voice selection
 
 Example:
+
 ```bash
 pytest tests/unit/test_voice_management.py::TestLoadVoices -v
 ```
 
 #### Document Parsing (`test_document_parsing.py`)
+
 - TestChapterClass: Chapter dataclass operations
 - TestDocumentParserTXT: Plain text extraction
 - TestDocumentParserPDF: PDF text extraction (mocked)
@@ -190,11 +196,13 @@ pytest tests/unit/test_voice_management.py::TestLoadVoices -v
 - TestDocumentParserMarkdown: Markdown to text conversion
 
 Example:
+
 ```bash
 pytest tests/unit/test_document_parsing.py -m document
 ```
 
 #### File Operations (`test_file_operations.py`)
+
 - TestSaveAudio: Audio file saving and directory creation
 - TestCheckFFmpegInstalled: FFmpeg availability detection
 - TestConcatenateChapterMP3s: MP3 file concatenation
@@ -203,6 +211,7 @@ pytest tests/unit/test_document_parsing.py -m document
 - TestAnalyzeProgress: Progress tracking and analysis
 
 Example:
+
 ```bash
 pytest tests/unit/test_file_operations.py -m audio
 ```
@@ -212,6 +221,7 @@ pytest tests/unit/test_file_operations.py -m audio
 Multi-component tests with mocked external services.
 
 #### API Interactions (`test_api_interactions.py`)
+
 - TestGetAudioIntegration: Complete API request/response cycles
 - TestAPIRetryLogic: Retry behavior on failures
 - TestAPIDataSanitization: Text sanitization before API calls
@@ -219,11 +229,13 @@ Multi-component tests with mocked external services.
 - TestAPIPerformance: Response time and concurrent calls
 
 Example:
+
 ```bash
 pytest tests/integration/test_api_interactions.py -m api
 ```
 
 #### Workflows (`test_workflows.py`)
+
 - TestTextToSpeechWorkflow: Complete TTS conversion workflows
 - TestDocumentConversionWorkflow: Document-to-audio pipelines
 - TestErrorRecoveryWorkflows: Failure recovery and resume
@@ -231,6 +243,7 @@ pytest tests/integration/test_api_interactions.py -m api
 - TestConcurrentWorkflows: Parallel processing coordination
 
 Example:
+
 ```bash
 pytest tests/integration/test_workflows.py -m integration
 ```
@@ -260,7 +273,7 @@ pytest --cov --cov-report=xml
 
 ### Coverage Report Example
 
-```
+```text
 Name                                  Stmts   Miss  Cover   Missing
 -------------------------------------------------------------------
 main.py                                 200     15    92%   45-47, 123-125
@@ -373,6 +386,7 @@ Use markers to categorize tests:
 **Import Errors**: `ModuleNotFoundError: No module named 'main'`
 
 Solution:
+
 ```bash
 # Run from project root
 cd /path/to/Audiobook-Creator-TTS
@@ -386,6 +400,7 @@ pytest
 **Fixture Not Found**: `fixture 'sample_voices_data' not found`
 
 Solution:
+
 - Verify fixture is defined in `tests/conftest.py`
 - Check fixture name matches function parameter
 - Ensure conftest.py is in tests/ directory
@@ -393,6 +408,7 @@ Solution:
 **Coverage Below Target**: `FAILED: coverage: total of 75 is less than fail-under=80`
 
 Solution:
+
 ```bash
 # Identify missing coverage
 pytest --cov --cov-report=term-missing
@@ -403,6 +419,7 @@ pytest --cov --cov-report=term-missing
 **Async Test Failures**: `RuntimeWarning: coroutine was never awaited`
 
 Solution:
+
 ```python
 # Mark test as async
 @pytest.mark.asyncio
@@ -414,6 +431,7 @@ async def test_async_function():
 **Mock Not Working**: Mock not being used; real function called
 
 Solution:
+
 ```python
 # Use correct import path (where it's used, not where it's defined)
 @patch('main.get_audio')  # Correct: patch where it's used

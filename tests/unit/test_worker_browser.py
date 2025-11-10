@@ -4,14 +4,14 @@ Tests for WorkerBrowser class and parallel worker functionality
 """
 
 import pytest
-import asyncio
+from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
 
 
 class TestWorkerBrowserInit:
     """Tests for WorkerBrowser initialization"""
 
-    def test_init_basic(self):
+    def test_init_basic(self) -> None:
         """Test basic initialization"""
         from worker_browser import WorkerBrowser
 
@@ -25,7 +25,7 @@ class TestWorkerBrowserInit:
         assert worker.worker_request_count == 0
         assert worker.worker_success_count == 0
 
-    def test_init_custom_profile_dir(self):
+    def test_init_custom_profile_dir(self) -> None:
         """Test initialization with custom profile directory"""
         from worker_browser import WorkerBrowser
 
@@ -38,7 +38,7 @@ class TestWorkerBrowserInit:
 class TestChunkAssignment:
     """Tests for chunk assignment"""
 
-    def test_assign_chunks(self, monkeypatch):
+    def test_assign_chunks(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test assigning chunks to worker"""
         from worker_browser import WorkerBrowser
 
@@ -54,7 +54,7 @@ class TestChunkAssignment:
         assert worker.assigned_chunks == chunks
         assert any("Assigned 3 chunks" in p for p in printed)
 
-    def test_assign_empty_chunks(self, monkeypatch):
+    def test_assign_empty_chunks(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test assigning empty chunk list"""
         from worker_browser import WorkerBrowser
 
@@ -72,7 +72,7 @@ class TestChunkAssignment:
 class TestWorkerInitialization:
     """Tests for async worker initialization"""
 
-    async def test_initialize_creates_profile_dir(self, tmp_path):
+    async def test_initialize_creates_profile_dir(self, tmp_path: Path) -> None:
         """Test that initialization creates profile directory"""
         from worker_browser import WorkerBrowser
 
@@ -104,7 +104,7 @@ class TestWorkerInitialization:
         assert worker.context is not None
         assert worker.page is not None
 
-    async def test_initialize_skips_captcha_prompt(self):
+    async def test_initialize_skips_captcha_prompt(self) -> None:
         """Test initialization with skip_initial_captcha_prompt=True"""
         from worker_browser import WorkerBrowser
 
@@ -140,7 +140,7 @@ class TestWorkerInitialization:
 class TestChunkProcessing:
     """Tests for chunk processing"""
 
-    async def test_process_assigned_chunks_success(self, monkeypatch, tmp_path):
+    async def test_process_assigned_chunks_success(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Test successful chunk processing"""
         from worker_browser import WorkerBrowser
 
@@ -149,7 +149,7 @@ class TestChunkProcessing:
         monkeypatch.setattr("worker_browser.print_colored", lambda text, color: None)
 
         # Mock request_audio to return success
-        async def mock_request_audio(text, voice_id):
+        async def mock_request_audio(text: str, voice_id: str, retry_on_captcha: bool = True) -> bytes | str | None:
             return b"audio_data"
 
         worker = WorkerBrowser(worker_id=1)
@@ -167,7 +167,7 @@ class TestChunkProcessing:
         assert result["success_count"] == 2
         assert result["failure_count"] == 0
 
-    async def test_process_assigned_chunks_with_failures(self, monkeypatch, tmp_path):
+    async def test_process_assigned_chunks_with_failures(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Test chunk processing with some failures"""
         from worker_browser import WorkerBrowser
 
@@ -177,7 +177,7 @@ class TestChunkProcessing:
         # Mock request_audio to fail on chunk 2
         call_count = [0]
 
-        async def mock_request_audio(text, voice_id):
+        async def mock_request_audio(text: str, voice_id: str, retry_on_captcha: bool = True) -> bytes | str | None:
             call_count[0] += 1
             if "chunk 2" in text:
                 return None  # Failure
@@ -196,7 +196,7 @@ class TestChunkProcessing:
         assert len(result["failed"]) == 1
         assert 2 in result["failed"]
 
-    async def test_process_assigned_chunks_rate_limit(self, monkeypatch, tmp_path):
+    async def test_process_assigned_chunks_rate_limit(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Test handling of rate limit response"""
         from worker_browser import WorkerBrowser
 
@@ -204,7 +204,7 @@ class TestChunkProcessing:
         monkeypatch.setattr("worker_browser.print_colored", lambda text, color: None)
 
         # Mock request_audio to return RATE_LIMIT
-        async def mock_request_audio(text, voice_id):
+        async def mock_request_audio(text: str, voice_id: str, retry_on_captcha: bool = True) -> bytes | str | None:
             return "RATE_LIMIT"
 
         # Mock restart method
@@ -218,7 +218,7 @@ class TestChunkProcessing:
         worker.restart = mock_restart
         worker.assign_chunks([(1, "test chunk 1")])
 
-        result = await worker.process_assigned_chunks(
+        _ = await worker.process_assigned_chunks(
             voice_id="voice-1", output_dir=str(tmp_path), chapter_dir_name="01-chapter", chapter_number=1
         )
 
@@ -229,7 +229,7 @@ class TestChunkProcessing:
 class TestCleanup:
     """Tests for worker cleanup"""
 
-    async def test_cleanup_success(self, monkeypatch):
+    async def test_cleanup_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful cleanup"""
         from worker_browser import WorkerBrowser
 
@@ -251,14 +251,14 @@ class TestCleanup:
         mock_context.close.assert_called_once()
         mock_playwright.stop.assert_called_once()
 
-    async def test_cleanup_no_context(self, monkeypatch):
+    async def test_cleanup_no_context(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test cleanup when context doesn't exist"""
         from worker_browser import WorkerBrowser
 
         monkeypatch.setattr("worker_browser.print_timestamped", lambda msg, color: None)
 
         worker = WorkerBrowser(worker_id=1)
-        worker.playwright = None
+        worker.playwright = None  # type: ignore[assignment]
 
         # Should not raise error
         await worker.cleanup()
@@ -268,7 +268,7 @@ class TestCaptchaNotification:
     """Tests for CAPTCHA notification"""
 
     @pytest.mark.asyncio
-    async def test_display_captcha_notification(self, monkeypatch, tmp_path):
+    async def test_display_captcha_notification(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Test CAPTCHA notification display"""
         from worker_browser import WorkerBrowser
 
@@ -303,7 +303,7 @@ class TestCaptchaNotification:
 class TestPrintTimestamped:
     """Tests for timestamp print function"""
 
-    def test_print_timestamped(self, monkeypatch):
+    def test_print_timestamped(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test timestamped printing"""
         from worker_browser import print_timestamped
 

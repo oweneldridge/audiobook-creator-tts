@@ -4,7 +4,7 @@ import sys
 import os
 import subprocess
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, List, Tuple, Generator
 
 
 # Function to print colored text
@@ -55,7 +55,7 @@ def input_colored(prompt: str, color: str) -> str:
 
 
 # Load voices from voices.json file
-def load_voices():
+def load_voices() -> Optional[Dict[str, Any]]:
     """Load voice data from voices.json file"""
     try:
         with open("voices.json", "r", encoding="utf-8") as f:
@@ -69,7 +69,7 @@ def load_voices():
 
 
 # Recursively display voices in an enumerated format with enhanced information
-def display_voices(voices, prefix="", show_ids=False):
+def display_voices(voices: Optional[Dict[str, Any]], prefix: str = "", show_ids: bool = False) -> int:
     if not voices:
         print_colored("Error: No voices available.", "red")
         return 0
@@ -92,8 +92,8 @@ def display_voices(voices, prefix="", show_ids=False):
 
 
 # Recursively get the selected voice ID based on user input
-def get_voice_id(voices, choice, current_index=0):
-    for key, value in voices.items():
+def get_voice_id(voices: Dict[str, Any], choice: int, current_index: int = 0) -> Tuple[Optional[str], int]:
+    for _, value in voices.items():
         if isinstance(value, dict):
             result, current_index = get_voice_id(value, choice, current_index)
             if result:
@@ -106,7 +106,9 @@ def get_voice_id(voices, choice, current_index=0):
 
 
 # Function to get audio from the server
-def get_audio(url, data, headers, cookies=None):
+def get_audio(
+    url: str, data: Dict[str, str], headers: Dict[str, str], cookies: Optional[Dict[str, str]] = None
+) -> Optional[bytes]:
     try:
         json_data = json.dumps(data)
         response = req.post(url, data=json_data, headers=headers, cookies=cookies)
@@ -127,7 +129,7 @@ def get_audio(url, data, headers, cookies=None):
 
 
 # Function to save audio to a file
-def save_audio(response, directory, chunk_num):
+def save_audio(response: Optional[bytes], directory: str, chunk_num: int) -> None:
     if response:
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -143,12 +145,12 @@ def save_audio(response, directory, chunk_num):
 
 
 # Function to split text into chunks
-def split_text(text, chunk_size=1000):
+def split_text(text: str, chunk_size: int = 1000) -> List[str]:
     if not text:
         print_colored("Error: No text provided to split.", "red")
         return []
 
-    chunks = []
+    chunks: List[str] = []
     while len(text) > 0:
         if len(text) <= chunk_size:
             chunks.append(text)
@@ -167,15 +169,15 @@ def split_text(text, chunk_size=1000):
 
 
 # Function to validate text
-def validate_text(text):
+def validate_text(text: str) -> str:
     return "".join(char for char in text if ord(char) < 128)
 
 
 # Function to get multiline input
-def get_multiline_input(prompt="Enter your text (type END on a new line when finished):"):
+def get_multiline_input(prompt: str = "Enter your text (type END on a new line when finished):") -> str:
     print_colored(prompt, "cyan")
     print_colored("(Type your text, then press Enter and type END to finish)", "yellow")
-    lines = []
+    lines: List[str] = []
     while True:
         line = input()
         if line == "END":
@@ -185,7 +187,7 @@ def get_multiline_input(prompt="Enter your text (type END on a new line when fin
 
 
 # Function to prompt for graceful exit
-def prompt_graceful_exit():
+def prompt_graceful_exit() -> None:
     while True:
         choice = input_colored("\nDo you want to exit? (y/n): ", "blue").lower()
         if choice == "y":
@@ -198,11 +200,11 @@ def prompt_graceful_exit():
 
 
 # Helper function to count voices at each level
-def count_voices_by_level(voices, level=0):
+def count_voices_by_level(voices: Dict[str, Any], level: int = 0) -> Dict[str, int]:
     """Count voices at different hierarchy levels"""
-    counts = {}
+    counts: Dict[str, int] = {}
 
-    def count_recursive(data, current_level=0):
+    def count_recursive(data: Dict[str, Any], current_level: int = 0) -> None:
         for key, value in data.items():
             if isinstance(value, dict):
                 if current_level == level:
@@ -216,9 +218,9 @@ def count_voices_by_level(voices, level=0):
 
 
 # Helper function to get all voice IDs from a nested dict
-def get_all_voice_ids(data):
+def get_all_voice_ids(data: Dict[str, Any]) -> Generator[str, None, None]:
     """Recursively get all voice IDs from nested structure"""
-    for key, value in data.items():
+    for _, value in data.items():
         if isinstance(value, dict):
             yield from get_all_voice_ids(value)
         else:
@@ -226,7 +228,7 @@ def get_all_voice_ids(data):
 
 
 # Interactive voice selection with filtering
-def select_voice_interactive(voices):
+def select_voice_interactive(voices: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
     """
     Interactive voice selection with hierarchical filtering.
     Returns: (voice_id, voice_name) tuple or (None, None) if cancelled
@@ -241,8 +243,8 @@ def select_voice_interactive(voices):
         print_colored("STEP 1: Select Language", "blue")
         print_colored("=" * 60, "blue")
 
-        lang_counts = count_voices_by_level(voices, level=0)
-        languages = sorted(lang_counts.keys())
+        lang_counts: Dict[str, int] = count_voices_by_level(voices, level=0)
+        languages: List[str] = sorted(lang_counts.keys())
 
         for i, lang in enumerate(languages, 1):
             count = lang_counts[lang]
@@ -250,7 +252,7 @@ def select_voice_interactive(voices):
 
         print_colored("\nType 'voice-XXX' to directly enter a voice ID, or 'q' to quit", "yellow")
 
-        lang_input = input_colored(f"\nSelect language (1-{len(languages)}): ", "green").strip()
+        lang_input: str = input_colored(f"\nSelect language (1-{len(languages)}): ", "green").strip()
 
         # Handle special inputs
         if lang_input.lower() == "q":
@@ -259,7 +261,7 @@ def select_voice_interactive(voices):
             return lang_input, f"Direct ID: {lang_input}"
 
         try:
-            lang_choice = int(lang_input)
+            lang_choice: int = int(lang_input)
             if lang_choice < 1 or lang_choice > len(languages):
                 print_colored("Invalid choice. Please try again.", "red")
                 continue
@@ -267,7 +269,7 @@ def select_voice_interactive(voices):
             print_colored("Invalid input. Please enter a number.", "red")
             continue
 
-        selected_language = languages[lang_choice - 1]
+        selected_language: str = languages[lang_choice - 1]
 
         # Step 2: Select Country
         while True:
@@ -275,9 +277,9 @@ def select_voice_interactive(voices):
             print_colored(f"STEP 2: Select Country ({selected_language})", "blue")
             print_colored("=" * 60, "blue")
 
-            country_data = voices[selected_language]
-            country_counts = count_voices_by_level({selected_language: country_data}, level=1)
-            countries = sorted(country_counts.keys())
+            country_data: Dict[str, Any] = voices[selected_language]
+            country_counts: Dict[str, int] = count_voices_by_level({selected_language: country_data}, level=1)
+            countries: List[str] = sorted(country_counts.keys())
 
             for i, country in enumerate(countries, 1):
                 count = country_counts[country]
@@ -285,7 +287,7 @@ def select_voice_interactive(voices):
 
             print_colored("\nType 'b' to go back, 'r' to restart, or 'q' to quit", "yellow")
 
-            country_input = input_colored(f"\nSelect country (1-{len(countries)}): ", "green").strip()
+            country_input: str = input_colored(f"\nSelect country (1-{len(countries)}): ", "green").strip()
 
             if country_input.lower() == "b":
                 break  # Go back to language selection
@@ -295,7 +297,7 @@ def select_voice_interactive(voices):
                 return None, None
 
             try:
-                country_choice = int(country_input)
+                country_choice: int = int(country_input)
                 if country_choice < 1 or country_choice > len(countries):
                     print_colored("Invalid choice. Please try again.", "red")
                     continue
@@ -303,7 +305,7 @@ def select_voice_interactive(voices):
                 print_colored("Invalid input. Please enter a number.", "red")
                 continue
 
-            selected_country = countries[country_choice - 1]
+            selected_country: str = countries[country_choice - 1]
 
             # Step 3: Select Gender
             while True:
@@ -311,8 +313,8 @@ def select_voice_interactive(voices):
                 print_colored(f"STEP 3: Select Gender ({selected_language} - {selected_country})", "blue")
                 print_colored("=" * 60, "blue")
 
-                gender_data = country_data[selected_country]
-                genders = sorted(gender_data.keys())
+                gender_data: Dict[str, Any] = country_data[selected_country]
+                genders: List[str] = sorted(gender_data.keys())
 
                 for i, gender in enumerate(genders, 1):
                     count = len(gender_data[gender])
@@ -320,7 +322,7 @@ def select_voice_interactive(voices):
 
                 print_colored("\nType 'b' to go back, 'r' to restart, or 'q' to quit", "yellow")
 
-                gender_input = input_colored(f"\nSelect gender (1-{len(genders)}): ", "green").strip()
+                gender_input: str = input_colored(f"\nSelect gender (1-{len(genders)}): ", "green").strip()
 
                 if gender_input.lower() == "b":
                     break  # Go back to country selection
@@ -330,7 +332,7 @@ def select_voice_interactive(voices):
                     return None, None
 
                 try:
-                    gender_choice = int(gender_input)
+                    gender_choice: int = int(gender_input)
                     if gender_choice < 1 or gender_choice > len(genders):
                         print_colored("Invalid choice. Please try again.", "red")
                         continue
@@ -338,7 +340,7 @@ def select_voice_interactive(voices):
                     print_colored("Invalid input. Please enter a number.", "red")
                     continue
 
-                selected_gender = genders[gender_choice - 1]
+                selected_gender: str = genders[gender_choice - 1]
 
                 # Step 4: Select Voice Name
                 while True:
@@ -347,11 +349,11 @@ def select_voice_interactive(voices):
                     print_colored(f"{selected_language} - {selected_country} - {selected_gender.capitalize()}", "cyan")
                     print_colored("=" * 60, "blue")
 
-                    voice_names = gender_data[selected_gender]
-                    sorted_names = sorted(voice_names.keys())
+                    voice_names: Dict[str, str] = gender_data[selected_gender]
+                    sorted_names: List[str] = sorted(voice_names.keys())
 
                     # Ask if user wants to see voice IDs
-                    show_ids_input = input_colored("\nShow voice IDs? (y/n, default: n): ", "blue").lower().strip()
+                    show_ids_input: str = input_colored("\nShow voice IDs? (y/n, default: n): ", "blue").lower().strip()
 
                     # Handle navigation commands at the ID prompt
                     if show_ids_input == "b":
@@ -361,11 +363,11 @@ def select_voice_interactive(voices):
                     if show_ids_input == "q":
                         return None, None
 
-                    show_ids = show_ids_input == "y"
+                    show_ids: bool = show_ids_input == "y"
 
                     print()
                     for i, name in enumerate(sorted_names, 1):
-                        voice_id = voice_names[name]
+                        voice_id: str = voice_names[name]
                         if show_ids:
                             print(f"{i}. {name} \033[90m({voice_id})\033[0m")
                         else:
@@ -373,7 +375,7 @@ def select_voice_interactive(voices):
 
                     print_colored("\nType 'b' to go back, 'r' to restart, or 'q' to quit", "yellow")
 
-                    voice_input = input_colored(f"\nSelect voice (1-{len(sorted_names)}): ", "green").strip()
+                    voice_input: str = input_colored(f"\nSelect voice (1-{len(sorted_names)}): ", "green").strip()
 
                     if voice_input.lower() == "b":
                         break  # Go back to gender selection
@@ -383,7 +385,7 @@ def select_voice_interactive(voices):
                         return None, None
 
                     try:
-                        voice_choice = int(voice_input)
+                        voice_choice: int = int(voice_input)
                         if voice_choice < 1 or voice_choice > len(sorted_names):
                             print_colored("Invalid choice. Please try again.", "red")
                             continue
@@ -391,12 +393,12 @@ def select_voice_interactive(voices):
                         print_colored("Invalid input. Please enter a number.", "red")
                         continue
 
-                    selected_name = sorted_names[voice_choice - 1]
-                    selected_voice_id = voice_names[selected_name]
+                    selected_name: str = sorted_names[voice_choice - 1]
+                    selected_voice_id: str = voice_names[selected_name]
 
                     # Show final selection
                     print_colored("\n" + "=" * 60, "green")
-                    print_colored("✓ Voice Selected!", "green")
+                    print_colored("Voice Selected!", "green")
                     print_colored("=" * 60, "green")
                     print(f"Language: {selected_language}")
                     print(f"Country: {selected_country}")
@@ -409,10 +411,10 @@ def select_voice_interactive(voices):
 
 
 # Function to count voices in the hierarchical structure
-def count_voice_stats(voices):
-    stats = {"total": 0, "languages": set(), "countries": set(), "genders": set()}
+def count_voice_stats(voices: Dict[str, Any]) -> Dict[str, Any]:
+    stats: Dict[str, Any] = {"total": 0, "languages": set(), "countries": set(), "genders": set()}
 
-    def count_recursive(data, level=0):
+    def count_recursive(data: Dict[str, Any], level: int = 0) -> None:
         for key, value in data.items():
             if isinstance(value, dict):
                 if level == 0:  # Language level
@@ -465,7 +467,7 @@ def embed_cover_art(m4b_file_path: str, cover_image_path: str) -> bool:
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode == 0:
-            print_colored("✓ Cover art embedded successfully!", "green")
+            print_colored("Cover art embedded successfully!", "green")
             return True
         else:
             print_colored(f"Error embedding cover art: {result.stderr}", "red")
@@ -534,29 +536,30 @@ def prompt_for_cover_art(audiobook_dir: str) -> Optional[str]:
 
 
 # Main function
-def main():
-    voices = load_voices()
+def main() -> None:
+    voices: Optional[Dict[str, Any]] = load_voices()
     if not voices:
         print_colored("Error: No voices available. Exiting.", "red")
         return
 
     # Display statistics
-    stats = count_voice_stats(voices)
+    stats: Dict[str, Any] = count_voice_stats(voices)
     print_colored("=" * 60, "cyan")
-    print_colored("🎤 Audiobook Creator TTS", "magenta")
+    print_colored("Audiobook Creator TTS", "magenta")
     print_colored("=" * 60, "cyan")
-    print_colored(f"📊 Voice Library: {stats['total']} voices", "yellow")
-    print(f"   • {len(stats['languages'])} languages")
-    print(f"   • {len(stats['countries'])} countries")
+    print_colored(f"Voice Library: {stats['total']} voices", "yellow")
+    print(f"   {len(stats['languages'])} languages")
+    print(f"   {len(stats['countries'])} countries")
     print_colored("=" * 60, "cyan")
 
     # Use interactive voice selection
-    voice_id, voice_name = select_voice_interactive(voices)
+    voice_id: Optional[str]
+    voice_id, _ = select_voice_interactive(voices)
     if not voice_id:
         print_colored("Voice selection cancelled. Exiting.", "yellow")
         return
 
-    text = get_multiline_input().replace("  ", " ")
+    text: str = get_multiline_input().replace("  ", " ")
 
     if not text:
         print_colored("Error: No text provided. Exiting.", "red")
@@ -567,8 +570,8 @@ def main():
 
     text = validate_text(text)
 
-    url = "https://speechma.com/com.api/tts-api.php"
-    headers = {
+    url: str = "https://speechma.com/com.api/tts-api.php"
+    headers: Dict[str, str] = {
         "Host": "speechma.com",
         "Sec-Ch-Ua-Platform": "Windows",
         "Accept-Language": "en-US,en;q=0.9",
@@ -593,23 +596,23 @@ def main():
     # 3. Open Developer Tools (F12) > Application tab > Cookies > speechma.com
     # 4. Copy the cookie values and add them here
     # Example: cookies = {'cf_clearance': 'your_token_here', '__cfruid': 'your_token_here'}
-    cookies = None  # Set this to a dictionary with your cookies to bypass 403 errors
+    cookies: Optional[Dict[str, str]] = None  # Set this to a dictionary with your cookies to bypass 403 errors
 
-    chunks = split_text(text, chunk_size=1000)
+    chunks: List[str] = split_text(text, chunk_size=1000)
     if not chunks:
         print_colored("Error: Could not split text into chunks. Exiting.", "red")
         return
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-    directory = os.path.join("audio", timestamp)
+    timestamp: str = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+    directory: str = os.path.join("audio", timestamp)
 
     for i, chunk in enumerate(chunks, start=1):
         print_colored(f"\nProcessing chunk {i}...", "yellow")
-        data = {"text": chunk.replace("'", "").replace('"', "").replace("&", "and"), "voice": voice_id}
+        data: Dict[str, str] = {"text": chunk.replace("'", "").replace('"', "").replace("&", "and"), "voice": voice_id}
 
-        max_retries = 3
+        max_retries: int = 3
         for retry in range(max_retries):
-            response = get_audio(url, data, headers, cookies)
+            response: Optional[bytes] = get_audio(url, data, headers, cookies)
             if response:
                 save_audio(response, directory, i)
                 break

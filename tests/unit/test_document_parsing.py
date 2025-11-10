@@ -5,8 +5,9 @@ Tests for DocumentParser, Chapter class, and file format handling
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
+from typing import Any
+from unittest.mock import Mock, patch, MagicMock
 from main_document_mode import DocumentParser, Chapter
 
 
@@ -15,7 +16,7 @@ from main_document_mode import DocumentParser, Chapter
 class TestChapterClass:
     """Tests for Chapter dataclass"""
 
-    def test_chapter_creation(self):
+    def test_chapter_creation(self) -> None:
         """Test creating a Chapter instance"""
         chapter = Chapter(
             number=1, title="Introduction", dir_name="01-introduction", text="Chapter content here.", chunks=[]
@@ -27,21 +28,21 @@ class TestChapterClass:
         assert chapter.text == "Chapter content here."
         assert chapter.chunks == []
 
-    def test_chapter_with_empty_text(self):
+    def test_chapter_with_empty_text(self) -> None:
         """Test chapter with empty text"""
         chapter = Chapter(number=1, title="Empty", dir_name="01-empty", text="", chunks=[])
 
         assert chapter.number == 1
         assert chapter.text == ""
 
-    def test_chapter_with_long_text(self, long_text):
+    def test_chapter_with_long_text(self, long_text: str) -> None:
         """Test chapter with long text content"""
         chapter = Chapter(number=5, title="Long Chapter", dir_name="05-long-chapter", text=long_text, chunks=[])
 
         assert chapter.number == 5
         assert len(chapter.text) > 1000
 
-    def test_chapter_attributes(self):
+    def test_chapter_attributes(self) -> None:
         """Test that Chapter has expected attributes"""
         chapter = Chapter(number=1, title="Test", dir_name="01-test", text="Content", chunks=[])
 
@@ -51,7 +52,7 @@ class TestChapterClass:
         assert hasattr(chapter, "dir_name")
         assert hasattr(chapter, "chunks")
 
-    def test_chapter_immutability(self):
+    def test_chapter_immutability(self) -> None:
         """Test Chapter is a dataclass (mutable by default)"""
         chapter = Chapter(number=1, title="Test", dir_name="01-test", text="Original", chunks=[])
 
@@ -65,7 +66,7 @@ class TestChapterClass:
 class TestDocumentParserTXT:
     """Tests for DocumentParser.extract_text_from_txt"""
 
-    def test_extract_txt_basic(self, tmp_path):
+    def test_extract_txt_basic(self, tmp_path: Path) -> None:
         """Test extracting text from basic TXT file"""
         txt_file = tmp_path / "test.txt"
         content = "This is a test document.\nWith multiple lines."
@@ -75,7 +76,7 @@ class TestDocumentParserTXT:
 
         assert result == content
 
-    def test_extract_txt_utf8_with_bom(self, tmp_path):
+    def test_extract_txt_utf8_with_bom(self, tmp_path: Path) -> None:
         """Test handling UTF-8 with BOM"""
         txt_file = tmp_path / "test_bom.txt"
         content = "\ufeffThis has a BOM marker."
@@ -86,7 +87,7 @@ class TestDocumentParserTXT:
         assert result is not None
         assert "This has a BOM marker" in result
 
-    def test_extract_txt_latin1_encoding(self, tmp_path):
+    def test_extract_txt_latin1_encoding(self, tmp_path: Path) -> None:
         """Test handling Latin-1 encoded file"""
         txt_file = tmp_path / "test_latin1.txt"
         content = "Café résumé"
@@ -97,7 +98,7 @@ class TestDocumentParserTXT:
         assert result is not None
         # chardet should detect and decode properly
 
-    def test_extract_txt_empty_file(self, tmp_path):
+    def test_extract_txt_empty_file(self, tmp_path: Path) -> None:
         """Test handling empty TXT file"""
         txt_file = tmp_path / "empty.txt"
         txt_file.write_text("")
@@ -106,7 +107,7 @@ class TestDocumentParserTXT:
 
         assert result == ""
 
-    def test_extract_txt_file_not_found(self, capsys):
+    def test_extract_txt_file_not_found(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test handling non-existent file"""
         result = DocumentParser.extract_text_from_txt("/nonexistent/file.txt")
 
@@ -115,7 +116,7 @@ class TestDocumentParserTXT:
         captured = capsys.readouterr()
         assert "Error reading TXT" in captured.out
 
-    def test_extract_txt_large_file(self, tmp_path):
+    def test_extract_txt_large_file(self, tmp_path: Path) -> None:
         """Test handling large text file"""
         txt_file = tmp_path / "large.txt"
         content = "Line of text.\n" * 10000
@@ -133,7 +134,7 @@ class TestDocumentParserPDF:
     """Tests for DocumentParser PDF extraction"""
 
     @patch("main_document_mode.PdfReader")
-    def test_extract_pdf_basic(self, mock_pdf_reader, tmp_path):
+    def test_extract_pdf_basic(self, mock_pdf_reader: Any, tmp_path: Path) -> None:
         """Test basic PDF text extraction"""
         # Mock PDF reader
         mock_page = Mock()
@@ -153,7 +154,7 @@ class TestDocumentParserPDF:
         assert "Page 1 content" in result
 
     @patch("main_document_mode.PdfReader")
-    def test_extract_pdf_multiple_pages(self, mock_pdf_reader):
+    def test_extract_pdf_multiple_pages(self, mock_pdf_reader: Any) -> None:
         """Test PDF with multiple pages"""
         # Mock multiple pages
         mock_pages = [
@@ -174,7 +175,7 @@ class TestDocumentParserPDF:
         assert "Page 3" in result
 
     @patch("main_document_mode.PdfReader")
-    def test_extract_pdf_empty_pages(self, mock_pdf_reader):
+    def test_extract_pdf_empty_pages(self, mock_pdf_reader: Any) -> None:
         """Test PDF with empty pages"""
         mock_page = Mock()
         mock_page.extract_text.return_value = ""
@@ -189,7 +190,7 @@ class TestDocumentParserPDF:
         assert result is not None  # Should handle empty pages
 
     @patch("main_document_mode.PdfReader")
-    def test_extract_pdf_error_handling(self, mock_pdf_reader, capsys):
+    def test_extract_pdf_error_handling(self, mock_pdf_reader: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test PDF extraction error handling"""
         mock_pdf_reader.side_effect = Exception("PDF read error")
 
@@ -200,7 +201,7 @@ class TestDocumentParserPDF:
         captured = capsys.readouterr()
         assert "Error reading PDF" in captured.out
 
-    def test_extract_pdf_file_not_found(self, capsys):
+    def test_extract_pdf_file_not_found(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test handling non-existent PDF"""
         result = DocumentParser.extract_text_from_pdf("/nonexistent/file.pdf")
 
@@ -218,7 +219,7 @@ class TestDocumentParserEPUB:
     @patch("main_document_mode.epub")
     @patch("main_document_mode.BeautifulSoup")
     @patch("main_document_mode.ebooklib.ITEM_DOCUMENT", 9)
-    def test_extract_epub_basic(self, mock_bs, mock_epub, capsys):
+    def test_extract_epub_basic(self, mock_bs: Any, mock_epub: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test basic EPUB text extraction"""
         # Mock EPUB structure
         mock_item = Mock()
@@ -245,7 +246,7 @@ class TestDocumentParserEPUB:
     @patch("main_document_mode.epub")
     @patch("main_document_mode.BeautifulSoup")
     @patch("main_document_mode.ebooklib.ITEM_DOCUMENT", 9)
-    def test_extract_epub_multiple_chapters(self, mock_bs, mock_epub, capsys):
+    def test_extract_epub_multiple_chapters(self, mock_bs: Any, mock_epub: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test EPUB with multiple chapters"""
         # Mock multiple items
         items = []
@@ -262,7 +263,7 @@ class TestDocumentParserEPUB:
         # Mock BeautifulSoup to return different text for each call
         call_count = [0]
 
-        def mock_soup_side_effect(*args, **kwargs):
+        def mock_soup_side_effect(*args: Any, **kwargs: Any) -> Any:
             soup = Mock()
             soup.return_value = []  # For soup(["script", "style"])
             call_count[0] += 1
@@ -276,7 +277,7 @@ class TestDocumentParserEPUB:
         assert len(result) > 0  # Should have extracted text
 
     @patch("main_document_mode.epub")
-    def test_extract_epub_error_handling(self, mock_epub, capsys):
+    def test_extract_epub_error_handling(self, mock_epub: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test EPUB extraction error handling"""
         mock_epub.read_epub.side_effect = Exception("EPUB read error")
 
@@ -287,7 +288,7 @@ class TestDocumentParserEPUB:
         captured = capsys.readouterr()
         assert "Error reading EPUB" in captured.out
 
-    def test_extract_epub_file_not_found(self, capsys):
+    def test_extract_epub_file_not_found(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test handling non-existent EPUB"""
         result = DocumentParser.extract_text_from_epub("/nonexistent/file.epub")
 
@@ -303,7 +304,7 @@ class TestDocumentParserChapters:
     """Tests for chapter extraction methods"""
 
     @patch("main_document_mode.PdfReader")
-    def test_extract_chapters_from_pdf(self, mock_pdf_reader, capsys):
+    def test_extract_chapters_from_pdf(self, mock_pdf_reader: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test extracting chapters from PDF"""
         # Mock PDF pages with simple text (will trigger fallback to single chapter)
         mock_page = Mock()
@@ -328,7 +329,7 @@ class TestDocumentParserChapters:
     @patch("main_document_mode.epub")
     @patch("main_document_mode.BeautifulSoup")
     @patch("main_document_mode.ebooklib.ITEM_DOCUMENT", 9)
-    def test_extract_chapters_from_epub(self, mock_bs, mock_epub, capsys):
+    def test_extract_chapters_from_epub(self, mock_bs: Any, mock_epub: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test extracting chapters from EPUB"""
         # Mock EPUB item
         mock_item = Mock()
@@ -366,7 +367,7 @@ class TestDocumentParserChapters:
             assert chapters[0].number == 1
 
     @patch("main_document_mode.DocumentParser.extract_text_from_pdf")
-    def test_extract_chapters_empty_pdf(self, mock_extract, capsys):
+    def test_extract_chapters_empty_pdf(self, mock_extract: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test extracting chapters from empty PDF"""
         mock_extract.return_value = ""
 
@@ -376,7 +377,7 @@ class TestDocumentParserChapters:
         assert chapters == []
 
     @patch("main_document_mode.DocumentParser.extract_text_from_pdf")
-    def test_extract_chapters_pdf_error(self, mock_extract, capsys):
+    def test_extract_chapters_pdf_error(self, mock_extract: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test handling PDF extraction error"""
         mock_extract.return_value = ""  # Error returns empty string
 
@@ -391,7 +392,7 @@ class TestDocumentParserChapters:
 class TestDocumentParserDOCX:
     """Tests for DOCX document parsing"""
 
-    def test_extract_docx_basic(self, tmp_path):
+    def test_extract_docx_basic(self, tmp_path: Path) -> None:
         """Test basic DOCX text extraction"""
         # Mock Document structure
         mock_para = Mock()
@@ -400,14 +401,14 @@ class TestDocumentParserDOCX:
         mock_doc = Mock()
         mock_doc.paragraphs = [mock_para]
 
-        with patch("main_document_mode.DOCX_AVAILABLE", True):
+        with patch("main_document_mode._DOCX_AVAILABLE", True):
             with patch("main_document_mode.DocxDocument", return_value=mock_doc, create=True):
                 result = DocumentParser.extract_text_from_docx("dummy.docx")
 
                 assert result is not None
                 assert "Paragraph text" in result
 
-    def test_extract_docx_multiple_paragraphs(self):
+    def test_extract_docx_multiple_paragraphs(self) -> None:
         """Test DOCX with multiple paragraphs"""
         paragraphs = [
             Mock(text="First paragraph"),
@@ -418,7 +419,7 @@ class TestDocumentParserDOCX:
         mock_doc = Mock()
         mock_doc.paragraphs = paragraphs
 
-        with patch("main_document_mode.DOCX_AVAILABLE", True):
+        with patch("main_document_mode._DOCX_AVAILABLE", True):
             with patch("main_document_mode.DocxDocument", return_value=mock_doc, create=True):
                 result = DocumentParser.extract_text_from_docx("dummy.docx")
 
@@ -426,21 +427,21 @@ class TestDocumentParserDOCX:
                 assert "Second paragraph" in result
                 assert "Third paragraph" in result
 
-    def test_extract_docx_empty(self):
+    def test_extract_docx_empty(self) -> None:
         """Test empty DOCX"""
         mock_doc = Mock()
         mock_doc.paragraphs = []
 
-        with patch("main_document_mode.DOCX_AVAILABLE", True):
+        with patch("main_document_mode._DOCX_AVAILABLE", True):
             with patch("main_document_mode.DocxDocument", return_value=mock_doc, create=True):
                 result = DocumentParser.extract_text_from_docx("dummy.docx")
 
                 assert result is not None
                 assert result == ""
 
-    def test_extract_docx_error_handling(self, capsys):
+    def test_extract_docx_error_handling(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test DOCX extraction error handling"""
-        with patch("main_document_mode.DOCX_AVAILABLE", True):
+        with patch("main_document_mode._DOCX_AVAILABLE", True):
             with patch("main_document_mode.DocxDocument", side_effect=Exception("DOCX read error"), create=True):
                 result = DocumentParser.extract_text_from_docx("dummy.docx")
 
@@ -456,7 +457,7 @@ class TestDocumentParserHTML:
     """Tests for HTML document parsing"""
 
     @patch("main_document_mode.BeautifulSoup")
-    def test_extract_html_basic(self, mock_bs, tmp_path):
+    def test_extract_html_basic(self, mock_bs: Any, tmp_path: Path) -> None:
         """Test basic HTML text extraction"""
         html_file = tmp_path / "test.html"
         html_file.write_text("<html><body><p>Test content</p></body></html>")
@@ -474,7 +475,7 @@ class TestDocumentParserHTML:
         assert "Test content" in result
 
     @patch("main_document_mode.BeautifulSoup")
-    def test_extract_html_strips_tags(self, mock_bs, tmp_path):
+    def test_extract_html_strips_tags(self, mock_bs: Any, tmp_path: Path) -> None:
         """Test that HTML tags are stripped"""
         html_file = tmp_path / "test.html"
         html_file.write_text("<html><body><h1>Title</h1><p>Content</p></body></html>")
@@ -492,7 +493,7 @@ class TestDocumentParserHTML:
         assert "<h1>" not in result
         assert "<p>" not in result
 
-    def test_extract_html_file_not_found(self, capsys):
+    def test_extract_html_file_not_found(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test handling non-existent HTML file"""
         result = DocumentParser.extract_text_from_html("/nonexistent/file.html")
 
@@ -507,7 +508,7 @@ class TestDocumentParserHTML:
 class TestDocumentParserMarkdown:
     """Tests for Markdown document parsing"""
 
-    def test_extract_markdown_basic(self, tmp_path):
+    def test_extract_markdown_basic(self, tmp_path: Path) -> None:
         """Test basic Markdown extraction"""
         md_file = tmp_path / "test.md"
         md_file.write_text("# Title\n\nContent here.")
@@ -516,7 +517,7 @@ class TestDocumentParserMarkdown:
         mock_markdown = Mock()
         mock_markdown.return_value = "<h1>Title</h1><p>Content here.</p>"
 
-        with patch("main_document_mode.MISTUNE_AVAILABLE", True):
+        with patch("main_document_mode._MISTUNE_AVAILABLE", True):
             with patch("main_document_mode.mistune", create=True) as mock_mistune_module:
                 mock_mistune_module.create_markdown.return_value = mock_markdown
 
@@ -530,7 +531,7 @@ class TestDocumentParserMarkdown:
                     assert result is not None
                     assert "Title" in result
 
-    def test_extract_markdown_file_not_found(self, capsys):
+    def test_extract_markdown_file_not_found(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test handling non-existent Markdown file"""
         result = DocumentParser.extract_text_from_markdown("/nonexistent/file.md")
 
@@ -545,16 +546,16 @@ class TestDocumentParserMarkdown:
 class TestDocumentParsingEdgeCases:
     """Edge cases for document parsing"""
 
-    def test_binary_file_handling(self, tmp_path):
+    def test_binary_file_handling(self, tmp_path: Path) -> None:
         """Test handling binary files as text"""
         binary_file = tmp_path / "binary.txt"
         binary_file.write_bytes(b"\x00\x01\x02\x03\x04")
 
         # Should handle gracefully
-        result = DocumentParser.extract_text_from_txt(str(binary_file))
+        _ = DocumentParser.extract_text_from_txt(str(binary_file))
         # May return None or empty string, but shouldn't crash
 
-    def test_very_large_document(self, tmp_path):
+    def test_very_large_document(self, tmp_path: Path) -> None:
         """Test handling very large documents"""
         large_file = tmp_path / "large.txt"
         content = "A" * 10_000_000  # 10MB of text
@@ -567,7 +568,7 @@ class TestDocumentParsingEdgeCases:
         assert len(result) > 1_000_000
 
     @patch("main_document_mode.PdfReader")
-    def test_corrupted_pdf(self, mock_pdf_reader, capsys):
+    def test_corrupted_pdf(self, mock_pdf_reader: Any, capsys: pytest.CaptureFixture[str]) -> None:
         """Test handling corrupted PDF"""
         mock_pdf_reader.side_effect = Exception("Corrupted PDF")
 

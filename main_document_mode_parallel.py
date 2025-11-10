@@ -7,12 +7,11 @@ Reduces 636-chunk book from 21 min → 3 min (7x speedup)
 import asyncio
 import json
 import math
-import multiprocessing
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple, Optional, Dict, Any
+from typing import List, Tuple, Dict, Any
 
 sys.path.insert(0, os.path.dirname(__file__))
 from main import print_colored, input_colored
@@ -64,7 +63,7 @@ async def run_safety_test(chapters: List[Chapter], voice_id: str, output_dir: st
         (success: bool, message: str)
     """
     print_colored("\n" + "=" * 60, "yellow")
-    print_colored("🔬 SAFETY TEST - Checking for IP-level rate limits", "yellow")
+    print_colored("SAFETY TEST - Checking for IP-level rate limits", "yellow")
     print_colored("=" * 60, "yellow")
     print_colored("Testing with 2 workers processing first 100 chunks...", "cyan")
     print_colored("This ensures the API allows parallel sessions", "cyan")
@@ -107,7 +106,7 @@ async def run_safety_test(chapters: List[Chapter], voice_id: str, output_dir: st
             assignment = coordinator.get_worker_assignment(worker_id)
 
             # Process chunks
-            for chunk_idx, chunk_text in assignment:
+            for _, chunk_text in assignment:
                 audio_data = await worker.request_audio(chunk_text, voice_id)
 
                 if audio_data == "RATE_LIMIT":
@@ -178,7 +177,7 @@ def prompt_captcha_strategy() -> str:
     Returns:
         Strategy choice: "simultaneous", "staggered", or "sequential"
     """
-    print_colored("\n⚙️  CAPTCHA Coordination Strategy:", "cyan")
+    print_colored("\nCAPTCHA Coordination Strategy:", "cyan")
     print_colored("   1. Simultaneous (fastest, all workers start together)", "green")
     print_colored("      → Must monitor multiple browser windows", "yellow")
     print_colored("   2. Staggered (balanced, workers start 10s apart)", "green")
@@ -201,7 +200,7 @@ def prompt_captcha_strategy() -> str:
 
 async def worker_process_wrapper(
     worker_id: int, voice_id: str, output_dir: str, chapter_chunks: List[Tuple[int, str, Chapter]], start_delay: int = 0
-):
+) -> Dict[str, Any]:
     """
     Wrapper for worker process execution
 
@@ -217,7 +216,7 @@ async def worker_process_wrapper(
         await asyncio.sleep(start_delay)
 
     worker = WorkerBrowser(worker_id)
-    results = []
+    results: List[Dict[str, Any]] = []
 
     try:
         await worker.initialize()
@@ -248,8 +247,8 @@ async def worker_process_wrapper(
 
 
 async def run_parallel_processing(
-    chapters: List[Chapter], voice_id: str, output_dir: str, num_workers: int, strategy: str, config: dict
-):
+    chapters: List[Chapter], voice_id: str, output_dir: str, num_workers: int, strategy: str, config: Dict[str, Any]
+) -> Tuple[int, int]:
     """
     Run parallel processing with multiple workers
 
@@ -262,8 +261,8 @@ async def run_parallel_processing(
         config: Configuration dictionary
     """
     # Collect all chunks across all chapters with GLOBAL indexing
-    all_chunks = []
-    global_chunk_idx = 0
+    all_chunks: List[Tuple[int, str, Chapter]] = []
+    global_chunk_idx: int = 0
     for chapter in chapters:
         for chunk_text in chapter.chunks:
             global_chunk_idx += 1
@@ -271,18 +270,18 @@ async def run_parallel_processing(
 
     total_chunks = len(all_chunks)
 
-    print_colored(f"\n📊 Parallel Processing Configuration:", "cyan")
+    print_colored(f"\nParallel Processing Configuration:", "cyan")
     print_colored(f"   Total Chunks: {total_chunks}", "yellow")
     print_colored(f"   Workers: {num_workers}", "yellow")
     print_colored(f"   Strategy: {strategy.capitalize()}", "yellow")
     print_colored(f"   Estimated Time: {math.ceil(total_chunks * 2 / num_workers / 60)} min", "green")
 
-    print_timestamped(f"🚀 Starting parallel processing with {num_workers} workers...", "magenta")
+    print_timestamped(f"Starting parallel processing with {num_workers} workers...", "magenta")
 
     # Create coordinator
-    coordinator = ParallelCoordinator(total_chunks=total_chunks, num_workers=num_workers)
+    coordinator: ParallelCoordinator = ParallelCoordinator(total_chunks=total_chunks, num_workers=num_workers)
     # Convert to simple (idx, text) format for coordinator
-    simple_chunks = [(idx, text) for idx, text, _ in all_chunks]
+    simple_chunks: List[Tuple[int, str]] = [(idx, text) for idx, text, _ in all_chunks]
     coordinator.distribute_chunks(simple_chunks)
 
     # Create mapping from chunk_idx to full chunk data for workers
@@ -294,16 +293,17 @@ async def run_parallel_processing(
     coordinator.start_time = time.time()
 
     # Prepare worker tasks based on strategy
-    tasks = []
-    stagger_delay = config.get("stagger_interval_seconds", 10)
-    batch_size = config.get("sequential_batch_size", 3)
+    tasks: List[Any] = []
+    results: List[Any] = []  # Initialize results list
+    stagger_delay: int = int(config.get("stagger_interval_seconds", 10))
+    batch_size: int = int(config.get("sequential_batch_size", 3))
 
     if strategy == "simultaneous":
         # All workers start together
         for worker_id in range(1, num_workers + 1):
-            assignment = coordinator.get_worker_assignment(worker_id)
+            assignment: List[Tuple[int, str]] = coordinator.get_worker_assignment(worker_id)
             # Convert assignment to full chunk data with chapters
-            worker_chunks = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
+            worker_chunks: List[Tuple[int, str, Chapter]] = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
             tasks.append(worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=0))
 
         # Run all workers concurrently
@@ -312,10 +312,10 @@ async def run_parallel_processing(
     elif strategy == "staggered":
         # Workers start with delays
         for worker_id in range(1, num_workers + 1):
-            assignment = coordinator.get_worker_assignment(worker_id)
+            assignment: List[Tuple[int, str]] = coordinator.get_worker_assignment(worker_id)
             # Convert assignment to full chunk data with chapters
-            worker_chunks = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
-            delay = (worker_id - 1) * stagger_delay
+            worker_chunks: List[Tuple[int, str, Chapter]] = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
+            delay: int = (worker_id - 1) * stagger_delay
             tasks.append(worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=delay))
 
         # Run all workers with staggered starts
@@ -325,39 +325,39 @@ async def run_parallel_processing(
         # Run workers in batches
         results = []
         for batch_start in range(0, num_workers, batch_size):
-            batch_end = min(batch_start + batch_size, num_workers)
-            batch_tasks = []
+            batch_end: int = min(batch_start + batch_size, num_workers)
+            batch_tasks: List[Any] = []
 
             for worker_id in range(batch_start + 1, batch_end + 1):
-                assignment = coordinator.get_worker_assignment(worker_id)
+                assignment: List[Tuple[int, str]] = coordinator.get_worker_assignment(worker_id)
                 # Convert assignment to full chunk data with chapters
-                worker_chunks = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
+                worker_chunks: List[Tuple[int, str, Chapter]] = [chunk_map[chunk_idx] for chunk_idx, _ in assignment]
                 batch_tasks.append(
                     worker_process_wrapper(worker_id, voice_id, output_dir, worker_chunks, start_delay=0)
                 )
 
             # Run batch concurrently
-            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+            batch_results: List[Any] = await asyncio.gather(*batch_tasks, return_exceptions=True)
             results.extend(batch_results)
 
     print_timestamped(f"✅ All workers completed, processing results...", "green")
 
     # Process results and collect unique chunk indices
-    all_completed_chunks = set()
-    all_failed_chunks = set()
+    all_completed_chunks: set[int] = set()
+    all_failed_chunks: set[int] = set()
 
     for result in results:
         if isinstance(result, dict) and result.get("status") == "success":
             # Mark worker as completed
-            worker_id = result.get("worker_id")
+            worker_id: Any = result.get("worker_id")
             if worker_id:
                 coordinator.mark_worker_completed(worker_id)
 
             # Get the last result from each worker (has all completed chunks)
-            worker_results = result.get("results", [])
+            worker_results: Any = result.get("results", [])
             if worker_results:
                 # Use the last result which contains cumulative lists
-                final_result = worker_results[-1]
+                final_result: Any = worker_results[-1]
                 all_completed_chunks.update(final_result.get("completed", []))
                 all_failed_chunks.update(final_result.get("failed", []))
         elif isinstance(result, dict) and result.get("status") == "failed":
@@ -366,7 +366,7 @@ async def run_parallel_processing(
             if worker_id:
                 coordinator.mark_worker_failed(worker_id)
         elif isinstance(result, Exception):
-            print_timestamped(f"⚠️  Worker exception: {result}", "yellow")
+            print_timestamped(f"Worker exception: {result}", "yellow")
 
     # Update coordinator's overall statistics with unique chunk counts
     coordinator.overall_completed = len(all_completed_chunks)
@@ -378,7 +378,7 @@ async def run_parallel_processing(
 
         coordinator.end_time = time.time()
 
-    print_timestamped(f"📊 Generating final summary...", "cyan")
+    print_timestamped(f"Generating final summary...", "cyan")
 
     # Print summary with updated statistics
     coordinator.print_final_summary()
@@ -386,16 +386,16 @@ async def run_parallel_processing(
     return coordinator.overall_completed, coordinator.overall_failed
 
 
-async def main():
+async def main() -> None:
     """Main entry point for parallel mode"""
     print_colored("\n" + "=" * 60, "cyan")
-    print_colored("🚀 Audiobook Creator TTS - PARALLEL MODE", "magenta")
+    print_colored("Audiobook Creator TTS - PARALLEL MODE", "magenta")
     print_colored("=" * 60, "cyan")
     print_colored("Multi-worker processing for 7x faster conversions", "yellow")
     print_colored("=" * 60, "cyan")
 
     # Load config
-    config = load_config()
+    config: Dict[str, Any] = load_config()
 
     if not config.get("enable_parallel_mode", True):
         print_colored("❌ Parallel mode is disabled in configuration", "red")

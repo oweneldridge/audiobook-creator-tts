@@ -14,8 +14,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║  Audiobook Creator TTS - Automated Installation Script          ║${NC}"
-echo -e "${BLUE}║  This will install all prerequisites and dependencies           ║${NC}"
+echo -e "${BLUE}║  Audiobook Creator TTS - Automated Installation Script           ║${NC}"
+echo -e "${BLUE}║  This will install all prerequisites and dependencies            ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -322,7 +322,7 @@ echo ""
 
 if [[ $VERIFICATION_FAILED -eq 0 ]]; then
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  ✓ Installation Complete!                                       ║${NC}"
+    echo -e "${GREEN}║  ✓ Installation Complete!                                        ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 

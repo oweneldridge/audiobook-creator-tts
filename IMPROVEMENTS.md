@@ -87,7 +87,7 @@ async def check_and_handle_captcha_limit(self):
 
 ### Request Flow
 
-```
+```text
 Request 1-54:  Normal processing (2s delay each)
 ↓
 Request 55:    Proactive CAPTCHA prompt
@@ -277,7 +277,8 @@ Key insight: Instead of trying to outsmart a count-based rate limit with timing 
 
 ### Overview
 
-Multi-worker parallel processing that dramatically reduces conversion time for large documents. By running multiple isolated browser sessions simultaneously, we achieve 7x faster conversions for large books.
+Multi-worker parallel processing that dramatically reduces conversion time for large documents.
+By running multiple isolated browser sessions simultaneously, we achieve 7x faster conversions for large books.
 
 ### The Opportunity
 
@@ -553,7 +554,8 @@ Parallel mode option only appears when:
 - Estimated chunks ≥ 100 (large enough to benefit)
 - Parallel mode enabled in config
 
-Why 100-chunk threshold: Smaller documents (< 100 chunks) complete quickly in simple mode (~3-5 min). Parallel mode overhead (safety test, worker startup) isn't worth it. Sweet spot: 200+ chunks where speedup is significant.
+Why 100-chunk threshold: Smaller documents (< 100 chunks) complete quickly in simple mode (~3-5 min).
+Parallel mode overhead (safety test, worker startup) isn't worth it. Sweet spot: 200+ chunks where speedup is significant.
 
 ## Resilience & Error Handling
 
@@ -602,9 +604,11 @@ Graceful degradation: System doesn't fail completely, falls back to reliable sim
 
 **Safety Test Fails**: System automatically falls back to simple mode. Try again later if network issue suspected.
 
-**Too Many CAPTCHA Windows to Manage**: Choose "Staggered" or "Sequential" strategy (easier), reduce `max_workers` in config, or use simple mode.
+**Too Many CAPTCHA Windows to Manage**: Choose "Staggered" or "Sequential" strategy (easier),
+reduce `max_workers` in config, or use simple mode.
 
-**One Worker Stuck on CAPTCHA**: Other workers continue processing, dashboard shows worker status, notification alerts you. Find browser window by title ("Worker #3 - Audiobook TTS"), solve CAPTCHA, worker automatically continues.
+**One Worker Stuck on CAPTCHA**: Other workers continue processing, dashboard shows worker status, notification alerts you.
+Find browser window by title ("Worker #3 - Audiobook TTS"), solve CAPTCHA, worker automatically continues.
 
 ## Testing
 

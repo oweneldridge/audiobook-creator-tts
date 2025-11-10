@@ -2,12 +2,10 @@
 """
 Parallel Coordinator - Manages worker distribution, progress tracking, and coordination
 """
-import asyncio
-import math
 import os
 import sys
 import time
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -102,7 +100,7 @@ class ParallelCoordinator:
             self.worker_progress[worker_id].total_chunks = len(assigned_chunks)
 
         # Log distribution
-        print_colored(f"\n📊 Chunk Distribution (Round-Robin):", "cyan")
+        print_colored(f"\nChunk Distribution (Round-Robin):", "cyan")
         for worker_id in range(1, self.num_workers + 1):
             chunk_count = len(self.chunk_assignments[worker_id])
             # Handle both (idx, text) and (idx, text, chapter) tuple formats
@@ -200,8 +198,8 @@ class ParallelCoordinator:
 
     def get_status_emoji(self, status: str) -> str:
         """Get emoji for worker status"""
-        status_emojis = {"initializing": "🔄", "working": "✅", "captcha": "⏸️", "failed": "❌", "completed": "🎉"}
-        return status_emojis.get(status, "❓")
+        status_emojis = {"initializing": "[~]", "working": "[+]", "captcha": "[.]", "failed": "[X]", "completed": "[*]"}
+        return status_emojis.get(status, "[?]")
 
     def render_progress_dashboard(self):
         """
@@ -209,14 +207,14 @@ class ParallelCoordinator:
 
         Dashboard format:
         ╔════════════════════════════════════════════════════════════╗
-        ║  📊 PARALLEL CONVERSION PROGRESS                          ║
+        ║  PARALLEL CONVERSION PROGRESS                              ║
         ╠════════════════════════════════════════════════════════════╣
-        ║  Total: 636 | Workers: 12 | Completed: 312/636 (49%)     ║
-        ║  Failed: 0 | ETA: 8 min                                   ║
+        ║  Total: 636 | Workers: 12 | Completed: 312/636 (49%)       ║
+        ║  Failed: 0 | ETA: 8 min                                    ║
         ╠════════════════════════════════════════════════════════════╣
-        ║  Worker #1  [████████████░░░░░░░░] 28/53  ✅ Working     ║
-        ║  Worker #2  [██████████████░░░░░░] 32/53  ⏸️  CAPTCHA    ║
-        ║  ...                                                      ║
+        ║  Worker #1  [████████████░░░░░░░░] 28/53  [+] Working      ║
+        ║  Worker #2  [██████████████░░░░░░] 32/53  [.] CAPTCHA      ║
+        ║  ...                                                       ║
         ╚════════════════════════════════════════════════════════════╝
         """
         # Clear screen (ANSI escape code)
@@ -224,7 +222,7 @@ class ParallelCoordinator:
 
         # Header
         print_colored("╔" + "═" * 60 + "╗", "cyan")
-        print_colored("║  📊 PARALLEL CONVERSION PROGRESS" + " " * 27 + "║", "cyan")
+        print_colored("║  PARALLEL CONVERSION PROGRESS" + " " * 30 + "║", "cyan")
         print_colored("╠" + "═" * 60 + "╣", "cyan")
 
         # Overall statistics
@@ -269,7 +267,7 @@ class ParallelCoordinator:
         # CAPTCHA alerts
         captcha_workers = [worker_id for worker_id, p in self.worker_progress.items() if p.status == "captcha"]
         if captcha_workers:
-            print_colored(f"\n🔔 Workers need CAPTCHA: {', '.join(f'#{w}' for w in captcha_workers)}", "yellow")
+            print_colored(f"\nWorkers need CAPTCHA: {', '.join(f'#{w}' for w in captcha_workers)}", "yellow")
 
     def _calculate_eta(self) -> str:
         """
@@ -303,7 +301,7 @@ class ParallelCoordinator:
             minutes = int((eta_seconds % 3600) / 60)
             return f"{hours} hr {minutes} min"
 
-    def get_summary_stats(self) -> dict:
+    def get_summary_stats(self) -> Dict[str, Any]:
         """
         Get final summary statistics
 
@@ -332,12 +330,12 @@ class ParallelCoordinator:
             "workers_failed": workers_failed,
         }
 
-    def print_final_summary(self):
+    def print_final_summary(self) -> None:
         """Print final summary after all workers complete"""
-        stats = self.get_summary_stats()
+        stats: Dict[str, Any] = self.get_summary_stats()
 
         print_colored("\n" + "=" * 60, "cyan")
-        print_colored("📊 PARALLEL CONVERSION SUMMARY", "magenta")
+        print_colored("PARALLEL CONVERSION SUMMARY", "magenta")
         print_colored("=" * 60, "cyan")
 
         # Overall stats
@@ -345,22 +343,22 @@ class ParallelCoordinator:
             int((stats["completed_chunks"] / stats["total_chunks"]) * 100) if stats["total_chunks"] > 0 else 0
         )
         print_colored(
-            f"✅ Completed: {stats['completed_chunks']}/{stats['total_chunks']} chunks ({success_rate}%)", "green"
+            f"Completed: {stats['completed_chunks']}/{stats['total_chunks']} chunks ({success_rate}%)", "green"
         )
 
         if stats["failed_chunks"] > 0:
-            print_colored(f"❌ Failed: {stats['failed_chunks']} chunks", "red")
+            print_colored(f"Failed: {stats['failed_chunks']} chunks", "red")
 
         # Duration
         duration_min = int(stats["duration_seconds"] / 60)
         duration_sec = int(stats["duration_seconds"] % 60)
-        print_colored(f"⏱️  Duration: {duration_min} min {duration_sec} sec", "yellow")
+        print_colored(f"Duration: {duration_min} min {duration_sec} sec", "yellow")
 
         # Worker stats
-        print_colored(f"\n👷 Workers: {self.num_workers} total", "cyan")
-        print_colored(f"   ✅ Succeeded: {stats['workers_succeeded']}", "green")
+        print_colored(f"\nWorkers: {self.num_workers} total", "cyan")
+        print_colored(f"   Succeeded: {stats['workers_succeeded']}", "green")
         if stats["workers_failed"] > 0:
-            print_colored(f"   ❌ Failed: {stats['workers_failed']}", "red")
+            print_colored(f"   Failed: {stats['workers_failed']}", "red")
 
         print_colored("=" * 60, "cyan")
 
@@ -372,11 +370,8 @@ class ParallelCoordinator:
             List of failed chunk indices
         """
         failed_chunks: List[int] = []
-        for worker_id, assigned_chunks in self.chunk_assignments.items():
+        for worker_id, _ in self.chunk_assignments.items():
             progress = self.worker_progress[worker_id]
-            # Get indices of chunks that were assigned but not completed
-            assigned_indices = set(chunk[0] for chunk in assigned_chunks)
-            completed_indices: set[int] = set()  # Would need to track this during processing
             # For now, rely on worker progress tracking
             if progress.failed_chunks > 0:
                 # This is a count, not indices - would need to enhance tracking
