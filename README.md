@@ -14,7 +14,8 @@ cd audiobook-creator-tts
 ./install.sh
 ```
 
-The installer handles everything automatically - Python 3.11, virtual environment, dependencies, Playwright browser, and system packages (ffmpeg, AtomicParsley). On a fresh system, you'll be prompted to confirm installation of Homebrew and Python if they're missing.
+The installer handles everything automatically - Python 3.11, virtual environment, dependencies, Playwright browser, and system packages (ffmpeg, AtomicParsley).
+On a fresh system, you'll be prompted to confirm installation of Homebrew and Python if they're missing.
 
 ### Basic Usage
 
@@ -98,7 +99,8 @@ Output goes to `audio/timestamp/` with files named `audio_chunk_1.mp3`, etc.
 
 ## Voice Selection
 
-583 voices organized by language, region, and gender. The script shows you an interactive menu where you can browse and search. Voices include regional accents (US, UK, AU, etc.) and different speaking styles.
+583 voices organized by language, region, and gender. The script shows you an interactive menu where you can browse and search.
+Voices include regional accents (US, UK, AU, etc.) and different speaking styles.
 
 ## Configuration
 

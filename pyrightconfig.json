@@ -1,0 +1,34 @@
+{
+  "include": [
+    "*.py",
+    "tests"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules",
+    "*venv",
+    "build",
+    "dist"
+  ],
+  "ignore": [],
+  "venv": "venv",
+  "pythonVersion": "3.11",
+  "pythonPlatform": "Darwin",
+  "typeCheckingMode": "strict",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportMissingTypeStubs": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownLambdaType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUntypedFunctionDecorator": "none",
+  "reportUntypedClassDecorator": "none",
+  "reportOptionalSubscript": "error",
+  "reportOptionalMemberAccess": "error",
+  "reportPossiblyUnboundVariable": "error",
+  "reportArgumentType": "error",
+  "reportUnusedImport": "warning",
+  "reportUnusedVariable": "warning"
+}

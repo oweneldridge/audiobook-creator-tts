@@ -4,13 +4,11 @@ Unit tests for convert_document.py module
 
 import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import Mock, AsyncMock
 from pathlib import Path
-import sys
 
-
-# Import the module to test
-import convert_document
+# Import the module to test - needed for monkeypatch.setattr("convert_document.*")
+import convert_document  # noqa: F401  # type: ignore[reportUnusedImport]
 from convert_document import convert_document as convert_doc_func
 
 
@@ -18,7 +16,7 @@ from convert_document import convert_document as convert_doc_func
 class TestConvertDocument:
     """Test cases for convert_document async function"""
 
-    async def test_convert_document_epub_success(self, tmp_path, monkeypatch):
+    async def test_convert_document_epub_success(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful EPUB conversion"""
         # Create mock chapters
         mock_chapters = [
@@ -62,7 +60,7 @@ class TestConvertDocument:
         assert mock_process.called
         assert any("✅ ffmpeg detected" in p for p in printed)
 
-    async def test_convert_document_pdf_success(self, tmp_path, monkeypatch):
+    async def test_convert_document_pdf_success(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful PDF conversion"""
         # Create mock chapters
         mock_chapters = [Mock(number=1, title="Chapter 1", text="PDF content " * 100)]
@@ -102,7 +100,7 @@ class TestConvertDocument:
         assert mock_browser.initialize.called
         assert mock_browser.cleanup.called
 
-    async def test_convert_document_no_ffmpeg_cancel(self, tmp_path, monkeypatch):
+    async def test_convert_document_no_ffmpeg_cancel(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test cancellation when ffmpeg not available"""
         # Mock dependencies
         monkeypatch.setattr("convert_document.check_ffmpeg_installed", lambda: False)
@@ -125,7 +123,7 @@ class TestConvertDocument:
         # Verify cancellation message
         assert any("Cancelled" in p for p in printed)
 
-    async def test_convert_document_no_ffmpeg_continue(self, tmp_path, monkeypatch):
+    async def test_convert_document_no_ffmpeg_continue(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test continuing without ffmpeg"""
         # Create mock chapters
         mock_chapters = [Mock(number=1, title="Chapter 1", text="Test " * 100)]
@@ -166,7 +164,7 @@ class TestConvertDocument:
         # Verify processing happened
         assert mock_process.called
 
-    async def test_convert_document_unsupported_format(self, tmp_path, monkeypatch):
+    async def test_convert_document_unsupported_format(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test handling of unsupported file format"""
         # Mock print_colored
         printed = []
@@ -183,7 +181,9 @@ class TestConvertDocument:
         # Verify error message
         assert any("Unsupported file type" in p for p in printed)
 
-    async def test_convert_document_no_chapters_extracted(self, tmp_path, monkeypatch):
+    async def test_convert_document_no_chapters_extracted(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test handling when no chapters are extracted"""
         # Mock dependencies
         mock_parser = Mock()
@@ -210,7 +210,7 @@ class TestConvertDocument:
         # Verify error message
         assert any("No chapters extracted" in p for p in printed)
 
-    async def test_convert_document_user_cancels(self, tmp_path, monkeypatch):
+    async def test_convert_document_user_cancels(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test user cancels before conversion"""
         # Create mock chapters
         mock_chapters = [Mock(number=1, title="Chapter 1", text="Test " * 100)]
@@ -240,7 +240,9 @@ class TestConvertDocument:
         # Verify cancellation
         assert any("Cancelled" in p for p in printed)
 
-    async def test_convert_document_shows_chapter_preview(self, tmp_path, monkeypatch):
+    async def test_convert_document_shows_chapter_preview(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that chapter preview is shown correctly"""
         # Create 7 mock chapters (more than 5 to test truncation)
         mock_chapters = [Mock(number=i, title=f"Chapter {i}", text="Test " * 100) for i in range(1, 8)]
@@ -271,7 +273,9 @@ class TestConvertDocument:
         assert any("Chapter structure" in p for p in printed)
         assert any("and 2 more chapters" in p for p in printed)
 
-    async def test_convert_document_browser_cleanup_on_error(self, tmp_path, monkeypatch):
+    async def test_convert_document_browser_cleanup_on_error(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test browser cleanup happens even on error"""
         # Create mock chapters
         mock_chapters = [Mock(number=1, title="Chapter 1", text="Test " * 100)]
@@ -319,7 +323,7 @@ class TestMainCommandLine:
     # execution and async function handling. The core convert_document function is
     # thoroughly tested in the TestConvertDocument class above.
 
-    def test_filename_sanitization(self, tmp_path, monkeypatch):
+    def test_filename_sanitization(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that output filename is properly sanitized"""
         # Create mock chapters
         mock_chapters = [Mock(number=1, title="Test", text="Test " * 100)]

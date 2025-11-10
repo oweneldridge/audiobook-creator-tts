@@ -6,7 +6,6 @@ Tests for complete request/response cycles with mocked HTTP
 
 import pytest
 import responses
-from unittest.mock import Mock, patch
 from main import get_audio
 
 
@@ -16,7 +15,7 @@ class TestGetAudioIntegration:
     """Integration tests for get_audio function"""
 
     @responses.activate
-    def test_get_audio_successful_request(self, mock_audio_response):
+    def test_get_audio_successful_request(self, mock_audio_response: bytes) -> None:
         """Test successful audio retrieval"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -33,7 +32,7 @@ class TestGetAudioIntegration:
         assert len(result) > 0
 
     @responses.activate
-    def test_get_audio_403_forbidden(self):
+    def test_get_audio_403_forbidden(self) -> None:
         """Test handling 403 Forbidden response"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -47,7 +46,7 @@ class TestGetAudioIntegration:
         assert result is None
 
     @responses.activate
-    def test_get_audio_429_rate_limit(self):
+    def test_get_audio_429_rate_limit(self) -> None:
         """Test handling 429 rate limit response"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -67,7 +66,7 @@ class TestGetAudioIntegration:
         assert result is None
 
     @responses.activate
-    def test_get_audio_500_server_error(self):
+    def test_get_audio_500_server_error(self) -> None:
         """Test handling 500 server error"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -81,7 +80,7 @@ class TestGetAudioIntegration:
         assert result is None
 
     @responses.activate
-    def test_get_audio_network_timeout(self):
+    def test_get_audio_network_timeout(self) -> None:
         """Test handling network timeout"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -94,11 +93,11 @@ class TestGetAudioIntegration:
         headers = {"Content-Type": "application/json"}
 
         # Should handle timeout gracefully
-        result = get_audio(url, data, headers)
+        _ = get_audio(url, data, headers)
         # Result may be None or raise exception depending on implementation
 
     @responses.activate
-    def test_get_audio_with_cookies(self, mock_audio_response):
+    def test_get_audio_with_cookies(self, mock_audio_response: bytes) -> None:
         """Test request with cookies"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -113,7 +112,7 @@ class TestGetAudioIntegration:
         assert result is not None
 
     @responses.activate
-    def test_get_audio_unexpected_content_type(self):
+    def test_get_audio_unexpected_content_type(self) -> None:
         """Test handling unexpected content type"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -130,7 +129,7 @@ class TestGetAudioIntegration:
         assert result is None
 
     @responses.activate
-    def test_get_audio_large_response(self):
+    def test_get_audio_large_response(self) -> None:
         """Test handling large audio response"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -148,7 +147,7 @@ class TestGetAudioIntegration:
         assert len(result) > 1024 * 1024
 
     @responses.activate
-    def test_get_audio_empty_response(self):
+    def test_get_audio_empty_response(self) -> None:
         """Test handling empty audio response"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -170,7 +169,7 @@ class TestAPIRetryLogic:
     """Integration tests for retry logic"""
 
     @responses.activate
-    def test_retry_on_failure(self, mock_audio_response):
+    def test_retry_on_failure(self, mock_audio_response: bytes) -> None:
         """Test that API calls are retried on failure"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -184,7 +183,7 @@ class TestAPIRetryLogic:
 
         # Simulate retry logic (actual implementation in main code)
         result = None
-        for attempt in range(3):
+        for _ in range(3):
             result = get_audio(url, data, headers)
             if result:
                 break
@@ -192,7 +191,7 @@ class TestAPIRetryLogic:
         assert result is not None
 
     @responses.activate
-    def test_all_retries_fail(self):
+    def test_all_retries_fail(self) -> None:
         """Test behavior when all retries fail"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -205,7 +204,7 @@ class TestAPIRetryLogic:
 
         # Simulate retry logic
         result = None
-        for attempt in range(3):
+        for _ in range(3):
             result = get_audio(url, data, headers)
             if result:
                 break
@@ -219,7 +218,7 @@ class TestAPIDataSanitization:
     """Integration tests for data sanitization before API calls"""
 
     @responses.activate
-    def test_api_with_sanitized_text(self, mock_audio_response):
+    def test_api_with_sanitized_text(self, mock_audio_response: bytes) -> None:
         """Test API call with sanitized text"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -240,10 +239,14 @@ class TestAPIDataSanitization:
         assert len(responses.calls) == 1
         request_body = responses.calls[0].request.body
         # Verify the sanitized text is in the request (apostrophes and quotes removed)
-        assert "Hello world and universe and more!" in request_body
+        assert isinstance(request_body, (str, bytes))
+        if isinstance(request_body, bytes):
+            assert b"Hello world and universe and more!" in request_body
+        else:
+            assert "Hello world and universe and more!" in request_body
 
     @responses.activate
-    def test_api_with_long_text(self, mock_audio_response):
+    def test_api_with_long_text(self, mock_audio_response: bytes) -> None:
         """Test API call with text at length limit"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -266,7 +269,7 @@ class TestAPIHeaderValidation:
     """Integration tests for request header validation"""
 
     @responses.activate
-    def test_api_with_required_headers(self, mock_audio_response):
+    def test_api_with_required_headers(self, mock_audio_response: bytes) -> None:
         """Test that all required headers are included"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -291,7 +294,7 @@ class TestAPIHeaderValidation:
         assert request.headers.get("Content-Type") == "application/json"
 
     @responses.activate
-    def test_api_without_user_agent(self, mock_audio_response):
+    def test_api_without_user_agent(self, mock_audio_response: bytes) -> None:
         """Test API call without User-Agent (may be blocked)"""
         url = "https://speechma.com/com.api/tts-api.php"
 
@@ -313,7 +316,7 @@ class TestAPIPerformance:
     """Performance-related integration tests"""
 
     @responses.activate
-    def test_api_response_time(self, mock_audio_response):
+    def test_api_response_time(self, mock_audio_response: bytes) -> None:
         """Test API response time is reasonable"""
         import time
 
@@ -332,7 +335,7 @@ class TestAPIPerformance:
         assert elapsed_time < 5.0  # Should complete within 5 seconds
 
     @responses.activate
-    def test_concurrent_api_calls(self, mock_audio_response):
+    def test_concurrent_api_calls(self, mock_audio_response: bytes) -> None:
         """Test handling multiple concurrent API calls"""
         import concurrent.futures
 

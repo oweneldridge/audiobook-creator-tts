@@ -5,7 +5,6 @@ Converts entire EPUB or PDF files to audio with automatic text extraction
 Supports chapter-based organization with nested directory structure
 """
 import asyncio
-import json
 import math
 import os
 import re
@@ -14,7 +13,7 @@ import subprocess
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Tuple, Any, Union
+from typing import Optional, List, Dict, Tuple, Union, Any
 from dataclasses import dataclass
 
 # Suppress ebooklib warnings (library-level, not our code)
@@ -26,9 +25,11 @@ try:
     import tkinter as tk
     from tkinter import filedialog
 
-    TKINTER_AVAILABLE = True
+    _TKINTER_AVAILABLE = True
 except ImportError:
-    TKINTER_AVAILABLE = False
+    _TKINTER_AVAILABLE = False  # type: ignore[reportConstantRedefinition]
+    tk = None  # type: ignore
+    filedialog = None  # type: ignore
 
 # PDF parsing
 from pypdf import PdfReader
@@ -38,30 +39,30 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
-# XML parsing for EPUB TOC
-from xml.etree import ElementTree as ET
-
 # Additional document format support
 try:
     from docx import Document as DocxDocument  # DOCX support
 
-    DOCX_AVAILABLE = True
+    _DOCX_AVAILABLE = True
 except ImportError:
-    DOCX_AVAILABLE = False
+    _DOCX_AVAILABLE = False  # type: ignore[reportConstantRedefinition]
+    DocxDocument = None  # type: ignore
 
 try:
     import chardet  # Encoding detection for TXT
 
-    CHARDET_AVAILABLE = True
+    _CHARDET_AVAILABLE = True
 except ImportError:
-    CHARDET_AVAILABLE = False
+    _CHARDET_AVAILABLE = False  # type: ignore[reportConstantRedefinition]
+    chardet = None  # type: ignore
 
 try:
     import mistune  # Markdown parsing
 
-    MISTUNE_AVAILABLE = True
+    _MISTUNE_AVAILABLE = True
 except ImportError:
-    MISTUNE_AVAILABLE = False
+    _MISTUNE_AVAILABLE = False  # type: ignore[reportConstantRedefinition]
+    mistune = None  # type: ignore
 
 # Import from main.py
 sys.path.insert(0, os.path.dirname(__file__))
@@ -69,8 +70,6 @@ from main import (
     print_colored,
     input_colored,
     load_voices,
-    display_voices,
-    get_voice_id,
     validate_text,
     count_voice_stats,
     select_voice_interactive,
@@ -89,10 +88,12 @@ def select_file_with_dialog() -> Optional[str]:
     Returns:
         Selected file path, or None if cancelled or unavailable
     """
-    if not TKINTER_AVAILABLE:
+    if not _TKINTER_AVAILABLE:
         print_colored("❌ File browser not available (tkinter not installed)", "red")
         print_colored("Please install tkinter or enter file path manually", "yellow")
         return None
+
+    assert tk is not None and filedialog is not None, "tkinter should be available"
 
     try:
         # Create hidden root window
@@ -136,7 +137,7 @@ def get_plaintext_input() -> Tuple[Optional[str], Optional[str]]:
         Tuple of (text, output_name) or (None, None) if cancelled
     """
     # Ask for custom name first
-    print_colored("\n📝 Custom Output Name", "cyan")
+    print_colored("\nCustom Output Name", "cyan")
     print_colored("(This will be used for output files: name-1.mp3, name-2.mp3, etc.)", "yellow")
 
     while True:
@@ -162,7 +163,7 @@ def get_plaintext_input() -> Tuple[Optional[str], Optional[str]]:
         break
 
     # Get multiline text input
-    print_colored("\n📝 Enter your text:", "cyan")
+    print_colored("\nEnter your text:", "cyan")
     print_colored("(Type END on a new line when finished)", "yellow")
     print_colored("(Minimum 10 characters required)", "yellow")
 
@@ -245,7 +246,7 @@ def check_ffmpeg_installed() -> bool:
 def show_ffmpeg_install_instructions():
     """Display instructions for installing ffmpeg"""
     print_colored("\n" + "=" * 60, "yellow")
-    print_colored("⚠️  ffmpeg NOT FOUND", "yellow")
+    print_colored("ffmpeg NOT FOUND", "yellow")
     print_colored("=" * 60, "yellow")
     print_colored("ffmpeg is required for concatenating MP3 chunks into single files.", "yellow")
     print_colored("\nWithout ffmpeg:", "yellow")
@@ -320,7 +321,7 @@ def embed_cover_art(m4b_file_path: str, cover_image_path: str) -> bool:
         # Check if AtomicParsley is installed
         result = subprocess.run(["which", "AtomicParsley"], capture_output=True, text=True, timeout=5)
         if result.returncode != 0:
-            print_colored("⚠️  AtomicParsley is not installed.", "yellow")
+            print_colored("AtomicParsley is not installed.", "yellow")
             print_colored("   Install it with: brew install atomicparsley", "yellow")
             print_colored("   Skipping cover art embedding.", "yellow")
             return False
@@ -335,7 +336,7 @@ def embed_cover_art(m4b_file_path: str, cover_image_path: str) -> bool:
             return False
 
         # Run AtomicParsley to embed cover art
-        print_colored(f"\n🎨 Embedding cover art into {os.path.basename(m4b_file_path)}...", "cyan")
+        print_colored(f"\nEmbedding cover art into {os.path.basename(m4b_file_path)}...", "cyan")
 
         cmd = ["AtomicParsley", m4b_file_path, "--artwork", cover_image_path, "--overWrite"]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
@@ -366,9 +367,7 @@ def prompt_for_cover_art(audiobook_dir: str) -> Optional[str]:
         Path to cover image file, or None if user declines
     """
     while True:
-        response = (
-            input_colored("\n🎨 Would you like to add cover art to the audiobook? (y/n): ", "blue").lower().strip()
-        )
+        response = input_colored("\nWould you like to add cover art to the audiobook? (y/n): ", "blue").lower().strip()
 
         if response == "n":
             return None
@@ -396,7 +395,7 @@ def prompt_for_cover_art(audiobook_dir: str) -> Optional[str]:
                     return found_cover
 
             # Present selection method options
-            print_colored("\n📁 Cover Image Selection:", "cyan")
+            print_colored("\nCover Image Selection:", "cyan")
             print_colored("   1. Open file browser (recommended)", "green")
             print_colored("   2. Enter file path manually", "green")
             print_colored("   3. Skip cover art", "yellow")
@@ -406,10 +405,12 @@ def prompt_for_cover_art(audiobook_dir: str) -> Optional[str]:
 
                 if choice == "1":
                     # Open file browser for cover image
-                    if not TKINTER_AVAILABLE:
+                    if not _TKINTER_AVAILABLE:
                         print_colored("❌ File browser not available (tkinter not installed)", "red")
                         print_colored("Please install tkinter or enter path manually (choice 2)", "yellow")
                         continue
+
+                    assert tk is not None and filedialog is not None, "tkinter should be available"
 
                     try:
                         # Create hidden root window
@@ -454,7 +455,7 @@ def prompt_for_cover_art(audiobook_dir: str) -> Optional[str]:
 
                 elif choice == "2":
                     # Manual path entry
-                    cover_path = input_colored("\n📁 Enter the full path to the cover image file: ", "cyan").strip()
+                    cover_path = input_colored("\nEnter the full path to the cover image file: ", "cyan").strip()
 
                     # Handle quoted paths
                     if cover_path.startswith('"') and cover_path.endswith('"'):
@@ -555,23 +556,23 @@ async def concatenate_chapter_mp3s(chapter_dir: str, chapter_name: str, chunk_fi
 
                 return output_path
             else:
-                print_colored(f"⚠️  Concatenated file size mismatch, keeping chunks", "yellow")
+                print_colored(f"Concatenated file size mismatch, keeping chunks", "yellow")
                 if os.path.exists(output_path):
                     os.remove(output_path)
                 return None
         else:
             if result.stderr:
-                print_colored(f"⚠️  ffmpeg error: {result.stderr[:200]}", "yellow")
+                print_colored(f"ffmpeg error: {result.stderr[:200]}", "yellow")
             return None
 
     except subprocess.TimeoutExpired:
-        print_colored(f"⚠️  Concatenation timeout, keeping chunks", "yellow")
+        print_colored(f"Concatenation timeout, keeping chunks", "yellow")
         if os.path.exists(concat_list_path):
             os.remove(concat_list_path)
         return None
 
     except Exception as e:
-        print_colored(f"⚠️  Concatenation error: {e}", "yellow")
+        print_colored(f"Concatenation error: {e}", "yellow")
         if os.path.exists(concat_list_path):
             os.remove(concat_list_path)
         return None
@@ -587,7 +588,7 @@ def prompt_for_title(default_title: str) -> str:
     Returns:
         Title name (user-entered or default)
     """
-    print_colored(f"\n📚 Title Metadata", "cyan")
+    print_colored(f"\nTitle Metadata", "cyan")
     print_colored(f"   Detected: {default_title}", "yellow")
 
     response = input_colored("\nUse this title? (y/enter custom): ", "blue").strip().lower()
@@ -614,7 +615,7 @@ def prompt_for_author(default_author: Optional[str] = None) -> str:
         Author name (user-entered or default or "Unknown Author")
     """
     if default_author:
-        print_colored(f"\n📝 Author Metadata", "cyan")
+        print_colored(f"\nAuthor Metadata", "cyan")
         print_colored(f"   Detected: {default_author}", "yellow")
 
         response = input_colored("\nUse this author? (y/n/enter custom): ", "blue").strip().lower()
@@ -630,7 +631,7 @@ def prompt_for_author(default_author: Optional[str] = None) -> str:
                 return custom_author
             return "Unknown Author"
     else:
-        print_colored(f"\n📝 Author Metadata", "cyan")
+        print_colored(f"\nAuthor Metadata", "cyan")
         print_colored("   No author metadata found", "yellow")
 
         response = input_colored("\nEnter author name (or press Enter to skip): ", "blue").strip()
@@ -663,7 +664,7 @@ async def create_m4b_audiobook(
     # Convert kebab-case title to Title Case for metadata
     display_title = kebab_to_title_case(book_title)
 
-    print_colored(f"\n📖 Creating M4B audiobook: {display_title}", "cyan")
+    print_colored(f"\nCreating M4B audiobook: {display_title}", "cyan")
     print_colored(f"   Author: {author}", "cyan")
 
     # Collect all chapter MP3 files
@@ -683,7 +684,7 @@ async def create_m4b_audiobook(
 
             chunk_files = sorted(glob.glob(chunk_pattern))
             if not chunk_files:
-                print_colored(f"⚠️  No audio files found for {chapter.title}, skipping", "yellow")
+                print_colored(f"No audio files found for {chapter.title}, skipping", "yellow")
                 continue
 
             # Concatenate chunk files into single chapter MP3
@@ -729,7 +730,7 @@ async def create_m4b_audiobook(
                     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
                     print_colored(f"[{timestamp}]    ✅ Concatenated into {os.path.basename(mp3_file)}", "green")
                 else:
-                    print_colored(f"   ⚠️  Concatenation failed: {result.stderr}", "yellow")
+                    print_colored(f"   Concatenation failed: {result.stderr}", "yellow")
                     mp3_file = chunk_files[0]  # Fallback to first chunk
             else:
                 # Only one chunk, use it directly
@@ -757,12 +758,12 @@ async def create_m4b_audiobook(
 
         # Build chapter metadata for ffmpeg
         # Calculate cumulative durations for chapter markers
-        print_colored("⏱️  Calculating chapter durations...", "cyan")
+        print_colored("Calculating chapter durations...", "cyan")
 
         chapter_markers: List[Dict[str, Union[str, int]]] = []
         cumulative_ms = 0
 
-        for idx, meta in enumerate(chapter_metadata):
+        for _, meta in enumerate(chapter_metadata):
             # Get duration of this chapter's audio file
             duration_cmd = [
                 "ffprobe",
@@ -788,7 +789,7 @@ async def create_m4b_audiobook(
 
                     cumulative_ms += duration_ms
                 else:
-                    print_colored(f"⚠️  Could not get duration for {meta['title']}", "yellow")
+                    print_colored(f"Could not get duration for {meta['title']}", "yellow")
 
             except Exception as e:
                 print_colored(f"⚠️  Error getting duration for {meta['title']}: {e}", "yellow")
@@ -928,6 +929,7 @@ class Chapter:
     dir_name: str  # "01-the-great-white-whale"
     text: str  # Full chapter text
     chunks: List[str]  # Chunked text (populated later)
+    output_file: Optional[str] = None  # Output file path (set during processing)
 
 
 class DocumentParser:
@@ -1043,7 +1045,7 @@ class DocumentParser:
             return []
 
         # Flatten TOC (handle nested sections)
-        def flatten_toc(items, level=0):
+        def flatten_toc(items: List[Any], level: int = 0) -> List[Any]:
             flat = []
             for item in items:
                 if isinstance(item, tuple):
@@ -1148,7 +1150,7 @@ class DocumentParser:
                     # Get text after this heading (until next heading or end)
                     text_parts = []
                     for sibling in heading.find_all_next():
-                        if hasattr(sibling, "name") and sibling.name in ["h1", "h2"]:
+                        if hasattr(sibling, "name") and getattr(sibling, "name", None) in ["h1", "h2"]:
                             break
                         if sibling.get_text().strip():
                             text_parts.append(sibling.get_text())
@@ -1263,7 +1265,7 @@ class DocumentParser:
         current_text: List[str] = []
         chapter_num = 0
 
-        for i, line in enumerate(lines):
+        for _, line in enumerate(lines):
             line_stripped = line.strip()
 
             # Check if line matches any chapter pattern
@@ -1382,10 +1384,12 @@ class DocumentParser:
     @staticmethod
     def extract_text_from_docx(file_path: str) -> str:
         """Extract text from DOCX (Microsoft Word) file"""
-        if not DOCX_AVAILABLE:
+        if not _DOCX_AVAILABLE:
             print_colored("❌ python-docx library not installed", "red")
             print_colored("Install with: pip install python-docx", "yellow")
             return ""
+
+        assert DocxDocument is not None, "DocxDocument should be available"
 
         print_colored(f"📄 Reading DOCX: {file_path}", "cyan")
 
@@ -1416,7 +1420,8 @@ class DocumentParser:
             # Try to detect encoding
             encoding = "utf-8"  # Default encoding
 
-            if CHARDET_AVAILABLE:
+            if _CHARDET_AVAILABLE:
+                assert chardet is not None, "chardet should be available"
                 with open(file_path, "rb") as f:
                     raw_data = f.read()
                     result = chardet.detect(raw_data)
@@ -1478,7 +1483,8 @@ class DocumentParser:
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 markdown_content = f.read()
 
-            if MISTUNE_AVAILABLE:
+            if _MISTUNE_AVAILABLE:
+                assert mistune is not None, "mistune should be available"
                 # Parse markdown to HTML then extract text
                 markdown = mistune.create_markdown()
                 html_result = markdown(markdown_content)
@@ -2353,6 +2359,7 @@ async def main():
                 print_colored(f"🔢 Estimated chunks: ~{estimated_chunks}", "yellow")
             else:
                 # Text-based preview
+                assert text is not None, "text should be set by this point"
                 preview = text[:200].replace("\n", " ")
                 print_colored(f"\n📝 Text preview:", "yellow")
                 print(f"   {preview}...")
@@ -2368,7 +2375,7 @@ async def main():
                 continue
 
             # Use interactive voice selection
-            voice_id, voice_name = select_voice_interactive(voices)
+            voice_id, _ = select_voice_interactive(voices)
             if not voice_id:
                 print_colored("Voice selection cancelled.", "yellow")
                 continue
@@ -2479,6 +2486,7 @@ async def main():
 
                 # Prompt for author
                 author = prompt_for_author(author)
+                assert author is not None, "prompt_for_author should always return a string"
 
                 # Prompt for cover art before processing (so user doesn't have to wait)
                 print_colored(f"\n📖 Preparing to create M4B audiobook with metadata:", "cyan")
@@ -2489,6 +2497,7 @@ async def main():
             # Process document (chapter-based or text-based)
             if chapters and use_parallel:
                 # Parallel mode processing
+                assert author is not None, "author should be set for chapter processing"
                 print_colored("\n🚀 Starting Parallel Mode Processing", "magenta")
 
                 # Lazy import to avoid circular dependency
@@ -2562,10 +2571,12 @@ async def main():
 
             # Simple mode processing (or fallback from failed safety test)
             if chapters and not use_parallel:
+                assert author is not None, "author should be set for chapter processing"
                 await process_chapters_to_speech(
                     browser, voice_id, chapters, output_name, chunk_size, author, cover_image_path
                 )
             elif not chapters:
+                assert text is not None, "text should be set for non-chapter processing"
                 await process_document_to_speech(browser, voice_id, text, output_name, chunk_size)
 
             # Continue?
@@ -2583,7 +2594,7 @@ async def main():
         print_colored("\n🔒 Closing browser...", "cyan")
         try:
             await browser.cleanup()
-        except Exception as e:
+        except Exception:
             # Suppress cleanup errors (common when interrupted)
             pass
 

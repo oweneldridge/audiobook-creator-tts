@@ -4,16 +4,15 @@ Tests for parallel processing functions and configuration
 """
 
 import pytest
-import asyncio
 import json
-from unittest.mock import Mock, patch, MagicMock, AsyncMock, mock_open
+from unittest.mock import MagicMock, AsyncMock
 from pathlib import Path
 
 
 class TestConfigLoading:
     """Tests for configuration loading"""
 
-    def test_load_config_from_file(self, tmp_path, monkeypatch):
+    def test_load_config_from_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading configuration from file"""
         from main_document_mode_parallel import load_config
         import main_document_mode_parallel
@@ -36,7 +35,7 @@ class TestConfigLoading:
         assert config["enable_parallel_mode"] is True
         assert config["chunks_per_worker_target"] == 60
 
-    def test_load_config_default(self, tmp_path, monkeypatch):
+    def test_load_config_default(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading default configuration when file doesn't exist"""
         from main_document_mode_parallel import load_config
         import main_document_mode_parallel
@@ -55,7 +54,7 @@ class TestConfigLoading:
 class TestWorkerCalculation:
     """Tests for optimal worker calculation"""
 
-    def test_calculate_optimal_workers_auto(self):
+    def test_calculate_optimal_workers_auto(self) -> None:
         """Test automatic worker calculation"""
         from main_document_mode_parallel import calculate_optimal_workers
 
@@ -66,7 +65,7 @@ class TestWorkerCalculation:
 
         assert workers == 12
 
-    def test_calculate_optimal_workers_capped(self):
+    def test_calculate_optimal_workers_capped(self) -> None:
         """Test worker calculation capped at max_workers"""
         from main_document_mode_parallel import calculate_optimal_workers
 
@@ -77,7 +76,7 @@ class TestWorkerCalculation:
 
         assert workers == 10
 
-    def test_calculate_optimal_workers_manual(self):
+    def test_calculate_optimal_workers_manual(self) -> None:
         """Test manual worker count"""
         from main_document_mode_parallel import calculate_optimal_workers
 
@@ -87,7 +86,7 @@ class TestWorkerCalculation:
 
         assert workers == 5
 
-    def test_calculate_optimal_workers_small_book(self):
+    def test_calculate_optimal_workers_small_book(self) -> None:
         """Test calculation for small number of chunks"""
         from main_document_mode_parallel import calculate_optimal_workers
 
@@ -102,7 +101,7 @@ class TestWorkerCalculation:
 class TestCaptchaStrategy:
     """Tests for CAPTCHA strategy selection"""
 
-    def test_prompt_captcha_strategy_simultaneous(self, monkeypatch):
+    def test_prompt_captcha_strategy_simultaneous(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test selecting simultaneous strategy"""
         from main_document_mode_parallel import prompt_captcha_strategy
 
@@ -115,7 +114,7 @@ class TestCaptchaStrategy:
 
         assert strategy == "simultaneous"
 
-    def test_prompt_captcha_strategy_staggered(self, monkeypatch):
+    def test_prompt_captcha_strategy_staggered(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test selecting staggered strategy"""
         from main_document_mode_parallel import prompt_captcha_strategy
 
@@ -126,7 +125,7 @@ class TestCaptchaStrategy:
 
         assert strategy == "staggered"
 
-    def test_prompt_captcha_strategy_sequential(self, monkeypatch):
+    def test_prompt_captcha_strategy_sequential(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test selecting sequential strategy"""
         from main_document_mode_parallel import prompt_captcha_strategy
 
@@ -137,7 +136,7 @@ class TestCaptchaStrategy:
 
         assert strategy == "sequential"
 
-    def test_prompt_captcha_strategy_invalid_then_valid(self, monkeypatch):
+    def test_prompt_captcha_strategy_invalid_then_valid(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test invalid input then valid"""
         from main_document_mode_parallel import prompt_captcha_strategy
 
@@ -157,7 +156,7 @@ class TestCaptchaStrategy:
 class TestPrintTimestamped:
     """Tests for timestamped printing"""
 
-    def test_print_timestamped(self, monkeypatch):
+    def test_print_timestamped(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test timestamped message printing"""
         from main_document_mode_parallel import print_timestamped
 
@@ -176,7 +175,7 @@ class TestPrintTimestamped:
 class TestSafetyTest:
     """Tests for safety test functionality"""
 
-    async def test_run_safety_test_not_enough_chunks(self, monkeypatch):
+    async def test_run_safety_test_not_enough_chunks(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test safety test with insufficient chunks"""
         from main_document_mode_parallel import run_safety_test
         from main_document_mode import Chapter
@@ -197,7 +196,7 @@ class TestSafetyTest:
         assert success is False
         assert "Not enough chunks" in message
 
-    async def test_run_safety_test_success(self, monkeypatch):
+    async def test_run_safety_test_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful safety test"""
         from main_document_mode_parallel import run_safety_test
         from main_document_mode import Chapter
@@ -231,7 +230,7 @@ class TestSafetyTest:
 class TestWorkerProcessWrapper:
     """Tests for worker process wrapper"""
 
-    async def test_worker_process_wrapper_success(self, monkeypatch, tmp_path):
+    async def test_worker_process_wrapper_success(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Test successful worker execution"""
         from main_document_mode_parallel import worker_process_wrapper
         from main_document_mode import Chapter
@@ -262,7 +261,7 @@ class TestWorkerProcessWrapper:
         assert result["status"] == "success"
         assert len(result["results"]) == 1
 
-    async def test_worker_process_wrapper_with_delay(self, monkeypatch, tmp_path):
+    async def test_worker_process_wrapper_with_delay(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Test worker with start delay"""
         from main_document_mode_parallel import worker_process_wrapper
         from main_document_mode import Chapter
@@ -301,7 +300,7 @@ class TestWorkerProcessWrapper:
         assert result["status"] == "success"
         assert elapsed >= 1.0  # Verify delay was applied
 
-    async def test_worker_process_wrapper_error(self, monkeypatch, tmp_path):
+    async def test_worker_process_wrapper_error(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Test worker error handling"""
         from main_document_mode_parallel import worker_process_wrapper
         from main_document_mode import Chapter
@@ -334,7 +333,7 @@ class TestWorkerProcessWrapper:
 class TestMain:
     """Tests for main entry point"""
 
-    async def test_main_parallel_mode_disabled(self, monkeypatch):
+    async def test_main_parallel_mode_disabled(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test main when parallel mode is disabled"""
         from main_document_mode_parallel import main
 
@@ -348,7 +347,7 @@ class TestMain:
 
         assert any("Parallel mode is disabled" in p for p in printed)
 
-    async def test_main_parallel_mode_enabled(self, monkeypatch):
+    async def test_main_parallel_mode_enabled(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test main with parallel mode enabled"""
         from main_document_mode_parallel import main
 

@@ -7,8 +7,7 @@ import asyncio
 import os
 import sys
 from datetime import datetime
-from typing import Optional, List, Tuple
-from playwright.async_api import Browser, BrowserContext, Page
+from typing import Optional, List, Tuple, Dict, Any
 
 # Import from main
 sys.path.insert(0, os.path.dirname(__file__))
@@ -66,7 +65,7 @@ class WorkerBrowser(PersistentBrowser):
         Args:
             skip_initial_captcha_prompt: If True, skip the initial CAPTCHA prompt (default: True for efficiency)
         """
-        print_timestamped(f"🚀 [Worker #{self.worker_id}] Initializing browser session...", "cyan")
+        print_timestamped(f"[Worker #{self.worker_id}] Initializing browser session...", "cyan")
 
         from playwright.async_api import async_playwright
 
@@ -106,6 +105,8 @@ class WorkerBrowser(PersistentBrowser):
         else:
             self.page = await self.context.new_page()
 
+        assert self.page is not None, "page should be initialized"
+
         # Add stealth JavaScript
         await self.page.add_init_script(
             """
@@ -128,12 +129,12 @@ class WorkerBrowser(PersistentBrowser):
         )
 
         # Navigate to site with error handling
-        print_timestamped(f"🌐 [Worker #{self.worker_id}] Navigating to speechma.com...", "cyan")
+        print_timestamped(f"[Worker #{self.worker_id}] Navigating to speechma.com...", "cyan")
         try:
             await self.page.goto("https://speechma.com", wait_until="networkidle", timeout=60000)
             print_timestamped(f"✅ [Worker #{self.worker_id}] Page loaded successfully", "green")
         except Exception as e:
-            print_timestamped(f"⚠️  [Worker #{self.worker_id}] Navigation warning: {e}", "yellow")
+            print_timestamped(f"[Worker #{self.worker_id}] Navigation warning: {e}", "yellow")
             print_timestamped(f"   Retrying navigation...", "yellow")
             await self.page.goto("https://speechma.com", wait_until="domcontentloaded", timeout=60000)
 
@@ -145,7 +146,7 @@ class WorkerBrowser(PersistentBrowser):
         # Initial CAPTCHA check (skip for safety test to avoid deadlock)
         if not skip_initial_captcha_prompt:
             print_colored(f"\n{'='*60}", "yellow")
-            print_colored(f"⚠️  [Worker #{self.worker_id}] CAPTCHA CHECK", "yellow")
+            print_colored(f"[Worker #{self.worker_id}] CAPTCHA CHECK", "yellow")
             print_colored(f"{'='*60}", "yellow")
             print_colored(f"Browser window title: 'Worker #{self.worker_id}'", "cyan")
             print_colored(f"If you see a CAPTCHA in Worker #{self.worker_id} window:", "yellow")
@@ -156,7 +157,7 @@ class WorkerBrowser(PersistentBrowser):
             input()
         else:
             print_colored(
-                f"⏩ [Worker #{self.worker_id}] Skipping initial CAPTCHA prompt (will prompt when needed)", "cyan"
+                f"[Worker #{self.worker_id}] Skipping initial CAPTCHA prompt (will prompt when needed)", "cyan"
             )
 
         self.captcha_solved = True
@@ -165,31 +166,33 @@ class WorkerBrowser(PersistentBrowser):
 
     async def display_captcha_notification(self):
         """Enhanced CAPTCHA notification with worker identification"""
+        assert self.page is not None, "page should be initialized"
+
         import subprocess
         import tempfile
 
         try:
             # Take screenshot
-            screenshot_path = tempfile.mktemp(suffix=f"-worker-{self.worker_id}.png")
+            screenshot_path = tempfile.mkstemp(suffix=f"-worker-{self.worker_id}.png")[1]
             await self.page.screenshot(path=screenshot_path)
 
             print_colored(f"\n{'='*70}", "yellow")
             print_colored(f"╔══════════════════════════════════════════════════════════════════╗", "yellow")
-            print_colored(f"║  🔔 WORKER #{self.worker_id} - CAPTCHA REQUIRED                       ║", "yellow")
+            print_colored(f"║  WORKER #{self.worker_id} - CAPTCHA REQUIRED                          ║", "yellow")
             print_colored(f"╚══════════════════════════════════════════════════════════════════╝", "yellow")
 
-            print_colored(f"\n🪟 Find browser window: 'Worker #{self.worker_id} - Audiobook TTS'", "cyan")
+            print_colored(f"\nFind browser window: 'Worker #{self.worker_id} - Audiobook TTS'", "cyan")
 
             # Display screenshot in iTerm2
             try:
                 result = subprocess.run(["imgcat", screenshot_path], capture_output=True, timeout=5, check=False)
                 if result.returncode != 0:
-                    print_colored(f"\n📸 Screenshot: {screenshot_path}", "cyan")
+                    print_colored(f"\nScreenshot: {screenshot_path}", "cyan")
             except (FileNotFoundError, subprocess.TimeoutExpired):
-                print_colored(f"\n📸 Screenshot: {screenshot_path}", "cyan")
+                print_colored(f"\nScreenshot: {screenshot_path}", "cyan")
 
             # Worker-specific stats
-            print_colored(f"\n📊 Worker #{self.worker_id} Stats:", "cyan")
+            print_colored(f"\nWorker #{self.worker_id} Stats:", "cyan")
             print_colored(f"   Total Requests: {self.request_count}", "cyan")
             print_colored(f"   Requests Since CAPTCHA: {self.requests_since_captcha}", "cyan")
             print_colored(f"   Completed Chunks: {len(self.completed_chunks)}", "cyan")
@@ -217,7 +220,7 @@ class WorkerBrowser(PersistentBrowser):
             print_colored(f"{'='*70}", "yellow")
 
         except Exception as e:
-            print_colored(f"⚠️  [Worker #{self.worker_id}] Screenshot error: {e}", "yellow")
+            print_colored(f"[Worker #{self.worker_id}] Screenshot error: {e}", "yellow")
 
     def assign_chunks(self, chunks: List[Tuple[int, str]]):
         """
@@ -227,7 +230,7 @@ class WorkerBrowser(PersistentBrowser):
             chunks: List of (chunk_index, chunk_text) tuples
         """
         self.assigned_chunks = chunks
-        print_colored(f"📋 [Worker #{self.worker_id}] Assigned {len(chunks)} chunks", "cyan")
+        print_colored(f"[Worker #{self.worker_id}] Assigned {len(chunks)} chunks", "cyan")
 
     async def process_assigned_chunks(
         self,
@@ -235,7 +238,7 @@ class WorkerBrowser(PersistentBrowser):
         output_dir: str,
         chapter_dir_name: str,
         chapter_number: int,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """
         Process all chunks assigned to this worker
 
@@ -255,7 +258,7 @@ class WorkerBrowser(PersistentBrowser):
                 "failure_count": int
             }
         """
-        print_timestamped(f"🎬 [Worker #{self.worker_id}] Starting chunk processing...", "green")
+        print_timestamped(f"[Worker #{self.worker_id}] Starting chunk processing...", "green")
 
         for chunk_idx, chunk_text in self.assigned_chunks:
             # Progress indicator
@@ -277,7 +280,7 @@ class WorkerBrowser(PersistentBrowser):
 
                 if audio_data == "RATE_LIMIT":
                     # Handle rate limit (shouldn't happen with proactive CAPTCHA)
-                    print_colored(f"⚠️  [Worker #{self.worker_id}] Rate limit hit (unexpected)", "yellow")
+                    print_colored(f"[Worker #{self.worker_id}] Rate limit hit (unexpected)", "yellow")
                     await self.restart()
                     continue
 
@@ -307,9 +310,7 @@ class WorkerBrowser(PersistentBrowser):
                 else:
                     # Retry on failure
                     if attempt < max_retries - 1:
-                        print_colored(
-                            f"   ⚠️  [Worker #{self.worker_id}] Retry {attempt + 1}/{max_retries}...", "yellow"
-                        )
+                        print_colored(f"   [Worker #{self.worker_id}] Retry {attempt + 1}/{max_retries}...", "yellow")
                         await asyncio.sleep(2)
 
             # Mark as failed if all retries exhausted
@@ -328,7 +329,7 @@ class WorkerBrowser(PersistentBrowser):
 
     async def cleanup(self):
         """Close browser and cleanup worker resources"""
-        print_timestamped(f"🔒 [Worker #{self.worker_id}] Closing browser...", "cyan")
+        print_timestamped(f"[Worker #{self.worker_id}] Closing browser...", "cyan")
 
         # Close context instead of browser (since we used launch_persistent_context)
         if hasattr(self, "context") and self.context:

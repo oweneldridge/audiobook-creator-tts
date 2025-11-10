@@ -132,7 +132,7 @@ Output format: `{sanitized-filename}-{chunk-number}.mp3`
 
 ## Output Directory Structure
 
-```
+```text
 audio/
   └── {filename}_{timestamp}/
       ├── othello-1.mp3
@@ -143,7 +143,8 @@ audio/
 ```
 
 Example:
-```
+
+```text
 audio/
   └── othello_2025-01-14-10-30-45/
       ├── othello-1.mp3      (42.3 KB)
@@ -181,6 +182,7 @@ playwright install chromium
 ```
 
 For M4B audiobook creation (optional but recommended):
+
 ```bash
 # macOS
 brew install ffmpeg
@@ -197,6 +199,7 @@ sudo apt-get install ffmpeg
 After converting all MP3 chunks, the script automatically creates a single M4B audiobook file with chapter markers. Each chunk becomes a chapter, making it easy to navigate through the book.
 
 Features:
+
 - Single file with all audio combined
 - Chapter markers for navigation
 - Metadata (title and author)
@@ -205,6 +208,7 @@ Features:
 - Automatic creation after successful conversion
 
 Requirements:
+
 - ffmpeg must be installed
 - All MP3 chunks successfully generated
 - AtomicParsley (optional, for cover art): `brew install atomicparsley`
@@ -216,6 +220,7 @@ If ffmpeg is not installed, the script skips M4B creation and shows a warning. Y
 When creating M4B audiobooks, you can add custom cover art. The script prompts for cover art after confirming title and author but before starting TTS conversion.
 
 Workflow:
+
 1. Confirm conversion and select voice
 2. Provide title and author metadata
 3. Add cover art (asked here)
@@ -223,6 +228,7 @@ Workflow:
 5. M4B file created with cover art embedded
 
 Options:
+
 - Use default: If `cover.jpg` exists in the audiobook directory, script will offer to use it
 - Custom path: Provide full path to your cover image
 - Skip: Press 'n' to create audiobook without cover art
@@ -232,6 +238,7 @@ Supported formats: JPG/JPEG, PNG, GIF, BMP
 Recommended: Square images (500x500 or larger), high quality (<2MB), clear thumbnail
 
 Manual cover art embedding:
+
 ```bash
 AtomicParsley audiobook.m4b --artwork cover.jpg --overWrite
 ```
@@ -243,6 +250,7 @@ After creating your M4B audiobook, you can open it directly in Apple Books. The 
 Platform support: macOS only (uses native `open` command)
 
 Manual opening:
+
 ```bash
 open audio/othello_2025-01-14-10-30-45/othello.m4b
 ```
@@ -254,12 +262,14 @@ Or drag and drop the M4B file directly into the Books app.
 ### Automatic Text Extraction
 
 PDF Files:
+
 - Extracts text from all pages
 - Shows progress every 10 pages
 - Handles multi-column layouts
 - Preserves paragraph structure
 
 EPUB Files:
+
 - Extracts from all chapters/sections
 - Removes HTML formatting
 - Cleans up navigation and metadata
@@ -268,6 +278,7 @@ EPUB Files:
 ### Text Cleaning
 
 Automatically:
+
 - Removes non-ASCII characters
 - Normalizes whitespace
 - Removes excessive line breaks
@@ -277,6 +288,7 @@ Automatically:
 ### Progress Tracking
 
 Real-time updates:
+
 - Current chunk number and percentage
 - Preview of text being converted
 - File size of generated audio
@@ -317,11 +329,13 @@ Real-time updates:
 ### "No text extracted"
 
 PDF Files:
+
 - File might be scanned images (not searchable text)
 - Try OCR software first to make it text-searchable
 - Some PDFs have text extraction disabled
 
 EPUB Files:
+
 - File might be corrupted
 - Try opening in an ebook reader first
 - Re-download the file if needed
@@ -347,11 +361,13 @@ EPUB Files:
 ## Performance
 
 Processing speed:
+
 - ~1-2 seconds per chunk (network dependent)
 - ~50-100 chunks per hour
 - Large books (500 pages) = 2-3 hours
 
 File sizes:
+
 - ~30-50 KB per chunk (MP3)
 - 100 chunks ≈ 3-5 MB total
 - Full novel ≈ 10-20 MB

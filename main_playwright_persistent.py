@@ -5,12 +5,11 @@ Keeps browser session alive across multiple text-to-speech conversions
 User only needs to solve CAPTCHA once at startup
 """
 import asyncio
-import json
 import os
 import sys
 from datetime import datetime
 import time
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any, List
 from playwright.async_api import async_playwright, Browser, Page
 
 # Import functions from main.py to avoid duplication
@@ -19,8 +18,6 @@ from main import (
     print_colored,
     input_colored,
     load_voices,
-    display_voices,
-    get_voice_id,
     split_text,
     validate_text,
     count_voice_stats,
@@ -49,9 +46,9 @@ class PersistentBrowser:
         self.request_count = 0
         self.success_count = 0
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Start browser and navigate to site"""
-        print_colored("\n🚀 Initializing browser session...", "cyan")
+        print_colored("\nInitializing browser session...", "cyan")
 
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(
@@ -65,6 +62,7 @@ class PersistentBrowser:
             ],
         )
 
+        assert self.browser is not None, "browser should be initialized"
         context = await self.browser.new_context(
             viewport={"width": 1920, "height": 1080},
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.140 Safari/537.36",
@@ -82,6 +80,7 @@ class PersistentBrowser:
 
         self.page = await context.new_page()
 
+        assert self.page is not None, "page should be initialized"
         # Add stealth JavaScript to mask automation
         await self.page.add_init_script(
             """
@@ -104,13 +103,13 @@ class PersistentBrowser:
         )
 
         # Navigate to the site
-        print_colored("🌐 Navigating to speechma.com...", "cyan")
+        print_colored("Navigating to speechma.com...", "cyan")
         await self.page.goto("https://speechma.com", wait_until="domcontentloaded")
         await asyncio.sleep(3)
 
         # Check for CAPTCHA
         print_colored("\n" + "=" * 60, "yellow")
-        print_colored("⚠️  CAPTCHA CHECK", "yellow")
+        print_colored("CAPTCHA CHECK", "yellow")
         print_colored("=" * 60, "yellow")
         print_colored("If you see a CAPTCHA in the browser window:", "yellow")
         print_colored("  1. Solve the CAPTCHA", "yellow")
@@ -125,6 +124,7 @@ class PersistentBrowser:
 
     async def check_for_captcha(self) -> bool:
         """Check if CAPTCHA is present on the page"""
+        assert self.page is not None, "page should be initialized"
         try:
             # Check for common Cloudflare Turnstile CAPTCHA indicators
             captcha_selectors = [
@@ -143,26 +143,27 @@ class PersistentBrowser:
         except Exception:
             return False
 
-    def update_health(self, success: bool):
+    def update_health(self, success: bool) -> None:
         """Update session health tracking"""
         self.request_count += 1
         if success:
             self.success_count += 1
             self.requests_since_captcha += 1
 
-    async def display_captcha_notification(self):
+    async def display_captcha_notification(self) -> None:
         """Display CAPTCHA screenshot in terminal and send system notification"""
+        assert self.page is not None, "page should be initialized"
         import subprocess
         import tempfile
 
         try:
             # Take screenshot of current page
-            screenshot_path = tempfile.mktemp(suffix=".png")
+            screenshot_path = tempfile.mkstemp(suffix=".png")[1]
             await self.page.screenshot(path=screenshot_path)
 
             print_colored("\n" + "=" * 70, "yellow")
             print_colored("╔══════════════════════════════════════════════════════════════════╗", "yellow")
-            print_colored("║  ⚠️  CAPTCHA REQUIRED - Solve in browser window                 ║", "yellow")
+            print_colored("║  CAPTCHA REQUIRED - Solve in browser window                      ║", "yellow")
             print_colored("╚══════════════════════════════════════════════════════════════════╝", "yellow")
 
             # Display screenshot in iTerm2
@@ -171,15 +172,15 @@ class PersistentBrowser:
                 result = subprocess.run(["imgcat", screenshot_path], capture_output=True, timeout=5, check=False)
                 if result.returncode != 0:
                     # Fallback: show file path
-                    print_colored(f"\n📸 Screenshot saved: {screenshot_path}", "cyan")
+                    print_colored(f"\nScreenshot saved: {screenshot_path}", "cyan")
                     print_colored("   Open screenshot to see CAPTCHA", "yellow")
             except (FileNotFoundError, subprocess.TimeoutExpired):
                 # imgcat not available, just show path
-                print_colored(f"\n📸 Screenshot saved: {screenshot_path}", "cyan")
+                print_colored(f"\nScreenshot saved: {screenshot_path}", "cyan")
                 print_colored("   Open screenshot for reference", "yellow")
 
             # Session stats
-            print_colored(f"\n📊 Session Stats:", "cyan")
+            print_colored(f"\nSession Stats:", "cyan")
             print_colored(f"   Total Requests: {self.request_count}", "cyan")
             print_colored(f"   Requests Since CAPTCHA: {self.requests_since_captcha}", "cyan")
 
@@ -205,9 +206,9 @@ class PersistentBrowser:
             print_colored("=" * 70, "yellow")
 
         except Exception as e:
-            print_colored(f"⚠️  Screenshot error: {e}", "yellow")
+            print_colored(f"Screenshot error: {e}", "yellow")
 
-    async def wait_if_needed(self):
+    async def wait_if_needed(self) -> None:
         """Add simple delay between requests"""
         current_time = time.time()
         time_since_last = current_time - self.last_request_time
@@ -218,7 +219,7 @@ class PersistentBrowser:
 
         self.last_request_time = time.time()
 
-    async def check_and_handle_captcha_limit(self):
+    async def check_and_handle_captcha_limit(self) -> None:
         """Proactively prompt for CAPTCHA before hitting 60-request hard limit"""
         if self.requests_since_captcha >= self.captcha_request_limit:
             print_colored("\n" + "=" * 60, "cyan")
@@ -241,6 +242,7 @@ class PersistentBrowser:
         Make API request using browser context with health monitoring
         Returns audio bytes or None on failure, or "RATE_LIMIT" string
         """
+        assert self.page is not None, "page should be initialized"
         try:
             # Add simple delay between requests
             await self.wait_if_needed()
@@ -358,12 +360,12 @@ class PersistentBrowser:
         """
         return True
 
-    async def restart(self):
+    async def restart(self) -> None:
         """
         Restart browser session (useful when rate-limited)
         Closes current session and starts fresh with new cookies
         """
-        print_colored("\n🔄 Restarting browser session...", "yellow")
+        print_colored("\nRestarting browser session...", "yellow")
         print_colored("   Closing current session...", "cyan")
         await self.cleanup()
         print_colored("   Starting new session...", "cyan")
@@ -375,7 +377,7 @@ class PersistentBrowser:
         self.success_count = 0
         self.requests_since_captcha = 0
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         """Close browser and cleanup"""
         if self.browser:
             await self.browser.close()
@@ -383,29 +385,29 @@ class PersistentBrowser:
             await self.playwright.stop()
 
 
-async def process_text_to_speech(browser: PersistentBrowser, voice_id: str, text: str):
+async def process_text_to_speech(browser: PersistentBrowser, voice_id: str, text: str) -> None:
     """Process text-to-speech conversion"""
 
     # Split into chunks
-    chunks = split_text(text, chunk_size=1000)
+    chunks: List[str] = split_text(text, chunk_size=1000)
     if not chunks:
         print_colored("Error: Could not split text.", "red")
         return
 
     # Create output directory
-    timestamp = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-    directory = os.path.join("audio", timestamp)
+    timestamp: str = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+    directory: str = os.path.join("audio", timestamp)
     os.makedirs(directory, exist_ok=True)
 
-    print_colored(f"\n📊 Processing {len(chunks)} chunk(s)...", "cyan")
+    print_colored(f"\nProcessing {len(chunks)} chunk(s)...", "cyan")
 
     # Process each chunk
-    success_count = 0
+    success_count: int = 0
     for i, chunk in enumerate(chunks, start=1):
         print_colored(f"\n[{i}/{len(chunks)}] Processing chunk...", "yellow")
 
-        max_retries = 3
-        audio_data = None
+        max_retries: int = 3
+        audio_data: Union[bytes, str, None] = None
 
         for attempt in range(max_retries):
             audio_data = await browser.request_audio(chunk, voice_id)
@@ -426,7 +428,7 @@ async def process_text_to_speech(browser: PersistentBrowser, voice_id: str, text
                 break
             else:
                 if attempt < max_retries - 1:
-                    print_colored(f"⚠️  Retry {attempt + 1}/{max_retries}...", "yellow")
+                    print_colored(f"Retry {attempt + 1}/{max_retries}...", "yellow")
                     await asyncio.sleep(2)
 
         if not audio_data:
@@ -439,30 +441,30 @@ async def process_text_to_speech(browser: PersistentBrowser, voice_id: str, text
     print_colored(f"{'='*60}", "cyan")
 
 
-async def main():
+async def main() -> None:
     """Main application loop"""
 
     # Display header
     print_colored("\n" + "=" * 60, "cyan")
-    print_colored("🎤 Audiobook Creator TTS - Persistent Browser Mode", "magenta")
+    print_colored("Audiobook Creator TTS - Persistent Browser Mode", "magenta")
     print_colored("=" * 60, "cyan")
 
     # Load voices
-    voices = load_voices()
+    voices: Optional[Dict[str, Any]] = load_voices()
     if not voices:
         print_colored("Error: No voices available.", "red")
         return
 
     # Display stats
-    stats = count_voice_stats(voices)
-    print_colored(f"\n📊 Voice Library:", "yellow")
-    print(f"   • {stats['total']} voices")
-    print(f"   • {len(stats['languages'])} languages")
-    print(f"   • {len(stats['countries'])} countries")
+    stats: Dict[str, Any] = count_voice_stats(voices)
+    print_colored(f"\nVoice Library:", "yellow")
+    print(f"   {stats['total']} voices")
+    print(f"   {len(stats['languages'])} languages")
+    print(f"   {len(stats['countries'])} countries")
     print_colored("=" * 60, "cyan")
 
     # Initialize browser (one-time setup)
-    browser = PersistentBrowser()
+    browser: PersistentBrowser = PersistentBrowser()
 
     try:
         await browser.initialize()
@@ -474,22 +476,23 @@ async def main():
             print_colored("=" * 60, "blue")
 
             # Use interactive voice selection
-            voice_id, voice_name = select_voice_interactive(voices)
+            voice_id: Optional[str]
+            voice_id, _ = select_voice_interactive(voices)
             if not voice_id:
                 print_colored("Voice selection cancelled. Exiting.", "yellow")
                 return
 
             # Get text
-            print_colored("\n📝 Enter your text:", "cyan")
+            print_colored("\nEnter your text:", "cyan")
             print_colored("(Type END on a new line when finished)", "yellow")
-            lines = []
+            lines: List[str] = []
             while True:
                 line = input()
                 if line == "END":
                     break
                 lines.append(line)
 
-            text = " ".join(lines).replace("  ", " ")
+            text: str = " ".join(lines).replace("  ", " ")
 
             if not text or len(text) <= 9:
                 print_colored("Error: Text too short (min 10 characters).", "red")
@@ -502,17 +505,17 @@ async def main():
 
             # Continue?
             while True:
-                choice = input_colored("\n🔄 Convert another text? (y/n): ", "blue").lower()
+                choice = input_colored("\nConvert another text? (y/n): ", "blue").lower()
                 if choice == "y":
                     break
                 elif choice == "n":
-                    print_colored("\n👋 Goodbye!", "magenta")
+                    print_colored("\nGoodbye!", "magenta")
                     return
                 else:
                     print_colored("Please enter 'y' or 'n'.", "red")
 
     finally:
-        print_colored("\n🔒 Closing browser...", "cyan")
+        print_colored("\nClosing browser...", "cyan")
         await browser.cleanup()
 
 
@@ -520,4 +523,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print_colored("\n\n👋 Exiting...", "yellow")
+        print_colored("\n\nExiting...", "yellow")

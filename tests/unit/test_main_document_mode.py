@@ -4,14 +4,11 @@ Unit tests for main_document_mode.py module
 
 import pytest
 import os
-import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock, patch, MagicMock, mock_open
-from dataclasses import dataclass
+from unittest.mock import Mock
 
 # Import the module to test
-import main_document_mode
+import main_document_mode  # noqa: F401
 from main_document_mode import (
     Chapter,
     DocumentParser,
@@ -28,36 +25,36 @@ from main_document_mode import (
 class TestKebabToTitleCase:
     """Tests for kebab_to_title_case function"""
 
-    def test_simple_title(self):
+    def test_simple_title(self) -> None:
         """Test simple title conversion"""
         assert kebab_to_title_case("the-great-gatsby") == "The Great Gatsby"
 
-    def test_single_word(self):
+    def test_single_word(self) -> None:
         """Test single word"""
         assert kebab_to_title_case("odyssey") == "Odyssey"
 
-    def test_lowercase_words(self):
+    def test_lowercase_words(self) -> None:
         """Test lowercase articles and prepositions"""
         assert kebab_to_title_case("tale-of-two-cities") == "Tale of Two Cities"
         assert kebab_to_title_case("war-and-peace") == "War and Peace"
         assert kebab_to_title_case("alice-in-wonderland") == "Alice in Wonderland"
 
-    def test_first_word_always_capitalized(self):
+    def test_first_word_always_capitalized(self) -> None:
         """Test that first word is always capitalized"""
         assert kebab_to_title_case("a-tale-of-two-cities") == "A Tale of Two Cities"
         assert kebab_to_title_case("the-odyssey") == "The Odyssey"
 
-    def test_multiple_hyphens(self):
+    def test_multiple_hyphens(self) -> None:
         """Test handling of multiple consecutive hyphens"""
         # Multiple hyphens create empty strings which become spaces
         assert kebab_to_title_case("the--great--gatsby") == "The  Great  Gatsby"
 
-    def test_all_lowercase_words(self):
+    def test_all_lowercase_words(self) -> None:
         """Test string with many lowercase article words"""
         result = kebab_to_title_case("journey-to-the-center-of-the-earth")
         assert result == "Journey to the Center of the Earth"
 
-    def test_numbers_in_title(self):
+    def test_numbers_in_title(self) -> None:
         """Test titles with numbers"""
         assert kebab_to_title_case("20000-leagues-under-the-sea") == "20000 Leagues Under the Sea"
 
@@ -65,32 +62,32 @@ class TestKebabToTitleCase:
 class TestDocumentParserSanitizeDirName:
     """Tests for DocumentParser.sanitize_dir_name"""
 
-    def test_simple_sanitization(self):
+    def test_simple_sanitization(self) -> None:
         """Test simple text sanitization"""
         assert DocumentParser.sanitize_dir_name("Chapter One") == "chapter-one"
 
-    def test_special_characters(self):
+    def test_special_characters(self) -> None:
         """Test removal of special characters"""
         assert DocumentParser.sanitize_dir_name("Chapter 1: The Beginning!") == "chapter-1-the-beginning"
         assert DocumentParser.sanitize_dir_name("What's This?") == "whats-this"
 
-    def test_multiple_spaces(self):
+    def test_multiple_spaces(self) -> None:
         """Test handling of multiple spaces"""
         assert DocumentParser.sanitize_dir_name("Chapter   One   Two") == "chapter-one-two"
 
-    def test_trailing_hyphens(self):
+    def test_trailing_hyphens(self) -> None:
         """Test trimming of leading/trailing hyphens"""
         assert DocumentParser.sanitize_dir_name("---Chapter One---") == "chapter-one"
 
-    def test_unicode_removal(self):
+    def test_unicode_removal(self) -> None:
         """Test removal of unicode characters"""
         assert DocumentParser.sanitize_dir_name("Café Société") == "caf-socit"
 
-    def test_already_clean(self):
+    def test_already_clean(self) -> None:
         """Test already clean input"""
         assert DocumentParser.sanitize_dir_name("chapter-one") == "chapter-one"
 
-    def test_mixed_case_and_special(self):
+    def test_mixed_case_and_special(self) -> None:
         """Test mixed case with many special characters"""
         input_text = "Chapter #1: The Great White Whale (Part I)"
         expected = "chapter-1-the-great-white-whale-part-i"
@@ -100,45 +97,45 @@ class TestDocumentParserSanitizeDirName:
 class TestDocumentParserIsStoryChapter:
     """Tests for DocumentParser._is_story_chapter"""
 
-    def test_numbered_chapters(self):
+    def test_numbered_chapters(self) -> None:
         """Test detection of numbered chapters"""
-        assert DocumentParser._is_story_chapter("Chapter 1") == True
+        assert DocumentParser._is_story_chapter("Chapter 1") == True  # type: ignore[reportPrivateUsage]
         # "Chapter One" is not detected (only numeric or roman numerals)
-        assert DocumentParser._is_story_chapter("Chapter One") == False
-        assert DocumentParser._is_story_chapter("CHAPTER 5") == True
-        assert DocumentParser._is_story_chapter("chapter 10") == True
+        assert DocumentParser._is_story_chapter("Chapter One") == False  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("CHAPTER 5") == True  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("chapter 10") == True  # type: ignore[reportPrivateUsage]
 
-    def test_roman_numeral_chapters(self):
+    def test_roman_numeral_chapters(self) -> None:
         """Test detection of Roman numeral chapters"""
-        assert DocumentParser._is_story_chapter("Chapter I") == True
-        assert DocumentParser._is_story_chapter("Chapter IV") == True
-        assert DocumentParser._is_story_chapter("CHAPTER X") == True
+        assert DocumentParser._is_story_chapter("Chapter I") == True  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("Chapter IV") == True  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("CHAPTER X") == True  # type: ignore[reportPrivateUsage]
 
-    def test_parts(self):
+    def test_parts(self) -> None:
         """Test detection of parts"""
-        assert DocumentParser._is_story_chapter("Part 1") == True
-        assert DocumentParser._is_story_chapter("Part I") == True
-        assert DocumentParser._is_story_chapter("PART ONE") == False  # "ONE" is not detected as roman
+        assert DocumentParser._is_story_chapter("Part 1") == True  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("Part I") == True  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("PART ONE") == False  # type: ignore[reportPrivateUsage]  # "ONE" is not detected as roman
 
-    def test_numeric_prefix(self):
+    def test_numeric_prefix(self) -> None:
         """Test detection of numeric prefixes"""
-        assert DocumentParser._is_story_chapter("1. Introduction") == True
-        assert DocumentParser._is_story_chapter("5. The Journey") == True
+        assert DocumentParser._is_story_chapter("1. Introduction") == True  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("5. The Journey") == True  # type: ignore[reportPrivateUsage]
 
-    def test_non_story_chapters(self):
+    def test_non_story_chapters(self) -> None:
         """Test non-story chapters are not detected"""
-        assert DocumentParser._is_story_chapter("Prologue") == False
-        assert DocumentParser._is_story_chapter("Epilogue") == False
-        assert DocumentParser._is_story_chapter("Foreword") == False
-        assert DocumentParser._is_story_chapter("Preface") == False
-        assert DocumentParser._is_story_chapter("Introduction") == False
-        assert DocumentParser._is_story_chapter("Table of Contents") == False
+        assert DocumentParser._is_story_chapter("Prologue") == False  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("Epilogue") == False  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("Foreword") == False  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("Preface") == False  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("Introduction") == False  # type: ignore[reportPrivateUsage]
+        assert DocumentParser._is_story_chapter("Table of Contents") == False  # type: ignore[reportPrivateUsage]
 
 
 class TestCheckFfmpegInstalled:
     """Tests for check_ffmpeg_installed function"""
 
-    def test_ffmpeg_installed(self, monkeypatch):
+    def test_ffmpeg_installed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when ffmpeg is installed"""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -148,14 +145,14 @@ class TestCheckFfmpegInstalled:
 
         assert check_ffmpeg_installed() == True
 
-    def test_ffmpeg_not_found(self, monkeypatch):
+    def test_ffmpeg_not_found(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when ffmpeg is not found"""
         mock_run = Mock(side_effect=FileNotFoundError)
         monkeypatch.setattr("subprocess.run", mock_run)
 
         assert check_ffmpeg_installed() == False
 
-    def test_ffmpeg_timeout(self, monkeypatch):
+    def test_ffmpeg_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when ffmpeg check times out"""
         import subprocess
 
@@ -164,7 +161,7 @@ class TestCheckFfmpegInstalled:
 
         assert check_ffmpeg_installed() == False
 
-    def test_ffmpeg_error_returncode(self, monkeypatch):
+    def test_ffmpeg_error_returncode(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when ffmpeg returns error code"""
         mock_result = Mock()
         mock_result.returncode = 1
@@ -178,7 +175,7 @@ class TestCheckFfmpegInstalled:
 class TestCheckPlaywrightBrowser:
     """Tests for check_playwright_browser function"""
 
-    def test_browser_installed(self, tmp_path, monkeypatch):
+    def test_browser_installed(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when Playwright browser is installed"""
         # Create fake playwright cache structure
         playwright_cache = tmp_path / ".cache" / "ms-playwright"
@@ -190,13 +187,13 @@ class TestCheckPlaywrightBrowser:
 
         assert check_playwright_browser() == True
 
-    def test_browser_not_installed_no_cache(self, tmp_path, monkeypatch):
+    def test_browser_not_installed_no_cache(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when playwright cache doesn't exist"""
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         assert check_playwright_browser() == False
 
-    def test_browser_not_installed_no_chromium(self, tmp_path, monkeypatch):
+    def test_browser_not_installed_no_chromium(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when playwright cache exists but no chromium"""
         playwright_cache = tmp_path / ".cache" / "ms-playwright"
         playwright_cache.mkdir(parents=True)
@@ -205,7 +202,7 @@ class TestCheckPlaywrightBrowser:
 
         assert check_playwright_browser() == False
 
-    def test_browser_check_exception(self, monkeypatch):
+    def test_browser_check_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test exception handling in browser check"""
         monkeypatch.setattr(Path, "home", Mock(side_effect=Exception("Test error")))
 
@@ -215,14 +212,14 @@ class TestCheckPlaywrightBrowser:
 class TestSplitTextSmart:
     """Tests for split_text_smart function"""
 
-    def test_short_text(self):
+    def test_short_text(self) -> None:
         """Test text shorter than chunk size"""
         text = "This is a short text."
         chunks = split_text_smart(text, chunk_size=1000)
         assert len(chunks) == 1
         assert chunks[0] == text
 
-    def test_split_at_sentence_boundary(self):
+    def test_split_at_sentence_boundary(self) -> None:
         """Test splitting at sentence boundaries"""
         text = "First sentence. " * 100  # ~1600 chars
         chunks = split_text_smart(text, chunk_size=1000)
@@ -231,18 +228,18 @@ class TestSplitTextSmart:
         for chunk in chunks[:-1]:
             assert chunk.endswith(".")
 
-    def test_split_at_comma(self):
+    def test_split_at_comma(self) -> None:
         """Test fallback to comma when no period"""
         text = "word, " * 200  # ~1200 chars, no periods
         chunks = split_text_smart(text, chunk_size=1000)
         assert len(chunks) >= 2
 
-    def test_empty_text(self):
+    def test_empty_text(self) -> None:
         """Test empty text"""
         chunks = split_text_smart("", chunk_size=1000)
         assert chunks == []
 
-    def test_whitespace_normalization(self):
+    def test_whitespace_normalization(self) -> None:
         """Test that excessive whitespace is normalized"""
         text = "First sentence.\n\n\n\nSecond sentence."
         chunks = split_text_smart(text, chunk_size=1000)
@@ -250,7 +247,7 @@ class TestSplitTextSmart:
         # Should have max 2 newlines
         assert "\n\n\n" not in chunks[0]
 
-    def test_ascii_validation(self, monkeypatch):
+    def test_ascii_validation(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that non-ASCII characters are handled"""
         text = "Text with unicode: café"
         # Mock validate_text to return cleaned text
@@ -258,7 +255,7 @@ class TestSplitTextSmart:
         chunks = split_text_smart(text, chunk_size=1000)
         assert len(chunks) == 1
 
-    def test_very_long_text(self):
+    def test_very_long_text(self) -> None:
         """Test text much longer than chunk size"""
         text = "This is sentence number N. " * 200  # ~5400 chars
         chunks = split_text_smart(text, chunk_size=1000)
@@ -271,27 +268,27 @@ class TestSplitTextSmart:
 class TestChunkChapterText:
     """Tests for chunk_chapter_text function"""
 
-    def test_chunk_short_chapter(self):
+    def test_chunk_short_chapter(self) -> None:
         """Test chunking chapter with short text"""
         chapter = Chapter(number=1, title="Test", dir_name="01-test", text="Short text here.", chunks=[])
         chunk_chapter_text(chapter, chunk_size=1000)
         assert len(chapter.chunks) == 1
         assert chapter.chunks[0] == "Short text here."
 
-    def test_chunk_long_chapter(self):
+    def test_chunk_long_chapter(self) -> None:
         """Test chunking chapter with long text"""
         text = "This is a sentence. " * 100  # ~2000 chars
         chapter = Chapter(number=1, title="Test", dir_name="01-test", text=text, chunks=[])
         chunk_chapter_text(chapter, chunk_size=1000)
         assert len(chapter.chunks) >= 2
 
-    def test_chunk_empty_chapter(self):
+    def test_chunk_empty_chapter(self) -> None:
         """Test chunking chapter with no text"""
         chapter = Chapter(number=1, title="Test", dir_name="01-test", text="", chunks=[])
         chunk_chapter_text(chapter, chunk_size=1000)
         assert chapter.chunks == []
 
-    def test_chunks_are_trimmed(self):
+    def test_chunks_are_trimmed(self) -> None:
         """Test that chunks are stripped of whitespace"""
         text = "   Text with whitespace.   "
         chapter = Chapter(number=1, title="Test", dir_name="01-test", text=text, chunks=[])
@@ -302,12 +299,12 @@ class TestChunkChapterText:
 class TestFindExistingAudioDirectory:
     """Tests for find_existing_audio_directory function"""
 
-    def test_no_audio_directory(self):
+    def test_no_audio_directory(self) -> None:
         """Test when audio directory doesn't exist"""
         result = find_existing_audio_directory("nonexistent")
         assert result is None
 
-    def test_find_matching_directory(self, tmp_path, monkeypatch):
+    def test_find_matching_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test finding matching directory"""
         # Create audio directory with matching subdirectory
         audio_dir = tmp_path / "audio"
@@ -326,7 +323,7 @@ class TestFindExistingAudioDirectory:
         finally:
             os.chdir(original_cwd)
 
-    def test_find_most_recent_directory(self, tmp_path, monkeypatch):
+    def test_find_most_recent_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test finding most recent when multiple exist"""
         audio_dir = tmp_path / "audio"
         audio_dir.mkdir()
@@ -354,7 +351,7 @@ class TestFindExistingAudioDirectory:
         finally:
             os.chdir(original_cwd)
 
-    def test_no_matching_directories(self, tmp_path):
+    def test_no_matching_directories(self, tmp_path: Path) -> None:
         """Test when audio directory exists but no matches"""
         audio_dir = tmp_path / "audio"
         audio_dir.mkdir()
@@ -374,7 +371,7 @@ class TestFindExistingAudioDirectory:
 class TestGetPlaintextInput:
     """Tests for get_plaintext_input function"""
 
-    def test_valid_input(self, monkeypatch):
+    def test_valid_input(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test valid plaintext input"""
         # Mock inputs: name, then text lines, then END
         inputs = iter(["My Book", "This is line 1.", "This is line 2.", "END"])
@@ -385,7 +382,7 @@ class TestGetPlaintextInput:
         assert output_name == "my-book"
         assert text == "This is line 1. This is line 2."
 
-    def test_empty_name_retry(self, monkeypatch):
+    def test_empty_name_retry(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry when name is empty"""
         inputs = iter(["", "Valid Name", "Some text here.", "END"])
         monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
@@ -395,16 +392,16 @@ class TestGetPlaintextInput:
         assert output_name == "valid-name"
         assert text == "Some text here."
 
-    def test_special_chars_in_name(self, monkeypatch):
+    def test_special_chars_in_name(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test sanitization of special characters in name"""
         inputs = iter(["My Book! (2024)", "Some text.", "END"])
         monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
 
-        text, output_name = get_plaintext_input()
+        _, output_name = get_plaintext_input()
 
         assert output_name == "my-book-2024"
 
-    def test_text_too_short(self, monkeypatch):
+    def test_text_too_short(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test rejection of text that's too short"""
         inputs = iter(["Book Name", "short", "END"])
         monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
@@ -414,23 +411,24 @@ class TestGetPlaintextInput:
         assert text is None
         assert output_name is None
 
-    def test_multiline_text(self, monkeypatch):
+    def test_multiline_text(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test multiline text input"""
         inputs = iter(["My Book", "Line 1", "Line 2", "Line 3", "END"])
         monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
 
-        text, output_name = get_plaintext_input()
+        text, _ = get_plaintext_input()
 
+        assert text is not None
         assert "Line 1" in text
         assert "Line 2" in text
         assert "Line 3" in text
 
-    def test_invalid_name_retry(self, monkeypatch):
+    def test_invalid_name_retry(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry when sanitized name is empty"""
         inputs = iter(["!!!", "Valid Name", "Some text here.", "END"])
         monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
 
-        text, output_name = get_plaintext_input()
+        _, output_name = get_plaintext_input()
 
         assert output_name == "valid-name"
 
@@ -438,7 +436,7 @@ class TestGetPlaintextInput:
 class TestDocumentParserExtractTextMethods:
     """Tests for DocumentParser text extraction methods"""
 
-    def test_extract_text_from_txt_utf8(self, tmp_path, monkeypatch):
+    def test_extract_text_from_txt_utf8(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test extracting text from UTF-8 TXT file"""
         test_file = tmp_path / "test.txt"
         test_content = "This is test content.\nWith multiple lines."
@@ -451,7 +449,7 @@ class TestDocumentParserExtractTextMethods:
 
         assert result == test_content
 
-    def test_extract_text_from_txt_non_utf8(self, tmp_path, monkeypatch):
+    def test_extract_text_from_txt_non_utf8(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test TXT extraction with latin-1 encoding"""
         test_file = tmp_path / "test.txt"
         # Create file with latin-1 encoding
@@ -465,7 +463,7 @@ class TestDocumentParserExtractTextMethods:
         # Should read successfully (may have encoding issues but shouldn't crash)
         assert len(result) > 0
 
-    def test_extract_text_from_txt_error(self, monkeypatch):
+    def test_extract_text_from_txt_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test error handling in TXT extraction"""
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
 
@@ -473,7 +471,7 @@ class TestDocumentParserExtractTextMethods:
 
         assert result == ""
 
-    def test_parse_document_pdf(self, tmp_path, monkeypatch):
+    def test_parse_document_pdf(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test parse_document delegates to PDF parser"""
         # Create a temp file so existence check passes
         test_file = tmp_path / "test.pdf"
@@ -487,7 +485,7 @@ class TestDocumentParserExtractTextMethods:
         mock_extract.assert_called_once_with(str(test_file))
         assert result == "PDF text content"
 
-    def test_parse_document_epub(self, tmp_path, monkeypatch):
+    def test_parse_document_epub(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test parse_document delegates to EPUB parser"""
         # Create a temp file so existence check passes
         test_file = tmp_path / "test.epub"
@@ -501,7 +499,7 @@ class TestDocumentParserExtractTextMethods:
         mock_extract.assert_called_once_with(str(test_file))
         assert result == "EPUB text content"
 
-    def test_parse_document_unsupported(self, monkeypatch):
+    def test_parse_document_unsupported(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test parse_document with unsupported file type"""
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
 
@@ -509,7 +507,7 @@ class TestDocumentParserExtractTextMethods:
 
         assert result == ""
 
-    def test_parse_document_not_found(self, monkeypatch):
+    def test_parse_document_not_found(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test parse_document with non-existent file"""
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
 
@@ -517,7 +515,7 @@ class TestDocumentParserExtractTextMethods:
 
         assert result == ""
 
-    def test_extract_text_from_html(self, tmp_path, monkeypatch):
+    def test_extract_text_from_html(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test HTML text extraction"""
         test_file = tmp_path / "test.html"
         html_content = """
@@ -542,7 +540,7 @@ class TestDocumentParserExtractTextMethods:
         assert "Second paragraph" in result
         assert "alert" not in result  # Script should be removed
 
-    def test_extract_text_from_markdown_simple(self, tmp_path, monkeypatch):
+    def test_extract_text_from_markdown_simple(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test Markdown extraction (tests fallback mode since mistune may not be imported)"""
         test_file = tmp_path / "test.md"
         md_content = """# Header 1
@@ -556,7 +554,7 @@ This is **bold** and *italic* text.
         test_file.write_text(md_content)
 
         # Force fallback mode
-        monkeypatch.setattr("main_document_mode.MISTUNE_AVAILABLE", False)
+        monkeypatch.setattr("main_document_mode._MISTUNE_AVAILABLE", False)
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
 
         result = DocumentParser.extract_text_from_markdown(str(test_file))
@@ -567,13 +565,13 @@ This is **bold** and *italic* text.
         assert "**" not in result  # Bold markers removed
         assert "#" not in result  # Headers removed
 
-    def test_extract_text_from_markdown_without_mistune(self, tmp_path, monkeypatch):
+    def test_extract_text_from_markdown_without_mistune(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test Markdown extraction without mistune (fallback mode)"""
         test_file = tmp_path / "test.md"
         md_content = "# Header\n\n**Bold** text and [link](url)"
         test_file.write_text(md_content)
 
-        monkeypatch.setattr("main_document_mode.MISTUNE_AVAILABLE", False)
+        monkeypatch.setattr("main_document_mode._MISTUNE_AVAILABLE", False)
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
 
         result = DocumentParser.extract_text_from_markdown(str(test_file))
@@ -587,7 +585,7 @@ This is **bold** and *italic* text.
 class TestDocumentParserExtractAuthorFromEpub:
     """Tests for extract_author_from_epub function"""
 
-    def test_extract_author_success(self, monkeypatch):
+    def test_extract_author_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful author extraction"""
         # Mock epub book object
         mock_book = Mock()
@@ -600,7 +598,7 @@ class TestDocumentParserExtractAuthorFromEpub:
 
         assert result == "Jane Austen"
 
-    def test_extract_author_no_metadata(self, monkeypatch):
+    def test_extract_author_no_metadata(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when no author metadata exists"""
         mock_book = Mock()
         mock_book.get_metadata = Mock(return_value=[])
@@ -611,7 +609,7 @@ class TestDocumentParserExtractAuthorFromEpub:
 
         assert result is None
 
-    def test_extract_author_empty_string(self, monkeypatch):
+    def test_extract_author_empty_string(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when author metadata is empty string"""
         mock_book = Mock()
         mock_book.get_metadata = Mock(return_value=[("", {})])
@@ -622,7 +620,7 @@ class TestDocumentParserExtractAuthorFromEpub:
 
         assert result is None
 
-    def test_extract_author_exception(self, monkeypatch):
+    def test_extract_author_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test exception handling during author extraction"""
         monkeypatch.setattr("main_document_mode.epub.read_epub", Mock(side_effect=Exception("Read error")))
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
@@ -635,7 +633,7 @@ class TestDocumentParserExtractAuthorFromEpub:
 class TestPromptForAuthor:
     """Tests for prompt_for_author function"""
 
-    def test_accept_default_author(self, monkeypatch):
+    def test_accept_default_author(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test accepting default author"""
         inputs = iter(["y"])
         monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
@@ -646,7 +644,7 @@ class TestPromptForAuthor:
 
         assert result == "Jane Austen"
 
-    def test_reject_default_author(self, monkeypatch):
+    def test_reject_default_author(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test rejecting default author"""
         inputs = iter(["n"])
         monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
@@ -657,7 +655,7 @@ class TestPromptForAuthor:
 
         assert result == "Unknown Author"
 
-    def test_custom_author_name(self, monkeypatch):
+    def test_custom_author_name(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test entering custom author name"""
         inputs = iter(["custom", "Charles Dickens"])
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
@@ -667,7 +665,7 @@ class TestPromptForAuthor:
 
         assert result == "Charles Dickens"
 
-    def test_custom_author_empty(self, monkeypatch):
+    def test_custom_author_empty(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test custom author with empty input defaults to Unknown"""
         inputs = iter(["custom", ""])
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
@@ -677,7 +675,7 @@ class TestPromptForAuthor:
 
         assert result == "Unknown Author"
 
-    def test_no_default_author_with_input(self, monkeypatch):
+    def test_no_default_author_with_input(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when no default author but user provides one"""
         inputs = iter(["Mark Twain"])
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)
@@ -687,7 +685,7 @@ class TestPromptForAuthor:
 
         assert result == "Mark Twain"
 
-    def test_no_default_author_skip(self, monkeypatch):
+    def test_no_default_author_skip(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test when no default author and user skips"""
         inputs = iter([""])
         monkeypatch.setattr("main_document_mode.print_colored", lambda text, color: None)

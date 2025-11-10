@@ -20,7 +20,7 @@ from main_document_mode import (
 
 async def convert_document(voice_id: str, file_path: str):
     print_colored("\n" + "=" * 60, "cyan")
-    print_colored("📚 Document → Audio Converter (Chapter Mode)", "magenta")
+    print_colored("Document to Audio Converter (Chapter Mode)", "magenta")
     print_colored("=" * 60, "cyan")
 
     # Check for ffmpeg
@@ -60,13 +60,13 @@ async def convert_document(voice_id: str, file_path: str):
     # Calculate total characters
     total_chars = sum(len(ch.text) for ch in chapters)
 
-    print_colored(f"\n🎤 Voice ID: {voice_id}", "green")
-    print_colored(f"📄 File: {file_path_obj.name}", "yellow")
-    print_colored(f"📚 Chapters: {len(chapters)}", "yellow")
-    print_colored(f"📏 Total characters: {total_chars:,}", "yellow")
+    print_colored(f"\nVoice ID: {voice_id}", "green")
+    print_colored(f"File: {file_path_obj.name}", "yellow")
+    print_colored(f"Chapters: {len(chapters)}", "yellow")
+    print_colored(f"Total characters: {total_chars:,}", "yellow")
 
     # Show chapter preview
-    print_colored(f"\n📖 Chapter structure:", "cyan")
+    print_colored(f"\nChapter structure:", "cyan")
     for ch in chapters[:5]:  # Show first 5
         print_colored(f"   {ch.number:02d}. {ch.title}", "yellow")
     if len(chapters) > 5:
@@ -74,10 +74,10 @@ async def convert_document(voice_id: str, file_path: str):
 
     # Estimate chunks
     estimated_chunks = (total_chars // 1000) + 1
-    print_colored(f"\n🔢 Estimated total chunks: ~{estimated_chunks}", "yellow")
+    print_colored(f"\nEstimated total chunks: ~{estimated_chunks}", "yellow")
 
     # Confirm
-    confirm = input("\n🚀 Start conversion? (y/n): ").lower()
+    confirm = input("\nStart conversion? (y/n): ").lower()
     if confirm != "y":
         print_colored("Cancelled", "yellow")
         return
@@ -94,7 +94,7 @@ async def convert_document(voice_id: str, file_path: str):
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("\n📚 Convert EPUB/PDF to Audio with Custom Voice")
+        print("\nConvert EPUB/PDF to Audio with Custom Voice")
         print("=" * 60)
         print("\nUsage:")
         print(f"  python3.11 {sys.argv[0]} <voice-id> <file-path>")
@@ -116,4 +116,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(convert_document(voice_id, file_path))
     except KeyboardInterrupt:
-        print_colored("\n\n⚠️  Cancelled", "yellow")
+        print_colored("\n\nCancelled", "yellow")

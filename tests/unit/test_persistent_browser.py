@@ -5,8 +5,8 @@ Tests for simplified rate limiting with proactive CAPTCHA handling
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, call
-import asyncio
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 
 @pytest.mark.unit
@@ -32,7 +32,7 @@ class TestPersistentBrowserBasics:
 
             return browser
 
-    def test_update_health_success(self, browser_instance):
+    def test_update_health_success(self, browser_instance: Any) -> None:
         """Test updating counters with successful request"""
         browser_instance.update_health(success=True)
 
@@ -40,7 +40,7 @@ class TestPersistentBrowserBasics:
         assert browser_instance.success_count == 1
         assert browser_instance.requests_since_captcha == 1
 
-    def test_update_health_failure(self, browser_instance):
+    def test_update_health_failure(self, browser_instance: Any) -> None:
         """Test updating counters with failed request"""
         browser_instance.update_health(success=False)
 
@@ -49,7 +49,7 @@ class TestPersistentBrowserBasics:
         # requests_since_captcha only increments on success
         assert browser_instance.requests_since_captcha == 0
 
-    def test_update_health_multiple_successes(self, browser_instance):
+    def test_update_health_multiple_successes(self, browser_instance: Any) -> None:
         """Test counter tracking over multiple successful requests"""
         for _ in range(10):
             browser_instance.update_health(success=True)
@@ -78,7 +78,7 @@ class TestPersistentBrowserProactiveCaptcha:
             return browser
 
     @pytest.mark.asyncio
-    async def test_check_and_handle_captcha_limit_below_threshold(self, browser_instance):
+    async def test_check_and_handle_captcha_limit_below_threshold(self, browser_instance: Any) -> None:
         """Test that CAPTCHA check does nothing when below threshold"""
         browser_instance.requests_since_captcha = 50  # Below 55 limit
 
@@ -88,7 +88,7 @@ class TestPersistentBrowserProactiveCaptcha:
             mock_input.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_check_and_handle_captcha_limit_at_threshold(self, browser_instance):
+    async def test_check_and_handle_captcha_limit_at_threshold(self, browser_instance: Any) -> None:
         """Test that CAPTCHA check prompts when at threshold"""
         browser_instance.requests_since_captcha = 55  # At limit
 
@@ -103,7 +103,7 @@ class TestPersistentBrowserProactiveCaptcha:
             mock_input.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_check_and_handle_captcha_limit_resets_counter(self, browser_instance):
+    async def test_check_and_handle_captcha_limit_resets_counter(self, browser_instance: Any) -> None:
         """Test that counter resets after CAPTCHA solved"""
         browser_instance.requests_since_captcha = 55
 
@@ -118,7 +118,7 @@ class TestPersistentBrowserProactiveCaptcha:
             assert browser_instance.requests_since_captcha == 0
 
     @pytest.mark.asyncio
-    async def test_check_and_handle_captcha_limit_above_threshold(self, browser_instance):
+    async def test_check_and_handle_captcha_limit_above_threshold(self, browser_instance: Any) -> None:
         """Test CAPTCHA handling when above threshold (edge case)"""
         browser_instance.requests_since_captcha = 60  # Above limit
 
@@ -150,14 +150,14 @@ class TestPersistentBrowserSessionHealthCheck:
             return browser
 
     @pytest.mark.asyncio
-    async def test_check_session_health_always_returns_true(self, browser_instance):
+    async def test_check_session_health_always_returns_true(self, browser_instance: Any) -> None:
         """Test that simplified health check always returns True"""
         # Simplified version always returns True (compatibility stub)
         result = await browser_instance.check_session_health()
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_check_session_health_with_failures(self, browser_instance):
+    async def test_check_session_health_with_failures(self, browser_instance: Any) -> None:
         """Test health check still returns True even with failures"""
         # Add some failures
         for _ in range(20):
@@ -193,7 +193,7 @@ class TestPersistentBrowserRestart:
             return browser
 
     @pytest.mark.asyncio
-    async def test_restart_resets_metrics(self, browser_instance):
+    async def test_restart_resets_metrics(self, browser_instance: Any) -> None:
         """Test that restart() resets all counters"""
         # Mock initialize and cleanup to avoid actual browser operations
         with (
@@ -230,10 +230,8 @@ class TestPersistentBrowserWaitIfNeeded:
             return browser
 
     @pytest.mark.asyncio
-    async def test_wait_if_needed_sleeps_when_too_soon(self, browser_instance):
+    async def test_wait_if_needed_sleeps_when_too_soon(self, browser_instance: Any) -> None:
         """Test that wait_if_needed sleeps when time since last request is too short"""
-        import time
-
         with (
             patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
             patch("time.time", return_value=browser_instance.last_request_time + 1.0),
@@ -248,10 +246,8 @@ class TestPersistentBrowserWaitIfNeeded:
         assert abs(call_args[0] - 1.0) < 0.01  # Allow small floating point error
 
     @pytest.mark.asyncio
-    async def test_wait_if_needed_no_sleep_when_enough_time_passed(self, browser_instance):
+    async def test_wait_if_needed_no_sleep_when_enough_time_passed(self, browser_instance: Any) -> None:
         """Test that wait_if_needed doesn't sleep when enough time has passed"""
-        import time
-
         with (
             patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
             patch("time.time", return_value=browser_instance.last_request_time + 3.0),
@@ -282,7 +278,7 @@ class TestPersistentBrowserCaptchaNotification:
             return browser
 
     @pytest.mark.asyncio
-    async def test_display_captcha_notification_takes_screenshot(self, browser_instance):
+    async def test_display_captcha_notification_takes_screenshot(self, browser_instance: Any) -> None:
         """Test that CAPTCHA notification takes screenshot"""
         with patch("tempfile.mktemp", return_value="/tmp/test.png"), patch("subprocess.run"), patch("builtins.print"):
 
@@ -292,7 +288,7 @@ class TestPersistentBrowserCaptchaNotification:
             browser_instance.page.screenshot.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_display_captcha_notification_shows_stats(self, browser_instance):
+    async def test_display_captcha_notification_shows_stats(self, browser_instance: Any) -> None:
         """Test that CAPTCHA notification displays session stats"""
         with (
             patch("tempfile.mktemp", return_value="/tmp/test.png"),
@@ -306,7 +302,7 @@ class TestPersistentBrowserCaptchaNotification:
             assert mock_print.called
 
     @pytest.mark.asyncio
-    async def test_display_captcha_notification_sends_macos_notification(self, browser_instance):
+    async def test_display_captcha_notification_sends_macos_notification(self, browser_instance: Any) -> None:
         """Test that macOS notification is sent"""
         with (
             patch("tempfile.mktemp", return_value="/tmp/test.png"),
@@ -341,7 +337,7 @@ class TestPersistentBrowserIntegration:
             browser.last_request_time = 0
             return browser
 
-    def test_request_counter_increments_properly(self, browser_instance):
+    def test_request_counter_increments_properly(self, browser_instance: Any) -> None:
         """Test that counters increment properly through multiple requests"""
         # Simulate 60 successful requests
         for _ in range(60):
@@ -351,7 +347,7 @@ class TestPersistentBrowserIntegration:
         assert browser_instance.success_count == 60
         assert browser_instance.requests_since_captcha == 60
 
-    def test_captcha_limit_detection(self, browser_instance):
+    def test_captcha_limit_detection(self, browser_instance: Any) -> None:
         """Test that CAPTCHA limit is properly detected"""
         # Simulate requests up to limit
         for _ in range(54):
@@ -365,7 +361,7 @@ class TestPersistentBrowserIntegration:
         assert browser_instance.requests_since_captcha >= browser_instance.captcha_request_limit
 
     @pytest.mark.asyncio
-    async def test_full_request_cycle_with_captcha(self, browser_instance):
+    async def test_full_request_cycle_with_captcha(self, browser_instance: Any) -> None:
         """Test full cycle: requests → CAPTCHA prompt → reset → continue"""
         # Simulate 54 requests (below limit)
         for _ in range(54):
