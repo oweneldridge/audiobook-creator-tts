@@ -106,7 +106,9 @@ class TestDisplayVoices:
         expected_count = 10  # Based on sample_voices_data fixture
         assert count == expected_count
 
-    def test_display_voices_with_ids(self, sample_voices_data: Dict[str, Any], capsys: pytest.CaptureFixture[str]) -> None:
+    def test_display_voices_with_ids(
+        self, sample_voices_data: Dict[str, Any], capsys: pytest.CaptureFixture[str]
+    ) -> None:
         """Test display with voice IDs shown"""
         display_voices(sample_voices_data, show_ids=True)
 

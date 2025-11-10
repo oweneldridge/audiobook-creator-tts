@@ -356,7 +356,9 @@ class TestPrintMethods:
         assert any("Workers: 2 total" in p for p in printed)
         assert any("Succeeded: 2" in p for p in printed)
 
-    def test_render_progress_dashboard(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_render_progress_dashboard(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         """Test progress dashboard rendering"""
         from parallel_coordinator import ParallelCoordinator
 

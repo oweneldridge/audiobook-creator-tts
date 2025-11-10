@@ -246,7 +246,9 @@ class TestDocumentParserEPUB:
     @patch("main_document_mode.epub")
     @patch("main_document_mode.BeautifulSoup")
     @patch("main_document_mode.ebooklib.ITEM_DOCUMENT", 9)
-    def test_extract_epub_multiple_chapters(self, mock_bs: Any, mock_epub: Any, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_extract_epub_multiple_chapters(
+        self, mock_bs: Any, mock_epub: Any, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         """Test EPUB with multiple chapters"""
         # Mock multiple items
         items = []
