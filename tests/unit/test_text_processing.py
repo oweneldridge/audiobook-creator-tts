@@ -97,16 +97,19 @@ class TestValidateText:
         result = validate_text(text)
         assert result == text
 
-    def test_validate_text_removes_non_ascii(self, non_ascii_text: str) -> None:
-        """Test that non-ASCII characters are removed"""
+    def test_validate_text_keeps_unicode_drops_emoji(self, non_ascii_text: str) -> None:
+        """Unicode letters/accents are preserved (for neural TTS); emoji are dropped."""
         result = validate_text(non_ascii_text)
 
-        # Should not contain emoji or special chars
+        # Emoji / pictographs removed (TTS can't voice them)
         assert "🎉" not in result
-        assert "é" not in result
-        assert "ñ" not in result
 
-        # Should still contain ASCII parts
+        # Accented letters now PRESERVED (previously stripped to ASCII)
+        assert "é" in result
+        assert "ñ" in result
+        assert "ü" in result
+
+        # ASCII text intact
         assert "Hello world" in result
 
     def test_validate_text_empty_input(self) -> None:

@@ -77,6 +77,7 @@ from main import (
 
 # Import Playwright browser
 from main_playwright_persistent import PersistentBrowser
+from tts_backend import is_kokoro, make_backend
 
 # Note: Parallel processing imports are done lazily inside functions to avoid circular imports
 
@@ -856,7 +857,7 @@ async def create_m4b_audiobook(
             "-c:a",
             "aac",
             "-b:a",
-            "64k",  # 64kbps for voice is sufficient
+            "128k",  # 128kbps AAC — better fidelity for neural TTS (was 64k)
             "-ar",
             "44100",
             "-ac",
@@ -2197,8 +2198,8 @@ async def main():
             print_colored(f"\n❌ File not found: {cli_file_path}", "red")
             cli_file_path = None
 
-    # Initialize browser (one-time)
-    browser = PersistentBrowser()
+    # Initialize TTS backend (one-time): Kokoro (default) or speechma — see tts_backend.py
+    browser = make_backend()
 
     try:
         await browser.initialize()
@@ -2374,11 +2375,15 @@ async def main():
             if confirm != "y":
                 continue
 
-            # Use interactive voice selection
-            voice_id, _ = select_voice_interactive(voices)
-            if not voice_id:
-                print_colored("Voice selection cancelled.", "yellow")
-                continue
+            # Voice: Kokoro uses its configured voice; speechma uses the 583-voice picker
+            if is_kokoro():
+                voice_id = browser.voice
+                print_colored(f"\n🔊 Kokoro voice: {voice_id}", "green")
+            else:
+                voice_id, _ = select_voice_interactive(voices)
+                if not voice_id:
+                    print_colored("Voice selection cancelled.", "yellow")
+                    continue
 
             # Chunk chapters BEFORE mode selection (needed for parallel mode safety test)
             chunk_size = 2000  # Optimal chunk size
@@ -2394,9 +2399,10 @@ async def main():
                     )
                 print_colored(f"\n✅ Total chunks across all chapters: {total_chunks_actual}", "green")
 
-            # Mode selection (simple vs parallel) - only for chapter-based processing
+            # Mode selection (simple vs parallel) - only for chapter-based processing.
+            # Kokoro has no CAPTCHA/rate-limit, so simple mode is already unlimited — skip parallel.
             use_parallel = False
-            if chapters and len(chapters) > 1:
+            if chapters and len(chapters) > 1 and not is_kokoro():
                 total_chunks_estimate = total_chunks_actual  # Use actual chunked count
 
                 if total_chunks_estimate >= 100:  # Only offer parallel for large conversions
