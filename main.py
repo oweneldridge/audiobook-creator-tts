@@ -170,7 +170,22 @@ def split_text(text: str, chunk_size: int = 1000) -> List[str]:
 
 # Function to validate text
 def validate_text(text: str) -> str:
-    return "".join(char for char in text if ord(char) < 128)
+    # Preserve Unicode letters/punctuation (accents, smart quotes, em-dashes) — modern
+    # neural TTS handles them; stripping to ASCII caused mispronunciations and dropped
+    # words. Still drop control characters and emoji/pictographs (category "So"), which
+    # TTS can't voice meaningfully.
+    import unicodedata
+
+    out = []
+    for ch in text:
+        if ch in ("\n", "\t"):
+            out.append(ch)
+            continue
+        cat = unicodedata.category(ch)
+        if cat[0] == "C" or cat == "So":
+            continue
+        out.append(ch)
+    return "".join(out)
 
 
 # Function to get multiline input
