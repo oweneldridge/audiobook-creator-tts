@@ -23,7 +23,7 @@ The old speechma path is fully intact — select it with `TTS_BACKEND=speechma`.
 |---|---|---|
 | `TTS_BACKEND` | `kokoro` | `kokoro` or `speechma` |
 | `KOKORO_URL` | `http://becspk.tailaeef0f.ts.net:8880/v1` | OpenAI-compatible base URL |
-| `KOKORO_VOICE` | `af_heart` | narrator voice (browse all at `…:8880/web`) |
+| `KOKORO_VOICE` | `af_bella` | narrator voice (browse all at `…:8880/web`) |
 | `KOKORO_FORMAT` | `mp3` | keep `mp3` so the `.mp3` pipeline works as-is |
 
 The backend is the self-hosted Kokoro container on Spectre (`docker compose` service
@@ -33,11 +33,11 @@ The backend is the self-hosted Kokoro container on Spectre (`docker compose` ser
 ## Usage
 
 ```bash
-# Default — uses Kokoro (af_heart) on Spectre:
+# Default — uses Kokoro (af_bella, best for fiction) on Spectre:
 python3.11 main_document_mode.py /path/to/book.epub
 
-# Pick a different voice:
-KOKORO_VOICE=bm_george python3.11 main_document_mode.py /path/to/book.epub
+# Non-fiction / epic fantasy — UK female:
+KOKORO_VOICE=bf_emma python3.11 main_document_mode.py /path/to/book.epub
 
 # Fall back to the old speechma.com path:
 TTS_BACKEND=speechma python3.11 main_document_mode.py /path/to/book.epub
