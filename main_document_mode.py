@@ -4,6 +4,8 @@ Audiobook Creator TTS - Document Mode (EPUB/PDF)
 Converts entire EPUB or PDF files to audio with automatic text extraction
 Supports chapter-based organization with nested directory structure
 """
+from __future__ import annotations
+
 import asyncio
 import math
 import os
@@ -13,7 +15,7 @@ import subprocess
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Tuple, Union, Any
+from typing import Optional, List, Dict, Tuple, Union, Any, TYPE_CHECKING
 from dataclasses import dataclass
 
 # Suppress ebooklib warnings (library-level, not our code)
@@ -75,8 +77,10 @@ from main import (
     select_voice_interactive,
 )
 
-# Import Playwright browser
-from main_playwright_persistent import PersistentBrowser
+# Playwright browser is only needed in speechma mode — import lazily (type-only here)
+# so the Kokoro path runs on hosts without playwright installed (e.g. Spectre).
+if TYPE_CHECKING:
+    from main_playwright_persistent import PersistentBrowser
 from tts_backend import is_kokoro, make_backend
 
 # Note: Parallel processing imports are done lazily inside functions to avoid circular imports

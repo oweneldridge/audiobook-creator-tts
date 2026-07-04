@@ -1,9 +1,12 @@
 #!/usr/bin/env python3.11
 """
 Convert documents with any voice ID (Chapter-aware version with M4B audiobook output)
-Usage: python3.11 convert_document.py <voice-id> <file-path>
+Usage: python3.11 convert_document.py [-y|--yes] <voice-id> <file-path>
 Example: python3.11 convert_document.py voice-111 ~/Documents/macbeth.epub
 Output: Chapter-organized MP3s + single M4B audiobook with chapter navigation
+
+Backend follows TTS_BACKEND (kokoro|speechma). With -y/--yes all confirmation
+prompts are skipped, making this the headless entrypoint for automation.
 """
 import asyncio
 import sys
@@ -11,14 +14,14 @@ from pathlib import Path
 from main_document_mode import (
     DocumentParser,
     process_chapters_to_speech,
-    PersistentBrowser,
     print_colored,
     check_ffmpeg_installed,
     show_ffmpeg_install_instructions,
 )
+from tts_backend import make_backend
 
 
-async def convert_document(voice_id: str, file_path: str):
+async def convert_document(voice_id: str, file_path: str, auto_yes: bool = False):
     print_colored("\n" + "=" * 60, "cyan")
     print_colored("Document to Audio Converter (Chapter Mode)", "magenta")
     print_colored("=" * 60, "cyan")
@@ -27,10 +30,13 @@ async def convert_document(voice_id: str, file_path: str):
     ffmpeg_available = check_ffmpeg_installed()
     if not ffmpeg_available:
         show_ffmpeg_install_instructions()
-        confirm = input("\nContinue without MP3 concatenation? (y/n): ").lower()
-        if confirm != "y":
-            print_colored("\nCancelled", "yellow")
-            return
+        if auto_yes:
+            print_colored("\n--yes: continuing without MP3 concatenation", "yellow")
+        else:
+            confirm = input("\nContinue without MP3 concatenation? (y/n): ").lower()
+            if confirm != "y":
+                print_colored("\nCancelled", "yellow")
+                return
     else:
         print_colored("✅ ffmpeg detected - chapters will be concatenated and M4B audiobook will be created", "green")
 
@@ -77,13 +83,14 @@ async def convert_document(voice_id: str, file_path: str):
     print_colored(f"\nEstimated total chunks: ~{estimated_chunks}", "yellow")
 
     # Confirm
-    confirm = input("\nStart conversion? (y/n): ").lower()
-    if confirm != "y":
-        print_colored("Cancelled", "yellow")
-        return
+    if not auto_yes:
+        confirm = input("\nStart conversion? (y/n): ").lower()
+        if confirm != "y":
+            print_colored("Cancelled", "yellow")
+            return
 
-    # Initialize browser
-    browser = PersistentBrowser()
+    # Initialize TTS backend (Kokoro or speechma, per TTS_BACKEND)
+    browser = make_backend()
 
     try:
         await browser.initialize()
@@ -110,10 +117,12 @@ if __name__ == "__main__":
         print("\n" + "=" * 60)
         sys.exit(1)
 
-    voice_id = sys.argv[1]
-    file_path = sys.argv[2].strip('"').strip("'")
+    auto_yes = any(a in ("-y", "--yes") for a in sys.argv[1:])
+    args = [a for a in sys.argv[1:] if a not in ("-y", "--yes")]
+    voice_id = args[0]
+    file_path = args[1].strip('"').strip("'")
 
     try:
-        asyncio.run(convert_document(voice_id, file_path))
+        asyncio.run(convert_document(voice_id, file_path, auto_yes=auto_yes))
     except KeyboardInterrupt:
         print_colored("\n\nCancelled", "yellow")
