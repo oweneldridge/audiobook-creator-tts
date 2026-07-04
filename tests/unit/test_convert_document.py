@@ -36,7 +36,7 @@ class TestConvertDocument:
 
         # Patch imports
         monkeypatch.setattr("convert_document.DocumentParser", mock_parser)
-        monkeypatch.setattr("convert_document.PersistentBrowser", lambda: mock_browser)
+        monkeypatch.setattr("convert_document.make_backend", lambda: mock_browser)
         monkeypatch.setattr("convert_document.process_chapters_to_speech", mock_process)
         monkeypatch.setattr("convert_document.check_ffmpeg_installed", lambda: True)
 
@@ -77,7 +77,7 @@ class TestConvertDocument:
 
         # Patch imports
         monkeypatch.setattr("convert_document.DocumentParser", mock_parser)
-        monkeypatch.setattr("convert_document.PersistentBrowser", lambda: mock_browser)
+        monkeypatch.setattr("convert_document.make_backend", lambda: mock_browser)
         monkeypatch.setattr("convert_document.process_chapters_to_speech", mock_process)
         monkeypatch.setattr("convert_document.check_ffmpeg_installed", lambda: True)
 
@@ -140,7 +140,7 @@ class TestConvertDocument:
 
         # Patch imports
         monkeypatch.setattr("convert_document.DocumentParser", mock_parser)
-        monkeypatch.setattr("convert_document.PersistentBrowser", lambda: mock_browser)
+        monkeypatch.setattr("convert_document.make_backend", lambda: mock_browser)
         monkeypatch.setattr("convert_document.process_chapters_to_speech", mock_process)
         monkeypatch.setattr("convert_document.check_ffmpeg_installed", lambda: False)
         monkeypatch.setattr("convert_document.show_ffmpeg_install_instructions", lambda: None)
@@ -293,7 +293,7 @@ class TestConvertDocument:
 
         # Patch imports
         monkeypatch.setattr("convert_document.DocumentParser", mock_parser)
-        monkeypatch.setattr("convert_document.PersistentBrowser", lambda: mock_browser)
+        monkeypatch.setattr("convert_document.make_backend", lambda: mock_browser)
         monkeypatch.setattr("convert_document.process_chapters_to_speech", mock_process)
         monkeypatch.setattr("convert_document.check_ffmpeg_installed", lambda: True)
 
@@ -340,7 +340,7 @@ class TestMainCommandLine:
 
         # Patch imports
         monkeypatch.setattr("convert_document.DocumentParser", mock_parser)
-        monkeypatch.setattr("convert_document.PersistentBrowser", lambda: mock_browser)
+        monkeypatch.setattr("convert_document.make_backend", lambda: mock_browser)
         monkeypatch.setattr("convert_document.process_chapters_to_speech", mock_process)
         monkeypatch.setattr("convert_document.check_ffmpeg_installed", lambda: True)
 
