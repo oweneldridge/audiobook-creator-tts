@@ -38,8 +38,9 @@ from pypdf import PdfReader
 
 # EPUB parsing
 import ebooklib
+from collections import OrderedDict
 from ebooklib import epub
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
 # Additional document format support
 try:
@@ -1075,6 +1076,70 @@ class DocumentParser:
         if story_start_idx is None:
             story_start_idx = 0
 
+        # Group TOC items by content file so entries pointing into the same file
+        # (via #anchors) each get ONLY their own slice of text. Without this,
+        # every anchored entry would render the entire file's text — massive
+        # duplication on books whose TOC has many anchors per file.
+        grouped: "OrderedDict[str, list]" = OrderedDict()
+        for idx, item in enumerate(toc_items):
+            if not hasattr(item, "href"):
+                continue
+            base, _, anchor = item.href.partition("#")
+            title = item.title if hasattr(item, "title") else f"Section {idx + 1}"
+            grouped.setdefault(base, []).append((idx, title, anchor or None))
+
+        # Extract per-entry text, one parse per content file
+        texts_by_idx: dict = {}
+        for base, entries in grouped.items():
+            try:
+                content_item = None
+                for book_item in book.get_items():
+                    if hasattr(book_item, "get_name") and base in book_item.get_name():
+                        content_item = book_item
+                        break
+                if not content_item:
+                    continue
+
+                soup = BeautifulSoup(content_item.get_content(), "html.parser")
+                for script in soup(["script", "style"]):
+                    script.decompose()
+
+                anchors = [a for (_, _, a) in entries if a]
+                if len(entries) == 1 or not anchors:
+                    # Whole file belongs to the first entry; extra anchor-less
+                    # duplicates (if any) get nothing.
+                    texts_by_idx[entries[0][0]] = soup.get_text()
+                    continue
+
+                # Linear pass: bucket every text node under the most recent anchor
+                anchor_set = set(anchors)
+                buckets: dict = {"__pre__": []}
+                current = "__pre__"
+                root = soup.body if soup.body else soup
+                for el in root.descendants:
+                    if isinstance(el, Tag):
+                        el_id = el.get("id") or (el.get("name") if el.name == "a" else None)
+                        if el_id in anchor_set:
+                            current = el_id
+                            buckets.setdefault(current, [])
+                    elif isinstance(el, NavigableString) and not isinstance(el, Comment):
+                        buckets.setdefault(current, []).append(str(el))
+
+                # Text before the first anchor goes to the file's first TOC entry
+                first_idx = entries[0][0]
+                for pos, (idx, _title, anchor) in enumerate(entries):
+                    parts = []
+                    if pos == 0:
+                        parts.append("".join(buckets.get("__pre__", [])))
+                    if anchor:
+                        parts.append("".join(buckets.get(anchor, [])))
+                    elif pos != 0:
+                        parts = []  # anchor-less non-first entry: nothing (avoid dupes)
+                    texts_by_idx[idx] = "\n".join(p for p in parts if p)
+            except Exception as e:
+                print_colored(f"⚠️  Error splitting {base}: {e}", "yellow")
+                continue
+
         # Map TOC items to actual content
         front_matter_num = 0
         story_chapter_num = 0
@@ -1087,25 +1152,11 @@ class DocumentParser:
                 else:
                     title = f"Section {idx + 1}"
 
-                # Get href/file
                 if hasattr(item, "href"):
-                    href = item.href.split("#")[0]  # Remove anchor
+                    raw_text = texts_by_idx.get(idx)
 
-                    # Find corresponding item in book
-                    content_item = None
-                    for book_item in book.get_items():
-                        if hasattr(book_item, "get_name") and href in book_item.get_name():
-                            content_item = book_item
-                            break
-
-                    if content_item:
-                        # Extract text
-                        soup = BeautifulSoup(content_item.get_content(), "html.parser")
-                        for script in soup(["script", "style"]):
-                            script.decompose()
-
-                        text = soup.get_text()
-                        lines = (line.strip() for line in text.splitlines())
+                    if raw_text is not None:
+                        lines = (line.strip() for line in raw_text.splitlines())
                         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                         text = "\n".join(chunk for chunk in chunks if chunk)
 

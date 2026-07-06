@@ -141,7 +141,7 @@ class TestDocumentConversionWorkflow:
 
     @pytest.mark.asyncio
     @patch("main_document_mode.DocumentParser.extract_text_from_txt")
-    @patch("main_document_mode.PersistentBrowser")
+    @patch("main_document_mode.make_backend")
     async def test_txt_to_speech_workflow(self, mock_browser: Mock, mock_extract: Mock, tmp_path: Path) -> None:
         """Test complete TXT to speech workflow"""
         from main_document_mode import split_text_smart
@@ -173,7 +173,7 @@ class TestDocumentConversionWorkflow:
 
     @pytest.mark.asyncio
     @patch("main_document_mode.DocumentParser.extract_chapters_from_epub")
-    @patch("main_document_mode.PersistentBrowser")
+    @patch("main_document_mode.make_backend")
     async def test_epub_to_speech_workflow(
         self, mock_browser: Mock, mock_extract: Mock, sample_chapter_data: List[Dict[str, Any]]
     ) -> None:
@@ -344,8 +344,16 @@ class TestDataFlowWorkflows:
         # Sanitize
         sanitized = validate_text(non_ascii_text)
 
-        # Should be ASCII only
-        assert all(ord(c) < 128 for c in sanitized)
+        # Unicode letters/punctuation are preserved (neural TTS voices them);
+        # control characters and emoji/pictographs are stripped.
+        import unicodedata
+
+        for c in sanitized:
+            if c in ("\n", "\t"):
+                continue
+            cat = unicodedata.category(c)
+            assert cat[0] != "C", f"control char survived: {c!r}"
+            assert cat != "So", f"pictograph survived: {c!r}"
 
         # Should still be splittable
         chunks = split_text(sanitized, chunk_size=100)
