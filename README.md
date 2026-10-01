@@ -1,8 +1,14 @@
 # Audiobook Creator TTS
 
-Convert text and documents to audio using AI text-to-speech. Supports 583 voices across 76 languages.
+Turn an EPUB or PDF into a chaptered .m4b audiobook, with chapters from the book's table of contents and the cover embedded.
 
-Built on top of [Speechma-API](https://github.com/fairy-root/Speechma-API) with added document processing, parallel conversion, and M4B audiobook generation.
+Narration comes from [Kokoro](https://github.com/remsky/Kokoro-FastAPI), a neural text-to-speech model you run yourself behind an OpenAI-compatible API, so the book never leaves your own hardware. That's the default backend; configuration is in [KOKORO_BACKEND.md](KOKORO_BACKEND.md).
+
+```bash
+python3.11 convert_document.py --yes af_bella path/to/book.epub
+```
+
+The original backend is still available with `TTS_BACKEND=speechma`: it drives the speechma.com website through a browser session (583 voices across 76 languages), building on [Speechma-API](https://github.com/fairy-root/Speechma-API). The installer and the modes below are mostly about that path.
 
 ## Quick Start
 
