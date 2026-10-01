@@ -10,7 +10,7 @@ Pluggable TTS backends for Audiobook Creator.
 
 Configured via environment variables:
     TTS_BACKEND   = kokoro | speechma          (default: kokoro)
-    KOKORO_URL    = http://becspk.tailaeef0f.ts.net:8880/v1   (the OpenAI-compatible base)
+    KOKORO_URL    = http://localhost:8880/v1    (the OpenAI-compatible base)
     KOKORO_VOICE  = af_bella                    (default narrator; bf_emma for non-fiction)
     KOKORO_FORMAT = mp3                         (keep mp3 so the .mp3 pipeline works as-is)
 
@@ -23,7 +23,7 @@ import os
 import urllib.request
 from typing import Optional, Union
 
-DEFAULT_KOKORO_URL = "http://becspk.tailaeef0f.ts.net:8880/v1"
+DEFAULT_KOKORO_URL = "http://localhost:8880/v1"
 DEFAULT_KOKORO_VOICE = "af_bella"  # animated/dramatic — best for fiction; bf_emma for non-fiction
 
 
